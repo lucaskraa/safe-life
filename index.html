@@ -3,328 +3,375 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Safe Life Pro - Ecossistema de Proteção</title>
+    <title>Safe Life - Premium</title>
+    <style>
+        /* CSS PREMIUM INTEGRADO: CHAMATIVO, AZUL E ULTRA-RÁPIDO */
+        :root {
+            --color-primary: #3a86ff; /* Azul Safe Life Chamativo */
+            --color-gradient-1: #3a86ff;
+            --color-gradient-2: #00b4d8; /* Degradê moderno */
+            --color-secondary: #ff006e; /* Emergências */
+            --color-bg-light: #f8f9fa;
+            --color-text-dark: #212529;
+            --card-radius: 20px;
+            --transition-fast: 0.15s; /* Feedback visual imediato */
+        }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--color-bg-light);
+            color: var(--color-text-dark);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Telas */
+        .screen {
+            display: none; min-height: 100vh;
+            padding: 24px; box-sizing: border-box; text-align: center;
+            padding-bottom: 110px; /* Espaço para o nav */
+        }
+        .screen.active { display: block; animation: quickFade var(--transition-fast) ease-out; }
+
+        header h1 {
+            color: var(--color-primary); font-size: 32px; font-weight: 800;
+            margin-bottom: 8px; letter-spacing: -0.5px;
+        }
+
+        /* --- BOTÕES PREMIUM ULTRA CHAMATIVOS --- */
+        .btn, .btn-large {
+            display: block; width: 100%; max-width: 380px;
+            padding: 18px; margin: 14px auto;
+            border-radius: var(--card-radius); border: none;
+            font-size: 16px; font-weight: 700; color: #fff;
+            cursor: pointer;
+            background: linear-gradient(135deg, var(--color-gradient-1), var(--color-gradient-2));
+            box-shadow: 0 6px 20px rgba(58, 134, 255, 0.3);
+            transition: transform var(--transition-fast) cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow var(--transition-fast);
+            text-decoration: none; box-sizing: border-box;
+        }
+
+        .btn:hover, .btn-large:hover {
+            transform: translateY(-3px); box-shadow: 0 10px 25px rgba(58, 134, 255, 0.45);
+        }
+
+        .btn:active, .btn-large:active { transform: translateY(1px); }
+
+        button.emergency {
+            background: linear-gradient(135deg, var(--color-secondary), #ff4d6d);
+            box-shadow: 0 6px 20px rgba(255, 0, 110, 0.3);
+        }
+
+        /* --- INPUTS MODERNOS --- */
+        input, textarea, select {
+            display: block; width: 100%; max-width: 380px;
+            padding: 16px; margin: 12px auto;
+            border-radius: 14px; border: 2px solid #e2e8f0;
+            font-size: 15px; background: #fff; box-sizing: border-box;
+        }
+        input:focus { border-color: var(--color-primary); outline: none; }
+
+        /* NOVA IMAGEM DE BOAS-VINDAS: Humano + Cachorro Feliz */
+        .welcome-img {
+            width: 100%; max-width: 340px; border-radius: 24px;
+            margin: 15px auto; display: block;
+            box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+        }
+
+        /* Toast de Notificação Instantânea */
+        #toast {
+            position: fixed; top: -100px; left: 50%; transform: translateX(-50%);
+            background: #1e293b; color: white; padding: 16px;
+            border-radius: 30px; z-index: 2000; transition: 0.4s ease;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3); width: 85%; max-width: 380px;
+        }
+
+        /* Grid */
+        .action-buttons {
+            display: grid; grid-template-columns: 1fr;
+            justify-items: center; gap: 8px; margin: 20px auto; max-width: 800px;
+        }
+        @media(min-width:600px) { .action-buttons { grid-template-columns: 1fr 1fr; } }
+
+        /* Cards do Profissional */
+        .occurrence-card {
+            background: white; margin: 12px auto; padding: 20px;
+            width: 100%; max-width: 380px; border-radius: 18px;
+            text-align: left; border-left: 6px solid var(--color-primary);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+        }
+
+        /* Menu Inferior */
+        .bottom-nav {
+            display: flex; position: fixed; bottom: 0; left: 0; right: 0;
+            background-color: #fff; padding: 12px 0; z-index: 1000;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
+        }
+        .bottom-nav button {
+            background: none; color: #6c757d; border: none; flex: 1;
+            cursor: pointer; font-weight: 600;
+        }
+        .bottom-nav button.active-nav { color: var(--color-primary); }
+
+        @keyframes quickFade { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+    </style>
 </head>
 <body>
 
-<div id="app">
+    <div id="toast">🚀 Equipe a caminho! Chegada em 10 min.</div>
 
-    <div id="notificationToast">🚀 Profissional a caminho! Chegada em 10 min.</div>
+    <div id="app">
 
-    <div class="screen active" id="welcomeScreen">
-        <header>
-            <h1>Safe Life</h1>
-        </header>
-        <main>
-            <img src="https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=500&q=80" alt="Pessoa com cachorro" class="welcome-img">
-            <p class="screen-description">Sua conexão direta com a proteção animal. Junte-se para salvar vidas e coordenar resgates.</p>
-            <button class="btn-large" onclick="nextScreen('locationScreen')">Começar Jornada 🐾</button>
-        </main>
-    </div>
+        <div class="screen active" id="welcomeScreen">
+            <header><h1>Safe Life</h1></header>
+            <img src="https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=500&q=80" class="welcome-img" alt="Humano e cachorro feliz">
+            <main>
+                <p><strong>Transformando o mundo, um resgate por vez.</strong></p>
+                <button class="btn-large" onclick="nextScreen('locationScreen')">Começar 🐾</button>
+            </main>
+        </div>
 
-    <div class="screen" id="locationScreen">
-        <header>
-            <h2>Localização</h2>
-        </header>
-        <main>
-            <div class="map-simulator">
-                <div class="map-marker">📍</div>
-                <p>Buscando sinal GPS...</p>
-            </div>
-            <p class="screen-description">Para um atendimento preciso, precisamos saber onde você está.</p>
-            <button class="pro-btn" onclick="nextScreen('registerScreen')">Permitir Acesso 📍</button>
-        </main>
-    </div>
+        <div class="screen" id="locationScreen">
+            <header><h1>Localização</h1></header>
+            <p>Ative seu GPS para atendimento rápido.</p>
+            <button class="btn" onclick="nextScreen('registerScreen')">Ativar Localização 📍</button>
+        </div>
 
-    <div class="screen" id="registerScreen">
-        <header>
-            <h2>Criar Conta</h2>
-        </header>
-        <main>
-            <input type="text" id="regName" placeholder="Nome Completo">
-            <input type="number" id="regCpf" placeholder="CPF (Apenas números)">
-            
-            <label>Tipo de Conta:</label>
-            <select id="regType" onchange="toggleCompanySelection()">
-                <option value="citizen">Cidadão</option>
-                <option value="professional">Funcionário / Profissional</option>
-            </select>
-
-            <div id="companyFieldWrapper" style="display: none;">
-                <label>Selecione sua Instituição:</label>
-                <select id="regCompany">
-                    <option value="Safe Life Matriz">Safe Life Matriz</option>
-                    <option value="ONG Patas Livres">ONG Patas Livres</option>
-                    <option value="Centro de Controle de Zoonoses (CCZ)">Centro de Controle de Zoonoses (CCZ)</option>
+        <div class="screen" id="registerScreen">
+            <header><h1>Criar Conta</h1></header>
+            <main>
+                <input type="text" id="regName" placeholder="Nome Completo">
+                <input type="number" id="regCpf" placeholder="CPF (Apenas números)">
+                
+                <label>Tipo de Perfil:</label>
+                <select id="regType" onchange="toggleCompanyField()">
+                    <option value="citizen">Cidadão</option>
+                    <option value="professional">Funcionário Safe Life</option>
                 </select>
-            </div>
 
-            <button class="pro-btn" onclick="handleRegister()">Concluir Cadastro ✨</button>
-            <p onclick="nextScreen('loginScreen')">Já tem conta? Faça Login</p>
-        </main>
-    </div>
+                <div id="companySelectionWrapper" style="display: none;">
+                    <label>Sua Base/Empresa:</label>
+                    <select id="regCompany">
+                        <option value="Base Central - SP">Base Central - SP</option>
+                        <option value="ONG Parceira Unidade 1">ONG Parceira Unidade 1</option>
+                        <option value="Zoonoses Municipal">Zoonoses Municipal</option>
+                    </select>
+                </div>
 
-    <div class="screen" id="loginScreen">
-        <header>
-            <h2>Acesse sua Conta</h2>
-        </header>
-        <main>
-            <input type="number" id="cpfInput" placeholder="Insira seu CPF para entrar">
-            <button class="pro-btn" onclick="handleLogin()">Entrar no Sistema</button>
-            <p>
-                Dica de teste:<br>Cidadão: 11111111111 | Profissional: 99999999999
-            </p>
-        </main>
-    </div>
+                <button class="btn" onclick="efetuarCadastro()">Finalizar Cadastro ✨</button>
+                <p style="color:var(--color-primary); cursor:pointer;" onclick="nextScreen('loginScreen')">Ir para Login</p>
+            </main>
+        </div>
 
-    <div class="screen" id="menuScreen">
-        <p class="app-slogan">Proteger a vida<br>é agir com <span>amor</span></p>
-        <main>
-            <button class="emergency" onclick="nextScreen('emergencyScreen')">⚠️ Emergência Animal</button>
-            
+        <div class="screen" id="loginScreen">
+            <header><h1>Acessar</h1></header>
+            <main>
+                <input type="number" id="cpfInput" placeholder="Digite seu CPF">
+                <button class="btn" onclick="autenticar()">Entrar 🚀</button>
+                <p style="font-size: 11px; color: #a8a29e;">Cidadão: 11111111111 | Funcionário: 99999999999</p>
+            </main>
+        </div>
+
+        <div class="screen" id="menuScreen">
+            <header><h1>Safe Life</h1></header>
             <div class="action-buttons">
-                <button class="btn" onclick="openFormDirect('Registro Pet')">📋 Registro Pet →</button>
-                <button class="btn" onclick="openFormDirect('Ocorrências')">💚 Ocorrências →</button>
-                <button class="btn" onclick="openFormDirect('Denúncia Anônima')">🕵️ Denúncia Anônima →</button>
-                <button class="btn" onclick="openFormDirect('Resgate')">🍃 Pedido Resgate →</button>
+                <button class="btn btn-large emergency" onclick="nextScreen('emergencyScreen')">⚠️ Emergência</button>
+                <button class="btn btn-large" onclick="openCitizenForm('Registro Pet', 'register')">📋 Registro Pet</button>
+                <button class="btn btn-large" onclick="openCitizenForm('Ocorrência', 'report')">💚 Ocorrência</button>
+                <button class="btn btn-large" onclick="openCitizenForm('Denúncia Anônima', 'anonymous')">🕵️ Denúncia</button>
+                <button class="btn btn-large" onclick="openCitizenForm('Pedido de Resgate', 'rescue')">🍃 Resgate</button>
             </div>
-        </main>
-        <footer class="bottom-nav">
-            <button class="active" onclick="nextScreen('menuScreen')">🏠 Início</button>
-            <button onclick="logout()">🚪 Sair</button>
-        </footer>
-    </div>
+            <footer class="bottom-nav">
+                <button class="active-nav">🏠 Início</button>
+                <button onclick="logout()">🚪 Sair</button>
+            </footer>
+        </div>
 
-    <div class="screen" id="emergencyScreen">
-        <header>
-            <h2 id="dynamicFormTitle">Emergência Animal</h2>
-        </header>
-        <main>
-            <form onsubmit="event.preventDefault(); submitReport()">
-                <input type="text" id="em_tipo" placeholder="Espécie ou Raça do animal" required>
-                <input type="text" id="em_local" placeholder="Ponto de Referência / Endereço" required>
-                <textarea id="em_desc" placeholder="Descreva aqui o estado geral do animal..." required></textarea>
-                <button type="submit" class="pro-btn">Disparar Alerta na Base 🚀</button>
+        <div class="screen" id="proDashboard">
+            <header><h1>Painel Operacional</h1></header>
+            <main>
+                <div class="occurrence-card" style="text-align: center;">
+                    <h3 id="proWelcomeName">Olá</h3>
+                    <p id="proCompanyName"></p>
+                </div>
+                <button class="btn" onclick="abrirOcorrencias()">📋 Lista de Ocorrências</button>
+                <button class="btn" onclick="abrirPerfilPro()">👤 Meu Perfil</button>
+                <button class="btn" style="background:#6c757d; box-shadow:none;" onclick="logout()">Sair</button>
+            </main>
+        </div>
+
+        <div class="screen" id="proListScreen">
+            <header><h1>Fila de Chamados</h1></header>
+            <div id="listaIntegrada"></div>
+            <button class="btn" style="background:#6c757d;" onclick="nextScreen('proDashboard')">Voltar</button>
+        </div>
+
+        <div class="screen" id="proProfile">
+            <header><h1>Perfil</h1></header>
+            <div class="occurrence-card" style="text-align: center;">
+                <h3>Status: Ativo</h3>
+                <p>Atendimentos Concluídos: <strong id="totalAtendimentos">0</strong></p>
+            </div>
+            <button class="btn" style="background:#6c757d;" onclick="nextScreen('proDashboard')">Voltar</button>
+        </div>
+
+        <div class="screen" id="scrForm">
+            <header><h1 id="formTitle">Formulário</h1></header>
+            <form onsubmit="registrarAcao(event)">
+                <input type="hidden" id="formKey">
+                <input type="text" id="formSubject" placeholder="Tipo de Animal" required>
+                <textarea id="formDetails" placeholder="Descrição da ocorrência..." style="height: 120px;" required></textarea>
+                <button type="submit" class="btn">Enviar Chamado 🚀</button>
             </form>
-            <button class="btn" onclick="nextScreen('menuScreen')">🔙 Cancelar</button>
-        </main>
+            <button class="btn" style="background:#6c757d;" onclick="nextScreen('menuScreen')">Voltar</button>
+        </div>
+
+        <div class="screen" id="confirmationScreen">
+            <header><h1>Concluído!</h1></header>
+            <p id="confirmMsg"></p>
+            <button class="btn" onclick="nextScreen('menuScreen')">Ir para o Início 🏠</button>
+        </div>
+
     </div>
 
-    <div class="screen" id="proDashboardScreen">
-        <p class="app-slogan">Painel do <span>Profissional</span><br><small id="proDisplayCompany"></small></p>
-        <main>
-            <div class="occurrence-card">
-                <h3 id="proName">Olá, Agente</h3>
-                <p>Status: 🟢 Disponível para chamados</p>
-            </div>
-            
-            <button class="pro-btn" onclick="nextScreen('proMapScreen')">🗺️ Mapa de Denúncias (Uber Style)</button>
-            <button class="pro-btn" onclick="renderOccurrences()">📋 Lista de Ocorrências</button>
-            <button class="pro-btn" onclick="nextScreen('proProfileScreen')">👤 Meu Perfil e Metas</button>
-            
-            <button class="pro-btn" onclick="logout()">Sair do Sistema</button>
-        </main>
-    </div>
+    <script>
+        // --- LOGICA E ESTADO INTEGRADO ---
+        let dbOcorrencias = [];
+        let estatisticasPro = { atendimentos: 0 };
+        const counters = { emergency: 0, register: 0, report: 0, anonymous: 0, rescue: 0 };
+        let cadastrosSimulados = []; // Guarda dados do cadastro dinâmico
 
-    <div class="screen" id="proListScreen">
-        <header>
-            <h2>Ocorrências Ativas</h2>
-        </header>
-        <main id="listContainer"></main>
-        <main><button class="pro-btn" onclick="nextScreen('proDashboardScreen')">🔙 Voltar ao Painel</button></main>
-    </div>
-
-    <div class="screen" id="proMapScreen">
-        <header>
-            <h2>Mapa de Demandas</h2>
-        </header>
-        <main>
-            <div class="map-simulator">
-                <div class="map-marker">🐕</div>
-                <div class="map-marker">🐈</div>
-            </div>
-            <button class="pro-btn" onclick="triggerToast('🚀 Equipe deslocada com sucesso para o ponto!', false)">Despachar Unidade de Apoio</button>
-            <button class="pro-btn" onclick="nextScreen('proDashboardScreen')">🔙 Voltar</button>
-        </main>
-    </div>
-
-    <div class="screen" id="proProfileScreen">
-        <header>
-            <h2>Meu Perfil</h2>
-        </header>
-        <main>
-            <div class="occurrence-card">
-                <h3>Registro Operacional</h3>
-                <p><strong>Atendimentos Efetuados:</strong> <span id="countAtendimentos">12</span> resgates</p>
-                <p><strong>Desempenho da Equipe:</strong> ⭐ 4.9 / 5.0</p>
-            </div>
-            <button class="pro-btn" onclick="nextScreen('proDashboardScreen')">🔙 Voltar</button>
-        </main>
-    </div>
-
-</div>
-
-<script>
-    // --- ESTADO CENTRALIZADO ---
-    let reports = []; 
-    let cachedUser = null; 
-    let atendimentosCount = 12;
-
-    // --- MOTOR DE NAVEGAÇÃO INTERNA ---
-    function nextScreen(screenId) {
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        const TargetScreen = document.getElementById(screenId);
-        if(TargetScreen) TargetScreen.classList.add('active');
-        window.scrollTo(0,0);
-    }
-
-    // --- CONTROLADOR EXIBIÇÃO DE EMPRESAS ---
-    function toggleCompanySelection() {
-        const type = document.getElementById('regType').value;
-        const wrapper = document.getElementById('companyFieldWrapper');
-        wrapper.style.display = (type === 'professional') ? 'block' : 'none';
-    }
-
-    // --- LÓGICA DE CADASTRO ---
-    function handleRegister() {
-        const name = document.getElementById('regName').value;
-        const cpf = document.getElementById('regCpf').value;
-        const type = document.getElementById('regType').value;
-        const company = document.getElementById('regCompany').value;
-
-        if(!name || !cpf) {
-            alert("Preencha seu Nome e CPF para concluir o cadastro.");
-            return;
-        }
-
-        cachedUser = { name, cpf, type, company: type === 'professional' ? company : 'Nenhum' };
-        alert("Cadastro efetuado! Use seu CPF para acessar o painel correspondente.");
-        document.getElementById('cpfInput').value = cpf;
-        nextScreen('loginScreen');
-    }
-
-    // --- LÓGICA DE LOGIN ---
-    function handleLogin() {
-        const cpf = document.getElementById('cpfInput').value;
-        
-        // Atalhos para testes rápidos
-        if (cpf === '11111111111') {
-            cachedUser = { name: "Cidadão de Testes", type: "citizen" };
-            nextScreen('menuScreen');
-            return;
-        } else if (cpf === '99999999999') {
-            cachedUser = { name: "Agente de Campo", type: "professional", company: "Safe Life Matriz" };
-            loadProfessionalDashboard();
-            return;
-        }
-
-        if(cachedUser && cachedUser.cpf === cpf) {
-            if(cachedUser.type === 'citizen') {
-                nextScreen('menuScreen');
-            } else {
-                loadProfessionalDashboard();
+        // Navegação Rápida
+        function nextScreen(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            const target = document.getElementById(id);
+            if(target) {
+                target.classList.add('active');
+                window.scrollTo(0,0);
             }
-        } else {
-            alert("CPF não localizado no banco local. Faça o cadastro.");
         }
-    }
 
-    function loadProfessionalDashboard() {
-        document.getElementById('proName').innerText = `Olá, ${cachedUser.name}`;
-        document.getElementById('proDisplayCompany').innerText = cachedUser.company;
-        nextScreen('proDashboardScreen');
-    }
+        // Lógica de Cadastro Dinâmico
+        function toggleCompanyField() {
+            const type = document.getElementById('regType').value;
+            const wrapper = document.getElementById('companySelectionWrapper');
+            wrapper.style.display = (type === 'professional') ? 'block' : 'none';
+        }
 
-    function logout() {
-        document.getElementById('cpfInput').value = '';
-        nextScreen('loginScreen');
-    }
+        function efetuarCadastro() {
+            const nome = document.getElementById('regName').value;
+            const cpf = document.getElementById('regCpf').value;
+            const type = document.getElementById('regType').value;
+            const company = document.getElementById('regCompany').value;
 
-    // --- FLUXO DO CIDADÃO ---
-    function openFormDirect(title) {
-        document.getElementById('dynamicFormTitle').innerText = title;
-        nextScreen('emergencyScreen');
-    }
+            if(!nome || !cpf) {
+                alert("Preencha Nome e CPF."); return;
+            }
 
-    function submitReport() {
-        const tipoForm = document.getElementById('dynamicFormTitle').innerText;
-        const data = {
-            id: Date.now(),
-            tipo: tipoForm,
-            animal: document.getElementById('em_tipo').value,
-            local: document.getElementById('em_local').value,
-            desc: document.getElementById('em_desc').value,
-            status: 'Pendente'
-        };
+            cadastrosSimulados.push({nome, cpf, type, company});
+            alert(`Cadastro de ${nome} pré-aprovado! Prossiga com o login.`);
+            document.getElementById('cpfInput').value = cpf;
+            nextScreen('loginScreen');
+        }
 
-        reports.push(data); 
+        // Autenticação (Bifurcação Integrada)
+        function autenticar() {
+            const cpf = document.getElementById('cpfInput').value;
+            
+            // Bypass para testes rápidos solicitados
+            if(cpf === '11111111111') { nextScreen('menuScreen'); return; }
+            if(cpf === '99999999999') { 
+                document.getElementById('proWelcomeName').innerText = "Olá, Agente";
+                document.getElementById('proCompanyName').innerText = "Safe Life Matriz";
+                nextScreen('proDashboard'); return; 
+            }
 
-        // NOTIFICAÇÃO CIDADÃO: Alerta imediato na interface dele
-        triggerToast("✅ Denúncia realizada! Uma equipe está a caminho.", false);
-        
-        // NOTIFICAÇÃO PROFISSIONAL: Dispara em paralelo para o funcionário
-        simulateProAlert(tipoForm);
+            // Valida cadastros dinâmicos
+            const usuario = cadastrosSimulados.find(u => u.cpf === cpf);
+            if(usuario) {
+                if(usuario.type === 'citizen') { nextScreen('menuScreen'); }
+                else {
+                    document.getElementById('proWelcomeName').innerText = `Olá, ${usuario.nome}`;
+                    document.getElementById('proCompanyName').innerText = usuario.company;
+                    nextScreen('proDashboard');
+                }
+            } else {
+                alert("CPF inválido!");
+            }
+        }
 
-        // Limpeza dos inputs
-        document.getElementById('em_tipo').value = '';
-        document.getElementById('em_local').value = '';
-        document.getElementById('em_desc').value = '';
-        
-        nextScreen('menuScreen');
-    }
+        function logout() {
+            document.getElementById('cpfInput').value = '';
+            nextScreen('loginScreen');
+        }
 
-    // --- FLUXO DO PROFISSIONAL ---
-    function renderOccurrences() {
-        const container = document.getElementById('listContainer');
-        container.innerHTML = '';
+        // Lógica Cidadão -> Profissional
+        function openCitizenForm(title, key) {
+            document.getElementById('formTitle').innerText = title;
+            document.getElementById('formKey').value = key;
+            nextScreen('scrForm');
+        }
 
-        if (reports.length === 0) {
-            container.innerHTML = '<div class="occurrence-card"><p>Nenhum chamado operacional em aberto.</p></div>';
-        } else {
-            reports.forEach(report => {
-                const card = document.createElement('div');
-                card.className = 'occurrence-card';
-                card.innerHTML = `
-                    <h4>🚨 ${report.tipo}: ${report.animal}</h4>
-                    <p>📍 <strong>Local:</strong> ${report.local}</p>
-                    <p>${report.desc}</p>
-                    <button class="pro-btn" onclick="atenderOcorrencia(${report.id})">Assumir e Despachar Resgate 🚗</button>
-                `;
-                container.appendChild(card);
+        function registrarAcao(event) {
+            event.preventDefault();
+            const tipo = document.getElementById('formTitle').innerText;
+            const chave = document.getElementById('formKey').value;
+            
+            // "Ponte" para o profissional
+            dbOcorrencias.push({
+                id: Date.now(), tipo: tipo,
+                descricao: document.getElementById('formDetails').value,
+                hora: new Date().toLocaleTimeString()
             });
-        }
-        nextScreen('proListScreen');
-    }
 
-    function atenderOcorrencia(id) {
-        reports = reports.filter(r => r.id !== id);
-        atendimentosCount++;
-        document.getElementById('countAtendimentos').innerText = atendimentosCount;
-        alert("Chamado assumido! Ordem de serviço enviada para a viatura.");
-        renderOccurrences();
-    }
+            counters[chave]++;
+            mostrarToast(); // Alerta fake de 10 min
 
-    // --- SISTEMA INTERNO DE PUSH NOTIFICATIONS ---
-    function triggerToast(text, isProNotification = false) {
-        const toast = document.getElementById('notificationToast');
-        toast.innerText = text;
-        
-        if(isProNotification) {
-            toast.classList.add('pro-alert');
-        } else {
-            toast.classList.remove('pro-alert');
+            document.getElementById('confirmMsg').innerText = `Ocorrência de ${tipo} enviada.`;
+            event.target.reset();
+            nextScreen('confirmationScreen');
         }
 
-        toast.style.top = '20px';
-        setTimeout(() => { toast.style.top = '-100px'; }, 5000);
-    }
+        // Lógica Profissional
+        function abrirOcorrencias() {
+            const container = document.getElementById('listaIntegrada');
+            container.innerHTML = '';
+            
+            if(dbOcorrencias.length === 0) {
+                container.innerHTML = '<p style="margin-top:20px;">Nenhuma ocorrência pendente.</p>';
+            } else {
+                dbOcorrencias.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'occurrence-card';
+                    card.innerHTML = `
+                        <strong>🚨 ${item.tipo}</strong><br>
+                        <small>${item.hora}</small><p>${item.descricao}</p>
+                        <button class="btn" style="padding:10px; font-size:12px;" onclick="atender(${item.id})">Enviar Equipe</button>
+                    `;
+                    container.appendChild(card);
+                });
+            }
+            nextScreen('proListScreen');
+        }
 
-    function simulateProAlert(tipoChamado) {
-        setTimeout(() => {
-            triggerToast(`🚨 Alerta: Novo chamado de resgate pendente: "${tipoChamado}"!`, true);
-        }, 2500);
-    }
-</script>
+        function atender(id) {
+            dbOcorrencias = dbOcorrencias.filter(i => i.id !== id);
+            estatisticasPro.atendimentos++;
+            alert("Equipe despachada!");
+            abrirOcorrencias();
+        }
 
+        function abrirPerfilPro() {
+            document.getElementById('totalAtendimentos').innerText = estatisticasPro.atendimentos;
+            nextScreen('proProfile');
+        }
+
+        // Notificação
+        function mostrarToast() {
+            const t = document.getElementById('toast');
+            t.style.top = '24px';
+            setTimeout(() => t.style.top = '-100px', 4000);
+        }
+    </script>
 </body>
 </html>
