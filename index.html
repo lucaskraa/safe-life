@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Safe Life Pro - Ecossistema de Proteção</title>
+</head>
+<body>
+
+<div id="app">
+
+    <div id="notificationToast">🚀 Profissional a caminho! Chegada em 10 min.</div>
+
+    <div class="screen active" id="welcomeScreen">
+        <header>
+            <h1>Safe Life</h1>
+        </header>
+        <main>
+            <img src="https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=500&q=80" alt="Pessoa com cachorro" class="welcome-img">
+            <p class="screen-description">Sua conexão direta com a proteção animal. Junte-se para salvar vidas e coordenar resgates.</p>
+            <button class="btn-large" onclick="nextScreen('locationScreen')">Começar Jornada 🐾</button>
+        </main>
+    </div>
+
+    <div class="screen" id="locationScreen">
+        <header>
+            <h2>Localização</h2>
+        </header>
+        <main>
+            <div class="map-simulator">
+                <div class="map-marker">📍</div>
+                <p>Buscando sinal GPS...</p>
+            </div>
+            <p class="screen-description">Para um atendimento preciso, precisamos saber onde você está.</p>
+            <button class="pro-btn" onclick="nextScreen('registerScreen')">Permitir Acesso 📍</button>
+        </main>
+    </div>
+
+    <div class="screen" id="registerScreen">
+        <header>
+            <h2>Criar Conta</h2>
+        </header>
+        <main>
+            <input type="text" id="regName" placeholder="Nome Completo">
+            <input type="number" id="regCpf" placeholder="CPF (Apenas números)">
+            
+            <label>Tipo de Conta:</label>
+            <select id="regType" onchange="toggleCompanySelection()">
+                <option value="citizen">Cidadão</option>
+                <option value="professional">Funcionário / Profissional</option>
+            </select>
+
+            <div id="companyFieldWrapper" style="display: none;">
+                <label>Selecione sua Instituição:</label>
+                <select id="regCompany">
+                    <option value="Safe Life Matriz">Safe Life Matriz</option>
+                    <option value="ONG Patas Livres">ONG Patas Livres</option>
+                    <option value="Centro de Controle de Zoonoses (CCZ)">Centro de Controle de Zoonoses (CCZ)</option>
+                </select>
+            </div>
+
+            <button class="pro-btn" onclick="handleRegister()">Concluir Cadastro ✨</button>
+            <p onclick="nextScreen('loginScreen')">Já tem conta? Faça Login</p>
+        </main>
+    </div>
+
+    <div class="screen" id="loginScreen">
+        <header>
+            <h2>Acesse sua Conta</h2>
+        </header>
+        <main>
+            <input type="number" id="cpfInput" placeholder="Insira seu CPF para entrar">
+            <button class="pro-btn" onclick="handleLogin()">Entrar no Sistema</button>
+            <p>
+                Dica de teste:<br>Cidadão: 11111111111 | Profissional: 99999999999
+            </p>
+        </main>
+    </div>
+
+    <div class="screen" id="menuScreen">
+        <p class="app-slogan">Proteger a vida<br>é agir com <span>amor</span></p>
+        <main>
+            <button class="emergency" onclick="nextScreen('emergencyScreen')">⚠️ Emergência Animal</button>
+            
+            <div class="action-buttons">
+                <button class="btn" onclick="openFormDirect('Registro Pet')">📋 Registro Pet →</button>
+                <button class="btn" onclick="openFormDirect('Ocorrências')">💚 Ocorrências →</button>
+                <button class="btn" onclick="openFormDirect('Denúncia Anônima')">🕵️ Denúncia Anônima →</button>
+                <button class="btn" onclick="openFormDirect('Resgate')">🍃 Pedido Resgate →</button>
+            </div>
+        </main>
+        <footer class="bottom-nav">
+            <button class="active" onclick="nextScreen('menuScreen')">🏠 Início</button>
+            <button onclick="logout()">🚪 Sair</button>
+        </footer>
+    </div>
+
+    <div class="screen" id="emergencyScreen">
+        <header>
+            <h2 id="dynamicFormTitle">Emergência Animal</h2>
+        </header>
+        <main>
+            <form onsubmit="event.preventDefault(); submitReport()">
+                <input type="text" id="em_tipo" placeholder="Espécie ou Raça do animal" required>
+                <input type="text" id="em_local" placeholder="Ponto de Referência / Endereço" required>
+                <textarea id="em_desc" placeholder="Descreva aqui o estado geral do animal..." required></textarea>
+                <button type="submit" class="pro-btn">Disparar Alerta na Base 🚀</button>
+            </form>
+            <button class="btn" onclick="nextScreen('menuScreen')">🔙 Cancelar</button>
+        </main>
+    </div>
+
+    <div class="screen" id="proDashboardScreen">
+        <p class="app-slogan">Painel do <span>Profissional</span><br><small id="proDisplayCompany"></small></p>
+        <main>
+            <div class="occurrence-card">
+                <h3 id="proName">Olá, Agente</h3>
+                <p>Status: 🟢 Disponível para chamados</p>
+            </div>
+            
+            <button class="pro-btn" onclick="nextScreen('proMapScreen')">🗺️ Mapa de Denúncias (Uber Style)</button>
+            <button class="pro-btn" onclick="renderOccurrences()">📋 Lista de Ocorrências</button>
+            <button class="pro-btn" onclick="nextScreen('proProfileScreen')">👤 Meu Perfil e Metas</button>
+            
+            <button class="pro-btn" onclick="logout()">Sair do Sistema</button>
+        </main>
+    </div>
+
+    <div class="screen" id="proListScreen">
+        <header>
+            <h2>Ocorrências Ativas</h2>
+        </header>
+        <main id="listContainer"></main>
+        <main><button class="pro-btn" onclick="nextScreen('proDashboardScreen')">🔙 Voltar ao Painel</button></main>
+    </div>
+
+    <div class="screen" id="proMapScreen">
+        <header>
+            <h2>Mapa de Demandas</h2>
+        </header>
+        <main>
+            <div class="map-simulator">
+                <div class="map-marker">🐕</div>
+                <div class="map-marker">🐈</div>
+            </div>
+            <button class="pro-btn" onclick="triggerToast('🚀 Equipe deslocada com sucesso para o ponto!', false)">Despachar Unidade de Apoio</button>
+            <button class="pro-btn" onclick="nextScreen('proDashboardScreen')">🔙 Voltar</button>
+        </main>
+    </div>
+
+    <div class="screen" id="proProfileScreen">
+        <header>
+            <h2>Meu Perfil</h2>
+        </header>
+        <main>
+            <div class="occurrence-card">
+                <h3>Registro Operacional</h3>
+                <p><strong>Atendimentos Efetuados:</strong> <span id="countAtendimentos">12</span> resgates</p>
+                <p><strong>Desempenho da Equipe:</strong> ⭐ 4.9 / 5.0</p>
+            </div>
+            <button class="pro-btn" onclick="nextScreen('proDashboardScreen')">🔙 Voltar</button>
+        </main>
+    </div>
+
+</div>
+
+<script>
+    // --- ESTADO CENTRALIZADO ---
+    let reports = []; 
+    let cachedUser = null; 
+    let atendimentosCount = 12;
+
+    // --- MOTOR DE NAVEGAÇÃO INTERNA ---
+    function nextScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        const TargetScreen = document.getElementById(screenId);
+        if(TargetScreen) TargetScreen.classList.add('active');
+        window.scrollTo(0,0);
+    }
+
+    // --- CONTROLADOR EXIBIÇÃO DE EMPRESAS ---
+    function toggleCompanySelection() {
+        const type = document.getElementById('regType').value;
+        const wrapper = document.getElementById('companyFieldWrapper');
+        wrapper.style.display = (type === 'professional') ? 'block' : 'none';
+    }
+
+    // --- LÓGICA DE CADASTRO ---
+    function handleRegister() {
+        const name = document.getElementById('regName').value;
+        const cpf = document.getElementById('regCpf').value;
+        const type = document.getElementById('regType').value;
+        const company = document.getElementById('regCompany').value;
+
+        if(!name || !cpf) {
+            alert("Preencha seu Nome e CPF para concluir o cadastro.");
+            return;
+        }
+
+        cachedUser = { name, cpf, type, company: type === 'professional' ? company : 'Nenhum' };
+        alert("Cadastro efetuado! Use seu CPF para acessar o painel correspondente.");
+        document.getElementById('cpfInput').value = cpf;
+        nextScreen('loginScreen');
+    }
+
+    // --- LÓGICA DE LOGIN ---
+    function handleLogin() {
+        const cpf = document.getElementById('cpfInput').value;
+        
+        // Atalhos para testes rápidos
+        if (cpf === '11111111111') {
+            cachedUser = { name: "Cidadão de Testes", type: "citizen" };
+            nextScreen('menuScreen');
+            return;
+        } else if (cpf === '99999999999') {
+            cachedUser = { name: "Agente de Campo", type: "professional", company: "Safe Life Matriz" };
+            loadProfessionalDashboard();
+            return;
+        }
+
+        if(cachedUser && cachedUser.cpf === cpf) {
+            if(cachedUser.type === 'citizen') {
+                nextScreen('menuScreen');
+            } else {
+                loadProfessionalDashboard();
+            }
+        } else {
+            alert("CPF não localizado no banco local. Faça o cadastro.");
+        }
+    }
+
+    function loadProfessionalDashboard() {
+        document.getElementById('proName').innerText = `Olá, ${cachedUser.name}`;
+        document.getElementById('proDisplayCompany').innerText = cachedUser.company;
+        nextScreen('proDashboardScreen');
+    }
+
+    function logout() {
+        document.getElementById('cpfInput').value = '';
+        nextScreen('loginScreen');
+    }
+
+    // --- FLUXO DO CIDADÃO ---
+    function openFormDirect(title) {
+        document.getElementById('dynamicFormTitle').innerText = title;
+        nextScreen('emergencyScreen');
+    }
+
+    function submitReport() {
+        const tipoForm = document.getElementById('dynamicFormTitle').innerText;
+        const data = {
+            id: Date.now(),
+            tipo: tipoForm,
+            animal: document.getElementById('em_tipo').value,
+            local: document.getElementById('em_local').value,
+            desc: document.getElementById('em_desc').value,
+            status: 'Pendente'
+        };
+
+        reports.push(data); 
+
+        // NOTIFICAÇÃO CIDADÃO: Alerta imediato na interface dele
+        triggerToast("✅ Denúncia realizada! Uma equipe está a caminho.", false);
+        
+        // NOTIFICAÇÃO PROFISSIONAL: Dispara em paralelo para o funcionário
+        simulateProAlert(tipoForm);
+
+        // Limpeza dos inputs
+        document.getElementById('em_tipo').value = '';
+        document.getElementById('em_local').value = '';
+        document.getElementById('em_desc').value = '';
+        
+        nextScreen('menuScreen');
+    }
+
+    // --- FLUXO DO PROFISSIONAL ---
+    function renderOccurrences() {
+        const container = document.getElementById('listContainer');
+        container.innerHTML = '';
+
+        if (reports.length === 0) {
+            container.innerHTML = '<div class="occurrence-card"><p>Nenhum chamado operacional em aberto.</p></div>';
+        } else {
+            reports.forEach(report => {
+                const card = document.createElement('div');
+                card.className = 'occurrence-card';
+                card.innerHTML = `
+                    <h4>🚨 ${report.tipo}: ${report.animal}</h4>
+                    <p>📍 <strong>Local:</strong> ${report.local}</p>
+                    <p>${report.desc}</p>
+                    <button class="pro-btn" onclick="atenderOcorrencia(${report.id})">Assumir e Despachar Resgate 🚗</button>
+                `;
+                container.appendChild(card);
+            });
+        }
+        nextScreen('proListScreen');
+    }
+
+    function atenderOcorrencia(id) {
+        reports = reports.filter(r => r.id !== id);
+        atendimentosCount++;
+        document.getElementById('countAtendimentos').innerText = atendimentosCount;
+        alert("Chamado assumido! Ordem de serviço enviada para a viatura.");
+        renderOccurrences();
+    }
+
+    // --- SISTEMA INTERNO DE PUSH NOTIFICATIONS ---
+    function triggerToast(text, isProNotification = false) {
+        const toast = document.getElementById('notificationToast');
+        toast.innerText = text;
+        
+        if(isProNotification) {
+            toast.classList.add('pro-alert');
+        } else {
+            toast.classList.remove('pro-alert');
+        }
+
+        toast.style.top = '20px';
+        setTimeout(() => { toast.style.top = '-100px'; }, 5000);
+    }
+
+    function simulateProAlert(tipoChamado) {
+        setTimeout(() => {
+            triggerToast(`🚨 Alerta: Novo chamado de resgate pendente: "${tipoChamado}"!`, true);
+        }, 2500);
+    }
+</script>
+
+</body>
+</html>
