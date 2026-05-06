@@ -1,146 +1,154 @@
 // --- ESTADO CENTRALIZADO DA APLICAÇÃO ---
-let reports = []; 
-let cachedUser = null; 
-let atendimentosCount = 12;
+let dbOcorrencias = [];
+let estatisticasPro = { atendimentos: 0 };
+const counters = { emergency: 0, register: 0, report: 0, anonymous: 0, rescue: 0 };
+let cadastrosSimulados = []; 
 
-// --- MOTOR DE NAVEGAÇÃO INTERNA (Alternador de Telas) ---
-function nextScreen(screenId) {
-    // Oculta todas as telas do app
+// --- MOTOR DE NAVEGAÇÃO INTERNA ---
+function nextScreen(id) {
+    // Esconde todas as telas ativas
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     
-    // Ativa apenas a tela desejada
-    const TargetScreen = document.getElementById(screenId);
-    if(TargetScreen) TargetScreen.classList.add('active');
-    
-    // Joga o foco do scroll para o topo da nova tela
-    window.scrollTo(0,0);
+    // Ativa a tela desejada
+    const target = document.getElementById(id);
+    if(target) {
+        target.classList.add('active');
+        window.scrollTo(0,0);
+    }
 }
 
-// --- CONTROLADOR EXIBIÇÃO DE EMPRESAS (Cadastro Condicional) ---
-function toggleCompanySelection() {
+// --- CONTROLE DE EXIBIÇÃO DE EMPRESAS NO CADASTRO ---
+function toggleCompanyField() {
     const type = document.getElementById('regType').value;
-    const wrapper = document.getElementById('companyFieldWrapper');
+    const wrapper = document.getElementById('companySelectionWrapper');
     
     // Se for profissional, exibe o seletor de instituições parceiras
-    wrapper.style.display = (type === 'professional') ? 'block' : 'none';
+    if (wrapper) {
+        wrapper.style.display = (type === 'professional') ? 'block' : 'none';
+    }
 }
 
 // --- LÓGICA DE CADASTRO ---
-function handleRegister() {
-    const name = document.getElementById('regName').value;
+function efetuarCadastro() {
+    const nome = document.getElementById('regName').value;
     const cpf = document.getElementById('regCpf').value;
     const type = document.getElementById('regType').value;
     const company = document.getElementById('regCompany').value;
 
-    if(!name || !cpf) {
-        alert("Preencha seu Nome e CPF para concluir o cadastro.");
+    if(!nome || !cpf) {
+        alert("Preencha Nome e CPF para continuar."); 
         return;
     }
 
-    // Salva o usuário em memória temporária
-    cachedUser = { 
-        name, 
+    // Armazena temporariamente no array de cadastros local
+    cadastrosSimulados.push({
+        nome, 
         cpf, 
         type, 
-        company: type === 'professional' ? company : 'Nenhum' 
-    };
+        company: type === 'professional' ? company : 'Nenhum'
+    });
+
+    alert(`Cadastro de ${nome} realizado com sucesso! Prossiga com o seu login.`);
     
-    alert("Cadastro efetuado! Use seu CPF para acessar o painel correspondente.");
-    document.getElementById('cpfInput').value = cpf;
+    // Preenche o campo de login automaticamente para facilitar
+    const cpfInput = document.getElementById('cpfInput');
+    if (cpfInput) cpfInput.value = cpf;
+    
     nextScreen('loginScreen');
 }
 
-// --- LÓGICA DE LOGIN ---
-function handleLogin() {
+// --- AUTENTICAÇÃO E DIRECIONAMENTO (Bifurcação de Perfil) ---
+function autenticar() {
     const cpf = document.getElementById('cpfInput').value;
     
-    // Atalhos/Mocks para testes rápidos sem precisar cadastrar
-    if (cpf === '11111111111') {
-        cachedUser = { name: "Cidadão de Testes", type: "citizen" };
-        nextScreen('menuScreen');
-        return;
-    } else if (cpf === '99999999999') {
-        cachedUser = { name: "Agente de Campo", type: "professional", company: "Safe Life Matriz" };
-        loadProfessionalDashboard();
-        return;
+    // Mocks / Atalhos rápidos para testes solicitados
+    if(cpf === '11111111111') { 
+        nextScreen('menuScreen'); 
+        return; 
+    }
+    if(cpf === '99999999999') { 
+        document.getElementById('proWelcomeName').innerText = "Olá, Agente";
+        document.getElementById('proCompanyName').innerText = "Safe Life Matriz";
+        nextScreen('proDashboard'); 
+        return; 
     }
 
-    // Validação do cadastro em cache
-    if(cachedUser && cachedUser.cpf === cpf) {
-        if(cachedUser.type === 'citizen') {
-            nextScreen('menuScreen');
+    // Validação nos cadastros criados dinamicamente
+    const usuario = cadastrosSimulados.find(u => u.cpf === cpf);
+    if(usuario) {
+        if(usuario.type === 'citizen') { 
+            nextScreen('menuScreen'); 
         } else {
-            loadProfessionalDashboard();
+            document.getElementById('proWelcomeName').innerText = `Olá, ${usuario.nome}`;
+            document.getElementById('proCompanyName').innerText = usuario.company;
+            nextScreen('proDashboard');
         }
     } else {
-        alert("CPF não localizado no banco local. Por favor, faça o cadastro primeiro.");
+        alert("CPF não encontrado na base de dados local!");
     }
 }
 
-// Carrega os dados específicos no painel do profissional
-function loadProfessionalDashboard() {
-    document.getElementById('proName').innerText = `Olá, ${cachedUser.name}`;
-    document.getElementById('proDisplayCompany').innerText = cachedUser.company;
-    nextScreen('proDashboardScreen');
-}
-
-// Limpa o campo de entrada e desloga o usuário
+// --- LOGOUT ---
 function logout() {
-    document.getElementById('cpfInput').value = '';
+    const cpfInput = document.getElementById('cpfInput');
+    if (cpfInput) cpfInput.value = '';
     nextScreen('loginScreen');
 }
 
-// --- FLUXO DO CIDADÃO (Abertura de Chamados) ---
-function openFormDirect(title) {
-    document.getElementById('dynamicFormTitle').innerText = title;
-    nextScreen('emergencyScreen');
+// --- FLUXO DO CIDADÃO (Envio de Formulários) ---
+function openCitizenForm(title, key) {
+    document.getElementById('formTitle').innerText = title;
+    document.getElementById('formKey').value = key;
+    nextScreen('scrForm');
 }
 
-function submitReport() {
-    const tipoForm = document.getElementById('dynamicFormTitle').innerText;
-    const data = {
-        id: Date.now(),
-        tipo: tipoForm,
-        animal: document.getElementById('em_tipo').value,
-        local: document.getElementById('em_local').value,
-        desc: document.getElementById('em_desc').value,
-        status: 'Pendente'
-    };
-
-    // Insere o chamado na lista global
-    reports.push(data); 
-
-    // NOTIFICAÇÃO CIDADÃO: Feedback imediato de envio bem-sucedido
-    triggerToast("✅ Denúncia realizada! Uma equipe está a caminho.", false);
+function registrarAcao(event) {
+    event.preventDefault();
+    const tipo = document.getElementById('formTitle').innerText;
+    const chave = document.getElementById('formKey').value;
     
-    // NOTIFICAÇÃO CRUZADA: Dispara o push simulado na central do profissional em background
-    simulateProAlert(tipoForm);
+    // Adiciona o chamado na fila global que o profissional enxerga
+    dbOcorrencias.push({
+        id: Date.now(), 
+        tipo: tipo,
+        descricao: document.getElementById('formDetails').value,
+        hora: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+    });
 
-    // Limpeza padrão dos inputs do formulário
-    document.getElementById('em_tipo').value = '';
-    document.getElementById('em_local').value = '';
-    document.getElementById('em_desc').value = '';
+    // Incrementa os contadores de controle
+    if (counters[chave] !== undefined) counters[chave]++;
     
-    nextScreen('menuScreen');
+    // Dispara a animação do Toast superior de 10 min
+    mostrarToast(); 
+
+    // Altera a mensagem de sucesso dinamicamente
+    const confirmMsg = document.getElementById('confirmMsg');
+    if (confirmMsg) confirmMsg.innerText = `Ocorrência de ${tipo} registrada com sucesso.`;
+    
+    // Limpa o formulário e envia para a tela de confirmação
+    event.target.reset();
+    nextScreen('confirmationScreen');
 }
 
-// --- FLUXO DO PROFISSIONAL (Gestão Operacional) ---
-function renderOccurrences() {
-    const container = document.getElementById('listContainer');
+// --- FLUXO DO PROFISSIONAL (Visualização e Atendimento) ---
+function abrirOcorrencias() {
+    const container = document.getElementById('listaIntegrada');
+    if (!container) return;
+    
     container.innerHTML = '';
-
-    if (reports.length === 0) {
-        container.innerHTML = '<div class="occurrence-card" style="text-align:center;"><p>Nenhum chamado operacional em aberto.</p></div>';
+    
+    if(dbOcorrencias.length === 0) {
+        container.innerHTML = '<div class="occurrence-card" style="text-align:center;"><p>Nenhuma ocorrência operacional pendente no momento.</p></div>';
     } else {
-        // Monta os cards dinamicamente com base nas denúncias dos cidadãos
-        reports.forEach(report => {
+        // Renderiza os cards dinamicamente baseados nas denúncias dos cidadãos
+        dbOcorrencias.forEach(item => {
             const card = document.createElement('div');
             card.className = 'occurrence-card';
             card.innerHTML = `
-                <h4>🚨 ${report.tipo}: ${report.animal}</h4>
-                <p>📍 <strong>Local:</strong> ${report.local}</p>
-                <p style="background:#f9f9f9; padding:10px; border-radius:10px;">${report.desc}</p>
-                <button class="pro-btn" onclick="atenderOcorrencia(${report.id})">Assumir e Despachar Resgate 🚗</button>
+                <strong>🚨 ${item.tipo}</strong><br>
+                <small>Horário: ${item.hora}</small>
+                <p style="background: #f8f9fa; padding: 10px; border-radius: 10px; margin-top: 8px;">${item.descricao}</p>
+                <button class="btn" style="padding: 12px; font-size: 13px; margin: 5px 0 0 0;" onclick="atender(${item.id})">Assumir e Enviar Equipe 🚗</button>
             `;
             container.appendChild(card);
         });
@@ -148,40 +156,30 @@ function renderOccurrences() {
     nextScreen('proListScreen');
 }
 
-function atenderOcorrencia(id) {
-    // Remove da lista de pendentes e incrementa a meta/contador do profissional
-    reports = reports.filter(r => r.id !== id);
-    atendimentosCount++;
-    document.getElementById('countAtendimentos').innerText = atendimentosCount;
+function atender(id) {
+    // Remove o chamado resolvido do banco de dados
+    dbOcorrencias = dbOcorrencias.filter(i => i.id !== id);
+    
+    // Alimenta as metas internas do profissional
+    estatisticasPro.atendimentos++;
     
     alert("Chamado assumido! Ordem de serviço enviada para a viatura de campo.");
-    renderOccurrences();
+    abrirOcorrencias();
 }
 
-// --- SISTEMA DE TOAST NOTIFICATIONS (Animação Push Superior) ---
-function triggerToast(text, isProNotification = false) {
-    const toast = document.getElementById('notificationToast');
-    toast.innerText = text;
-    
-    // Aplica estilo diferenciado se for um alerta operacional do funcionário
-    if(isProNotification) {
-        toast.classList.add('pro-alert');
-    } else {
-        toast.classList.remove('pro-alert');
+function abrirPerfilPro() {
+    const totalAtendimentos = document.getElementById('totalAtendimentos');
+    if (totalAtendimentos) totalAtendimentos.innerText = estatisticasPro.atendimentos;
+    nextScreen('proProfile');
+}
+
+// --- PUSH TOAST NOTIFICATION SUPERIOR ---
+function mostrarToast() {
+    const toast = document.getElementById('toast') || document.getElementById('notificationToast');
+    if (toast) {
+        toast.style.top = '24px';
+        setTimeout(() => { 
+            toast.style.top = '-100px'; 
+        }, 4500);
     }
-
-    // Desce o Toast
-    toast.style.top = '20px';
-    
-    // Recolhe o Toast após 5 segundos
-    setTimeout(() => { 
-        toast.style.top = '-100px'; 
-    }, 5000);
-}
-
-// Simula o recebimento de uma notificação após um pequeno delay de rede (2.5s)
-function simulateProAlert(tipoChamado) {
-    setTimeout(() => {
-        triggerToast(`🚨 Alerta: Novo chamado de resgate pendente: "${tipoChamado}"!`, true);
-    }, 2500);
 }
