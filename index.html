@@ -3,54 +3,454 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Safe Life Ecosystem</title>
+    <title>Safe Life Ecosystem - Premium Standalone</title>
+    <style>
+        /* ==========================================================================
+           1. CORE DESIGN SYSTEMS & VARIABLES (PREMIUM BLUE ACCENT)
+           ========================================================================== */
+        :root {
+            --bg-gradient-start: #b9c6ff; 
+            --bg-gradient-end: #e8eeff;
+            --blue-accent: #254bfa;       
+            --blue-hover: #193ad1;
+            --text-dark: #1e293b;         
+            --text-light: #64748b;        
+            --white-card: #ffffff;        
+            --emergency-color: #ef4444;   
+            --emergency-hover: #dc2626;
+            --success-color: #10b981;
+            --border-radius-large: 32px;
+            --border-radius-medium: 20px;
+            --border-radius-small: 14px;
+            --transition-speed: 0.22s;
+            --box-shadow-premium: 0 10px 30px rgba(37, 75, 250, 0.08);
+            --box-shadow-card: 0 6px 20px rgba(0, 0, 0, 0.03);
+        }
+
+        /* Modificadores Globais para o Modo Escuro Ativo */
+        body.dark-theme {
+            --bg-gradient-start: #0f172a; 
+            --bg-gradient-end: #1e293b;
+            --text-dark: #f8fafc;
+            --text-light: #94a3b8;
+            --white-card: #1e293b;        
+            --blue-accent: #3b82f6;       
+            --blue-hover: #60a5fa;
+            --box-shadow-premium: 0 10px 30px rgba(0, 0, 0, 0.3);
+            --box-shadow-card: 0 6px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Reset e Configurações de Escalonamento */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body { 
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
+            background: linear-gradient(180deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%); 
+            min-height: 100vh;
+            color: var(--text-dark);
+            display: flex; 
+            justify-content: center;
+            align-items: flex-start;
+            -webkit-font-smoothing: antialiased;
+            transition: background var(--transition-speed) ease, color var(--transition-speed) ease;
+        }
+
+        /* Container Principal Expansivo e Responsivo (Previne efeito minúsculo) */
+        #app {
+            width: 100%; 
+            max-width: 480px;
+            min-height: 100vh; 
+            position: relative;
+            padding: 30px 24px;
+            display: flex; 
+            flex-direction: column;
+            background: transparent;
+        }
+
+        /* ==========================================================================
+           2. COMPONENTES E ARQUITETURA VISUAL
+           ========================================================================== */
+        
+        /* Controlador das Telas do App */
+        .screen { 
+            display: none; 
+            flex-direction: column; 
+            width: 100%;
+            height: 100%; 
+            animation: premiumFadeIn var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1); 
+            padding-bottom: 110px; 
+        }
+        .screen.active { display: flex; }
+
+        /* Estrutura de Cabeçalho Flutuante com Cantos Arredondados */
+        header {
+            background: var(--white-card);
+            border-bottom-left-radius: var(--border-radius-large); 
+            border-bottom-right-radius: var(--border-radius-large);
+            padding: 40px 24px; 
+            margin: -30px -24px 35px -24px;
+            box-shadow: var(--box-shadow-premium); 
+            text-align: center;
+            transition: background var(--transition-speed) ease;
+        }
+        header h1 { 
+            font-size: 30px; 
+            margin: 0; 
+            font-weight: 700; 
+            letter-spacing: -0.8px;
+            color: var(--text-dark); 
+        }
+        header p {
+            font-size: 14px;
+            color: var(--text-light);
+            margin-top: 6px;
+            margin-bottom: 0;
+        }
+
+        /* Elementos Multimídia */
+        .welcome-img { 
+            width: 100%; 
+            height: 260px;
+            object-fit: cover;
+            border-radius: var(--border-radius-large); 
+            margin-bottom: 25px; 
+            box-shadow: 0 12px 28px rgba(0,0,0,0.08);
+        }
+
+        p.screen-desc {
+            font-size: 16px; 
+            line-height: 1.6;
+            text-align: center; 
+            margin: 20px 0;
+            color: var(--text-dark);
+        }
+
+        /* ==========================================================================
+           3. CENTRAL DE BOTÕES E INTERATIVIDADE
+           ========================================================================== */
+        
+        .btn-large {
+            background: rgba(255, 255, 255, 0.45);
+            border: 2px solid rgba(255, 255, 255, 0.7);
+            color: #1e293b; 
+            padding: 20px; 
+            border-radius: var(--border-radius-large);
+            font-size: 18px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            backdrop-filter: blur(12px); 
+            -webkit-backdrop-filter: blur(12px);
+            width: 100%; 
+            box-sizing: border-box;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.05);
+            transition: background var(--transition-speed), transform 0.1s, color var(--transition-speed);
+        }
+        .btn-large:hover { background: rgba(255, 255, 255, 0.65); }
+        .btn-large:active { transform: scale(0.98); }
+        
+        body.dark-theme .btn-large { 
+            color: #ffffff; 
+            background: rgba(255, 255, 255, 0.08); 
+            border-color: rgba(255, 255, 255, 0.15); 
+        }
+
+        .btn { 
+            background: var(--blue-accent); 
+            color: #ffffff; 
+            border: none;
+            border-radius: var(--border-radius-medium); 
+            padding: 18px 24px; 
+            font-size: 16px; 
+            font-weight: 600;
+            width: 100%; 
+            box-sizing: border-box; 
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(37, 75, 250, 0.25); 
+            transition: background var(--transition-speed), transform 0.1s, opacity var(--transition-speed);
+            margin: 12px 0;
+        }
+        .btn:hover { background: var(--blue-hover); }
+        .btn:active { transform: scale(0.98); }
+
+        .emergency { 
+            background: var(--emergency-color) !important; 
+            box-shadow: 0 8px 24px rgba(239, 68, 68, 0.3) !important;
+            font-weight: 700 !important;
+            grid-column: span 2;
+            text-align: center !important;
+        }
+        .emergency:hover { background: var(--emergency-hover) !important; }
+
+        /* Grid de Opções do Cidadão */
+        .action-buttons { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 16px; 
+            margin-top: 10px; 
+        }
+        .action-buttons .btn {
+            background: var(--white-card); 
+            border-radius: var(--border-radius-medium); 
+            padding: 22px 18px;
+            border: none; 
+            margin: 0; 
+            color: var(--text-dark); 
+            text-align: left;
+            box-shadow: var(--box-shadow-card); 
+            font-size: 14px; 
+            font-weight: 600;
+            line-height: 1.4;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 120px;
+        }
+        .action-buttons .btn span.icon {
+            font-size: 26px;
+            margin-bottom: 8px;
+        }
+
+        /* Cards Gerais */
+        .occurrence-card {
+            background: var(--white-card); 
+            padding: 22px; 
+            border-radius: var(--border-radius-medium);
+            margin-bottom: 18px; 
+            border-left: 6px solid var(--blue-accent);
+            box-shadow: var(--box-shadow-card); 
+            text-align: left; 
+            box-sizing: border-box;
+            transition: background var(--transition-speed), transform var(--transition-speed);
+        }
+        .occurrence-card h4 {
+            font-size: 16px;
+            margin-bottom: 12px;
+            color: var(--text-dark);
+        }
+
+        /* ==========================================================================
+           4. FORMULÁRIOS, INPUTS E SELETORES
+           ========================================================================== */
+        
+        input, textarea, select {
+            width: 100%; 
+            padding: 18px; 
+            margin: 10px 0; 
+            background: var(--white-card); 
+            border: 2px solid transparent; 
+            border-radius: var(--border-radius-small); 
+            box-sizing: border-box; 
+            font-size: 15px; 
+            color: var(--text-dark); 
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.01), var(--box-shadow-card);
+            transition: border-color var(--transition-speed), background var(--transition-speed);
+        }
+        input:focus, textarea:focus, select:focus { 
+            outline: none; 
+            border-color: var(--blue-accent); 
+        }
+
+        input[type="file"] {
+            background: rgba(0, 0, 0, 0.02);
+            border: 2px dashed var(--text-light);
+            padding: 14px;
+            cursor: pointer;
+        }
+        body.dark-theme input[type="file"] { background: rgba(255, 255, 255, 0.03); }
+
+        label {
+            display: block; 
+            text-align: left; 
+            font-size: 13px; 
+            font-weight: 600; 
+            margin: 14px 0 4px 4px;
+            color: var(--text-dark);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Custom Switch para o Controle de Tema */
+        .switch-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 0;
+        }
+        .switch-control {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 28px;
+        }
+        .switch-control input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #cbd5e1; transition: .4s; border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px;
+            background-color: white; transition: .4s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--blue-accent); }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        /* ==========================================================================
+           5. MENUS DE NAVEGAÇÃO E UTILITÁRIOS
+           ========================================================================== */
+        
+        .bottom-nav {
+            position: fixed; 
+            bottom: 0; 
+            left: 50%; 
+            transform: translateX(-50%);
+            width: 100%; 
+            max-width: 480px; 
+            background: var(--white-card);
+            display: flex; 
+            justify-content: space-around; 
+            padding: 16px 0 24px 0;
+            box-shadow: 0 -10px 35px rgba(0, 0, 0, 0.06); 
+            z-index: 1000;
+            border-top-left-radius: var(--border-radius-large); 
+            border-top-right-radius: var(--border-radius-large);
+            transition: background var(--transition-speed) ease;
+        }
+        .bottom-nav button {
+            background: none; 
+            border: none; 
+            color: var(--text-light);
+            font-size: 13px; 
+            font-weight: 600; 
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            transition: color var(--transition-speed);
+        }
+        .bottom-nav button span.nav-icon { font-size: 20px; }
+        .bottom-nav button.active-nav { color: var(--blue-accent); }
+
+        /* Banner Dinâmico Flutuante (Toast) */
+        #toast {
+            position: fixed; 
+            top: -100px; 
+            left: 50%; 
+            transform: translateX(-50%);
+            background: #0f172a; 
+            color: #ffffff; 
+            padding: 18px 24px; 
+            border-radius: var(--border-radius-medium); 
+            z-index: 2000; 
+            transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            width: 90%; 
+            max-width: 432px; 
+            text-align: center; 
+            font-size: 15px;
+            font-weight: 500;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        /* Interface Isolada para Canal Anônimo (Preto e Vermelho Segurança) */
+        .screen.anon-mode {
+            background: #090d16 !important;
+            color: #f8fafc !important;
+            margin: -30px -24px;
+            padding: 30px 24px;
+            min-height: 100vh;
+        }
+        .screen.anon-mode header {
+            background: #111827 !important;
+            border-bottom: 3px solid #ef4444;
+            box-shadow: 0 10px 30px rgba(239, 68, 68, 0.05);
+        }
+        .screen.anon-mode header h1 { color: #ef4444 !important; }
+        .screen.anon-mode .occurrence-card {
+            background: #111827 !important;
+            border-left-color: #ef4444 !important;
+            color: #f8fafc !important;
+        }
+        .screen.anon-mode input, .screen.anon-mode textarea, .screen.anon-mode select {
+            background: #1f2937 !important;
+            color: #f8fafc !important;
+        }
+
+        /* Lista de Pets Estilizada */
+        .pet-item-box {
+            display: flex; 
+            align-items: center; 
+            gap: 16px; 
+            margin-top: 14px; 
+            border-top: 1px solid rgba(0,0,0,0.06); 
+            padding-top: 14px;
+        }
+        body.dark-theme .pet-item-box { border-top-color: rgba(255,255,255,0.06); }
+
+        /* Animações nativas */
+        @keyframes premiumFadeIn { 
+            from { opacity: 0; transform: translateY(8px) scale(0.99); } 
+            to { opacity: 1; transform: translateY(0) scale(1); } 
+        }
+    </style>
 </head>
 <body>
 
-    <div id="toast">🚀 Atualização processada com sucesso!</div>
+    <div id="toast">📌 Operação concluída com sucesso!</div>
 
     <div id="app">
 
         <div class="screen active" id="welcomeScreen">
             <header>
                 <h1>Safe Life</h1>
+                <p>Ecosistema de Salvamento & Proteção</p>
             </header>
-            <main>
-                <img src="https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=500&q=80" class="welcome-img" alt="Humano e cachorro feliz">
-                <p><strong>Transformando o mundo, um resgate por vez.</strong></p>
-                <button class="btn-large" onclick="nextScreen('locationScreen')">Começar 🐾</button>
+            <main style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                <img src="https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=600&q=80" class="welcome-img" alt="Humano e cachorro feliz">
+                <p class="screen-desc"><strong>Transformando o mundo, um resgate por vez.</strong> Conectando protetores, cidadãos e corporações veterinárias.</p>
+                <button class="btn-large" onclick="nextScreen('locationScreen')">Começar Jornada 🐾</button>
             </main>
         </div>
 
         <div class="screen" id="locationScreen">
             <header>
                 <h1>Sinal de GPS</h1>
+                <p>Etapa de Coordenadas de Campo</p>
             </header>
-            <main>
-                <p>Para conectar você às redes de apoio locais, precisamos calibrar seu mapa e garantir que os resgates tenham precisão cirúrgica.</p>
-                <button class="btn" onclick="nextScreen('registerScreen')">Permitir Acesso Confiável 📍</button>
+            <main style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                <p class="screen-desc">Para vincular sua conta aos polos de acolhimento e agilizar o rastreio de ambulâncias veterinárias, valide a leitura de mapa de seu dispositivo.</p>
+                <button class="btn" onclick="nextScreen('registerScreen')">Permitir Conexão de Mapa 📍</button>
             </main>
         </div>
 
         <div class="screen" id="registerScreen">
             <header>
                 <h1>Criar Conta</h1>
+                <p>Inscreva-se na Rede de Proteção</p>
             </header>
             <main>
                 <label for="regName">Nome Completo</label>
-                <input type="text" id="regName" placeholder="Digite seu nome completo">
+                <input type="text" id="regName" placeholder="Nome do responsável ou agente">
                 
-                <label for="regCpf">CPF</label>
-                <input type="number" id="regCpf" placeholder="CPF (Apenas números)">
+                <label for="regCpf">CPF Regulamentar</label>
+                <input type="number" id="regCpf" placeholder="Apenas algarismos numéricos">
                 
-                <label for="regType">Tipo de Perfil</label>
+                <label for="regType">Tipo de Atuação (Perfil)</label>
                 <select id="regType" onchange="toggleRegCompanyField()">
-                    <option value="citizen">Cidadão</option>
-                    <option value="professional">Funcionário Operacional</option>
+                    <option value="citizen">Cidadão / Protetor Civil</option>
+                    <option value="professional">Funcionário Operacional / Corporação</option>
                 </select>
 
                 <div id="companyRegWrapper" style="display: none;">
-                    <label for="regCompany">Sua Base/Instituição</label>
+                    <label for="regCompany">Base Corporativa / Empregador</label>
                     <select id="regCompany">
                         <option value="Safe Life Matriz">Safe Life Matriz</option>
                         <option value="ONG Patas Livres">ONG Patas Livres</option>
@@ -59,24 +459,25 @@
                     </select>
                 </div>
 
-                <button class="btn" onclick="efetuarCadastro()">Finalizar Cadastro ✨</button>
-                <p style="cursor:pointer;" onclick="nextScreen('loginScreen')">Já tem conta? Ir para Login</p>
+                <button class="btn" onclick="efetuarCadastro()">Finalizar Inscrição ✨</button>
+                <p style="cursor:pointer; text-align: center; margin-top: 15px; font-weight: 600;" onclick="nextScreen('loginScreen')">Possui uma conta? Acesse aqui</p>
             </main>
         </div>
 
         <div class="screen" id="loginScreen">
             <header>
-                <h1>Acessar Plataforma</h1>
+                <h1>Acesso à Rede</h1>
+                <p>Validação de Identidade Criptografada</p>
             </header>
             <main>
-                <label for="loginRole">Como deseja entrar?</label>
+                <label for="loginRole">Selecione o Portal de Entrada</label>
                 <select id="loginRole" onchange="toggleLoginCompanyField()">
-                    <option value="citizen">Cidadão</option>
-                    <option value="professional">Funcionário / Agente</option>
+                    <option value="citizen">Portal do Cidadão</option>
+                    <option value="professional">Portal do Funcionário / Corporativo</option>
                 </select>
 
                 <div id="loginCompanyWrapper" style="display: none;">
-                    <label for="loginCompany">Selecione sua Empresa/Empregador</label>
+                    <label for="loginCompany">Selecione a Empresa Conveniada</label>
                     <select id="loginCompany">
                         <option value="Safe Life Matriz">Safe Life Matriz</option>
                         <option value="ONG Patas Livres">ONG Patas Livres</option>
@@ -84,121 +485,153 @@
                     </select>
                 </div>
 
-                <label for="cpfInput">Documento de Identificação</label>
-                <input type="number" id="cpfInput" placeholder="Digite seu CPF cadastrado">
+                <label for="cpfInput">Insira seu CPF Cadastrado</label>
+                <input type="number" id="cpfInput" placeholder="000.000.000-00">
                 
-                <button class="btn" onclick="autenticar()">Entrar no Ecossistema 🚀</button>
-                <p style="font-size: 11px; color: gray;">Dica de teste -> Cidadão: 11111111111 | Funcionário: 99999999999</p>
+                <button class="btn" onclick="autenticar()">Efetuar Login Seguro 🚀</button>
+                
+                <div class="occurrence-card" style="margin-top: 30px; border-left-color: var(--text-light);">
+                    <small style="display: block; text-align: center; color: var(--text-light);">
+                        <strong>Bypass de Homologação:</strong><br>
+                        CPF Cidadão: <code>11111111111</code><br>
+                        CPF Funcionário: <code>99999999999</code>
+                    </small>
+                </div>
             </main>
         </div>
 
         <div class="screen" id="menuScreen">
             <header>
                 <h1>Safe Life Central</h1>
+                <p>Menu de Serviços e Alertas</p>
             </header>
             <main class="action-buttons">
-                <button class="btn btn-large emergency" onclick="openCitizenForm('Emergência Crítica', 'emergency')">⚠️ SOS Emergência</button>
-                <button class="btn btn-large" onclick="openCitizenForm('Registrar Novo Pet', 'register_pet')">📋 Cadastrar Meu Pet</button>
-                <button class="btn btn-large" onclick="openCitizenForm('Ocorrência de Maus-Tratos', 'report')">💚 Reportar Ocorrência</button>
-                <button class="btn btn-large" onclick="openAnonForm()">🕵️ Denúncia Anônima Segura</button>
-                <button class="btn btn-large" onclick="openCitizenForm('Pedido de Resgate Comunitário', 'rescue')">🍃 Solicitar Resgate</button>
+                <button class="btn emergency" onclick="openCitizenForm('Emergência Crítica / Código Vermelho', 'emergency')">
+                    <span>⚠️ SOS EMERGÊNCIA IMEDIATA</span>
+                </button>
+                <button class="btn" onclick="openCitizenForm('Registrar Novo Pet na Base', 'register_pet')">
+                    <span class="icon">📋</span>
+                    <span>Cadastrar Meu Pet</span>
+                </button>
+                <button class="btn" onclick="openCitizenForm('Ocorrência de Abandono/Maus-Tratos', 'report')">
+                    <span class="icon">💚</span>
+                    <span>Reportar Ocorrência</span>
+                </button>
+                <button class="btn" onclick="openAnonForm()">
+                    <span class="icon">🕵️</span>
+                    <span>Denúncia Anônima</span>
+                </button>
+                <button class="btn" onclick="openCitizenForm('Solicitação Balizada de Resgate', 'rescue')">
+                    <span class="icon">🍃</span>
+                    <span>Solicitar Resgate</span>
+                </button>
             </main>
             <footer class="bottom-nav">
-                <button class="active-nav" onclick="nextScreen('menuScreen')">🏠 Início</button>
-                <button onclick="renderPerfilCidadao()">👤 Perfil & Configs</button>
+                <button class="active-nav" onclick="nextScreen('menuScreen')">
+                    <span class="nav-icon">🏠</span>Início
+                </button>
+                <button onclick="renderPerfilCidadao()">
+                    <span class="nav-icon">👤</span>Perfil & Definições
+                </button>
             </footer>
         </div>
 
         <div class="screen" id="scrForm">
             <header>
-                <h1 id="formTitle">Formulário</h1>
+                <h1 id="formTitle">Formulário Operacional</h1>
+                <p>Preenchimento Obrigatório de Evidências</p>
             </header>
             <main>
                 <form onsubmit="registrarAcao(event)">
                     <input type="hidden" id="formKey">
                     
                     <div id="conditionalPetFields" style="display:none;">
-                        <label for="petAge">Idade Estimada (Anos)</label>
-                        <input type="number" id="petAge" placeholder="Ex: 2">
+                        <label for="petAge">Idade Cronológica Estimada</label>
+                        <input type="number" id="petAge" placeholder="Exemplo: 3">
                         
-                        <label for="petBreed">Espécie do Animal</label>
-                        <input type="text" id="petBreed" placeholder="Ex: Cão, Gato, Ave">
+                        <label for="petBreed">Espécie Biológica</label>
+                        <input type="text" id="petBreed" placeholder="Ex: Felino, Canino, Equino">
                     </div>
 
-                    <label for="formSubject">Título ou Espécie principal</label>
-                    <input type="text" id="formSubject" placeholder="Ex: Gato ferido, Cachorro abandonado" required>
+                    <label for="formSubject">Identificação / Raça ou Fato Principal</label>
+                    <input type="text" id="formSubject" placeholder="Ex: Gato Persa, Cão Sem Raça Definida" required>
                     
-                    <label for="formLocation">📍 Localização / Endereço Completo</label>
-                    <input type="text" id="formLocation" placeholder="Rua, número, bairro ou ponto de referência" required>
+                    <label for="formLocation">📍 Coordenadas de Localização / Endereço Real</label>
+                    <input type="text" id="formLocation" placeholder="Rua, número, bairro ou ponto geográfico" required>
                     
-                    <label for="formDetails">Detalhamento da Situação</label>
-                    <textarea id="formDetails" placeholder="Escreva aqui o estado do animal, comportamento ou cenário..." style="height: 100px;" required></textarea>
+                    <label for="formDetails">Descrição Narrativa Detalhada</label>
+                    <textarea id="formDetails" placeholder="Insira o quadro clínico do animal ou as especificidades do cenário encontrado..." style="height: 120px;" required></textarea>
                     
-                    <label>📸 Adicionar Foto / Evidência Visual:</label>
+                    <label>📸 Registro Fotográfico / Captura de Imagem:</label>
                     <input type="file" id="formFile" accept="image/*">
 
-                    <button type="submit" class="btn">Enviar Informações Seguras 🚀</button>
+                    <button type="submit" class="btn">Transmitir Dados à Nuvem 🚀</button>
                 </form>
-                <button class="btn" style="background:#6c757d;" onclick="nextScreen('menuScreen')">Voltar ao Início</button>
+                <button class="btn" style="background:#64748b;" onclick="nextScreen('menuScreen')">Cancelar e Voltar</button>
             </main>
         </div>
 
         <div class="screen anon-mode" id="scrAnonForm">
-            <header style="background: #111827; border-bottom: 2px solid #ef4444;">
-                <h1 style="color:#ef4444;">🛡️ Canal de Proteção Anônimo</h1>
+            <header>
+                <h1>Canal de Denúncia Blindado</h1>
+                <p style="color: #94a3b8;">Protocolo de Segurança Ativo</p>
             </header>
             <main>
-                <div style="background: rgba(239, 68, 68, 0.1); padding: 12px; margin: 15px 0; border-radius: 8px; font-size: 13px; color:#fca5a5; text-align: left; line-height: 1.4;">
-                    🔒 Camada Invisível Ativa: Seu endereço IP, dados de conta e localização em tempo real foram mascarados. Esta denúncia é enviada com criptografia de ponta e não deixará nenhum rastro no histórico do seu perfil. Você está seguro.
+                <div class="occurrence-card" style="line-height: 1.5; font-size: 13px;">
+                    🛡️ <strong>SEGURANÇA EXTREMA ATIVADA:</strong> Seus metadados identitários, credenciais de conta de usuário, endereços lógicos de IP e localização geográfica primária foram desvinculados do banco de dados central. Esta ação trafega por um túnel criptográfico blindado e é 100% indestrutível. Ninguém saberá quem enviou.
                 </div>
                 <form onsubmit="registrarAcaoAnonima(event)">
-                    <label for="anonSubject" style="color:#fff;">Fato / Animal Alvo do Abuso</label>
-                    <input type="text" id="anonSubject" placeholder="Ex: Cão acorrentado sem água" required>
+                    <label for="anonSubject" style="color:#ffffff;">Fato Delituoso / Infração Identificada</label>
+                    <input type="text" id="anonSubject" placeholder="Ex: Canil clandestino, Agressão física ativa" required>
                     
-                    <label for="anonLocation" style="color:#fff;">📍 Local Exato do Acontecido</label>
-                    <input type="text" id="anonLocation" placeholder="Endereço aproximado ou pontos de referência" required>
+                    <label for="anonLocation" style="color:#ffffff;">📍 Endereço da Infração</label>
+                    <input type="text" id="anonLocation" placeholder="Localização exata, portão, comércio próximo" required>
                     
-                    <label for="anonDetails" style="color:#fff;">Descrição dos Fatos</label>
-                    <textarea id="anonDetails" placeholder="Descreva a agressão ou abandono sem fornecer dados que revelem sua identidade..." style="height: 120px;" required></textarea>
+                    <label for="anonDetails" style="color:#ffffff;">Relato Livre dos Fatos</label>
+                    <textarea id="anonDetails" placeholder="Digite detalhadamente a infração sem citar dados que permitam sua identificação indireta..." style="height: 130px;" required></textarea>
                     
-                    <label style="color:#fff;">📸 Anexar Foto (Metadados de rastreamento EXIF serão removidos):</label>
+                    <label style="color:#ffffff;">📸 Evidência Digital Fotográfica (Remoção Automática de EXIF/GPS da Imagem):</label>
                     <input type="file" id="anonFile" accept="image/*">
 
-                    <button type="submit" class="btn" style="background: #ef4444;">Disparar Denúncia Blindada 🕶️</button>
+                    <button type="submit" class="btn">Disparar Criptografia Blindada 🕶️</button>
                 </form>
-                <button class="btn" style="background:#374151;" onclick="nextScreen('menuScreen')">Abortar e Voltar</button>
+                <button class="btn" style="background:#334155;" onclick="nextScreen('menuScreen')">Abortar Transmissão</button>
             </main>
         </div>
 
         <div class="screen" id="citizenProfile">
             <header>
-                <h1>Meu Perfil</h1>
+                <h1>Central do Usuário</h1>
+                <p>Configurações de Conta e Identidade</p>
             </header>
             <main>
                 <div class="occurrence-card" style="text-align: center;">
-                    <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80" id="profileAvatar" style="width:80px; height:80px; border-radius:50%; object-fit: cover; margin-bottom: 10px;" alt="Avatar">
-                    <h3 id="citizenProfileName" style="margin:5px 0;">Usuário Ativo</h3>
-                    <p style="font-size:12px; margin:0; color: gray;">Nível: Protetor Honorário</p>
+                    <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80" id="profileAvatar" style="width:90px; height:90px; border-radius:50%; object-fit: cover; margin-bottom: 12px; border: 3px solid var(--blue-accent);" alt="Avatar">
+                    <h3 id="citizenProfileName" style="margin: 0; font-size: 20px;">Usuário Homologado</h3>
+                    <p style="font-size:13px; color: var(--text-light); margin:4px 0 0 0;">Membro da Rede Safe Life</p>
                 </div>
 
                 <div class="occurrence-card">
-                    <h4>⚙️ Alterar Dados da Conta</h4>
+                    <h4>⚙️ Atualizar Informações Cadastrais</h4>
                     
-                    <label for="editEmail">E-mail de Contato</label>
-                    <input type="email" id="editEmail" placeholder="Mudar E-mail de Contato" value="defensor@safelife.com">
+                    <label for="editEmail">E-mail de Notificação</label>
+                    <input type="email" id="editEmail" value="defensor@safelife.com">
                     
-                    <label for="editPhone">Número de Celular</label>
-                    <input type="text" id="editPhone" placeholder="Mudar Número de Telefone" value="(11) 99999-8888">
+                    <label for="editPhone">Telefone / WhatsApp</label>
+                    <input type="text" id="editPhone" value="(11) 99999-8888">
                     
-                    <label>Atualizar Foto de Perfil:</label>
+                    <label>Alterar Foto de Perfil:</label>
                     <input type="file" id="editAvatarFile" accept="image/*" onchange="atualizarFotoPerfil(this)">
                     
-                    <button class="btn" style="padding:10px; font-size:13px; margin-top: 15px;" onclick="salvarDadosPerfil()">Salvar Alterações</button>
+                    <button class="btn" style="padding:12px; font-size:14px; margin-top: 15px;" onclick="salvarDadosPerfil()">Salvar Alterações</button>
                 </div>
 
-                <div class="occurrence-card" style="display:flex; justify-content: space-between; align-items:center;">
-                    <strong>🌓 Visualização em Modo Escuro</strong>
-                    <input type="checkbox" id="darkModeToggle" onchange="alternarModoEscuro()" style="width:40px; margin:0;">
+                <div class="occurrence-card switch-container">
+                    <strong>🌓 Ativar Modo Escuro Premium</strong>
+                    <label class="switch-control">
+                        <input type="checkbox" id="darkModeToggle" onchange="alternarModoEscuro()">
+                        <span class="slider"></span>
+                    </label>
                 </div>
 
                 <div class="occurrence-card">
@@ -207,56 +640,373 @@
                         </div>
                 </div>
 
-                <button class="btn" style="background: #ef4444; box-shadow: none;" onclick="logout()">🚪 Encerrar Sessão (Sair)</button>
+                <button class="btn" style="background: var(--emergency-color); box-shadow: none;" onclick="logout()">🚪 Encerrar Sessão (Sair)</button>
             </main>
             <footer class="bottom-nav">
-                <button onclick="nextScreen('menuScreen')">🏠 Início</button>
-                <button class="active-nav" onclick="renderPerfilCidadao()">👤 Perfil & Configs</button>
+                <button onclick="nextScreen('menuScreen')">
+                    <span class="nav-icon">🏠</span>Início
+                </button>
+                <button class="active-nav" onclick="renderPerfilCidadao()">
+                    <span class="nav-icon">👤</span>Perfil & Definições
+                </button>
             </footer>
         </div>
 
         <div class="screen" id="proDashboard">
             <header>
-                <h1>Central Operacional</h1>
+                <h1>Terminal Corporativo</h1>
+                <p>Controle de Logística e Despacho</p>
             </header>
             <main>
                 <div class="occurrence-card" style="text-align: center;">
-                    <h3 id="proWelcomeName">Olá, Agente</h3>
-                    <p id="proCompanyName" style="font-weight:700; margin:0; color: #254bfa;"></p>
+                    <h3 id="proWelcomeName">Agente Técnico</h3>
+                    <p id="proCompanyName" style="font-weight:700; margin-top: 4px; color: var(--blue-accent);"></p>
                 </div>
 
                 <div class="action-buttons" style="grid-template-columns: 1fr;">
-                    <button class="btn" onclick="abrirOcorrenciasPro()">📋 Fila de Chamados Ativos</button>
-                    <button class="btn" onclick="triggerToast('🗺️ Coordenadas e rastreio de satélite fixados no mapa do chamado!')">📍 Rastrear Localização do Chamado</button>
-                    <button class="btn" onclick="triggerToast('🚒 Sistema de Frotas: 3 viaturas ativas em ronda perimetral.')">🛞 Histórico & Status de Viaturas</button>
-                    <button class="btn" onclick="triggerToast('🩺 Escala médica veterinária integrada de prontidão para código vermelho.')">🩺 Escala do Plantão Técnico</button>
+                    <button class="btn" style="height: auto; padding: 18px;" onclick="abrirOcorrenciasPro()">📋 Visualizar Fila de Chamados Ativos</button>
+                    <button class="btn" style="height: auto; padding: 18px;" onclick="triggerToast('🗺️ Sistema de Mapas: Triangulação efetuada para o chamado mais próximo!')">📍 Rastrear Localização Real do Chamado</button>
+                    <button class="btn" style="height: auto; padding: 18px;" onclick="triggerToast('🚒 Logística: Viaturas Alfa e Beta operacionais e com tanque cheio.')">🛞 Histórico & Status das Viaturas</button>
+                    <button class="btn" style="height: auto; padding: 18px;" onclick="triggerToast('🩺 Escala Médica: Veterinários de trauma em prontidão na Base SP.')">🩺 Escala e Alocação do Plantão Técnico</button>
                 </div>
                 
-                <button class="btn" style="background:#6c757d; margin-top:20px;" onclick="logout()">Sair do Sistema</button>
+                <button class="btn" style="background:#64748b; margin-top:30px;" onclick="logout()">Desconectar Terminal</button>
             </main>
         </div>
 
         <div class="screen" id="proListScreen">
             <header>
-                <h1>Chamados Pendentes</h1>
+                <h1>Chamados Recebidos</h1>
+                <p>Despacho e Triagem Ambulatorial</p>
             </header>
             <main>
                 <div id="listaIntegradaPro"></div>
-                <button class="btn" style="background:#6c757d;" onclick="nextScreen('proDashboard')">Voltar ao Painel</button>
+                <button class="btn" style="background:#64748b;" onclick="nextScreen('proDashboard')">Voltar ao Painel</button>
             </main>
         </div>
 
         <div class="screen" id="confirmationScreen">
             <header>
-                <h1>Sucesso!</h1>
+                <h1>Sucesso Operacional</h1>
+                <p>Protocolo Transmitido</p>
             </header>
-            <main>
-                <p id="confirmMsg" style="text-align: center; margin: 20px 0;">Ação computada com sucesso.</p>
-                <button class="btn" onclick="nextScreen('menuScreen')">Voltar para Home 🏠</button>
+            <main style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                <div class="occurrence-card" style="border-left-color: var(--success-color); text-align: center;">
+                    <p id="confirmMsg" style="text-align: center; font-weight: 500;"></p>
+                </div>
+                <button class="btn" onclick="nextScreen('menuScreen')">Retornar à Home 🏠</button>
             </main>
         </div>
 
     </div>
 
+    <script>
+        // --- ARMAZENAMENTO VOLÁTIL (ESTADO DA APLICAÇÃO) ---
+        let dbOcorrencias = [];
+        let estatisticasPro = { chamadosAtendidos: 0 };
+        let cadastrosSimulados = [];
+        let usuarioLogado = null;
+
+        // Base Inicial de Pets Cadastrados (Regra de Negócio: Gato Ademir Pré-Existente)
+        let meusPets = [
+            { 
+                nome: "Ademir", 
+                idade: 3, 
+                especie: "Gato", 
+                local: "São Paulo - Zona Sul", 
+                foto: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=150&q=80" 
+            }
+        ];
+
+        // --- MOTOR DE NAVEGAÇÃO E TRANSIÇÃO INTERNA ---
+        function nextScreen(id) {
+            document.querySelectorAll('.screen').forEach(screenElement => {
+                screenElement.classList.remove('active');
+            });
+            const targetScreen = document.getElementById(id);
+            if(targetScreen) {
+                targetScreen.classList.add('active');
+                window.scrollTo(0, 0);
+            }
+        }
+
+        // --- MANIPULAÇÃO DINÂMICA DE INTERFACES CONDICIONAIS ---
+        function toggleRegCompanyField() {
+            const currentSelection = document.getElementById('regType').value;
+            const companyBlock = document.getElementById('companyRegWrapper');
+            companyBlock.style.display = (currentSelection === 'professional') ? 'block' : 'none';
+        }
+
+        function toggleLoginCompanyField() {
+            const currentSelection = document.getElementById('loginRole').value;
+            const companyBlock = document.getElementById('loginCompanyWrapper');
+            companyBlock.style.display = (currentSelection === 'professional') ? 'block' : 'none';
+        }
+
+        // --- FLUXO DE CRIAÇÃO DE CONTA ---
+        function efetuarCadastro() {
+            const nome = document.getElementById('regName').value;
+            const cpf = document.getElementById('regCpf').value;
+            const type = document.getElementById('regType').value;
+            const company = document.getElementById('regCompany').value;
+
+            if(!nome || !cpf) { 
+                alert("Erro: Preencha todos os campos regulamentares para validar o cadastro."); 
+                return; 
+            }
+
+            cadastrosSimulados.push({ 
+                nome: nome, 
+                cpf: cpf, 
+                type: type, 
+                company: type === 'professional' ? company : 'Nenhum' 
+            });
+
+            alert(`Conta vinculada com sucesso para ${nome}! Realize o login no portal correspondente.`);
+            document.getElementById('cpfInput').value = cpf;
+            document.getElementById('loginRole').value = type;
+            toggleLoginCompanyField();
+            nextScreen('loginScreen');
+        }
+
+        // --- NÚCLEO DE AUTENTICAÇÃO (BIFURCAÇÃO DE PERFIS) ---
+        function autenticar() {
+            const inputCpf = document.getElementById('cpfInput').value;
+            const chosenRole = document.getElementById('loginRole').value;
+            const chosenCompany = document.getElementById('loginCompany').value;
+
+            // Massa de Teste Estática (Bypass de Homologação)
+            if(inputCpf === '11111111111' && chosenRole === 'citizen') {
+                usuarioLogado = { nome: "Cidadão Exemplo", type: "citizen" };
+                triggerToast("👋 Bem-vindo de volta ao portal do cidadão!");
+                nextScreen('menuScreen');
+                return;
+            }
+            if(inputCpf === '99999999999' && chosenRole === 'professional') {
+                usuarioLogado = { nome: "Agente Técnico Plantonista", type: "professional", company: chosenCompany };
+                triggerToast("🔒 Terminal Operacional Ativo com sucesso.");
+                inicializarPainelPro();
+                return;
+            }
+
+            // Pesquisa Avançada no Banco Local Dinâmico
+            const contaLocalizada = cadastrosSimulados.find(user => user.cpf === inputCpf && user.type === chosenRole);
+            if(contaLocalizada) {
+                usuarioLogado = contaLocalizada;
+                if(chosenRole === 'citizen') {
+                    triggerToast(`Olá ${usuarioLogado.nome}, ambiente carregado.`);
+                    nextScreen('menuScreen');
+                } else {
+                    triggerToast("Terminal de monitoramento corporativo inicializado.");
+                    inicializarPainelPro();
+                }
+            } else {
+                alert("Aviso: Falha na autenticação. Verifique o CPF informado e o portal de entrada selecionado.");
+            }
+        }
+
+        function inicializarPainelPro() {
+            document.getElementById('proWelcomeName').innerText = `Agente: ${usuarioLogado.nome}`;
+            document.getElementById('proCompanyName').innerText = `🏢 Corporação: ${usuarioLogado.company}`;
+            nextScreen('proDashboard');
+        }
+
+        function logout() {
+            usuarioLogado = null;
+            document.getElementById('cpfInput').value = '';
+            triggerToast("Sessão finalizada com segurança.");
+            nextScreen('loginScreen');
+        }
+
+        // --- NÚCLEO DE COMPORTAMENTO DO CIDADÃO (FORMULÁRIOS & REQUISITOS) ---
+        function openCitizenForm(title, key) {
+            document.getElementById('formTitle').innerText = title;
+            document.getElementById('formKey').value = key;
+            
+            // Exibe formulários específicos de pet somente se a chave for correspondente
+            const petFieldsContainer = document.getElementById('conditionalPetFields');
+            petFieldsContainer.style.display = (key === 'register_pet') ? 'block' : 'none';
+            
+            nextScreen('scrForm');
+        }
+
+        function registrarAcao(event) {
+            event.preventDefault();
+            const chaveFormulario = document.getElementById('formKey').value;
+            const tituloOcorrencia = document.getElementById('formTitle').innerText;
+            const assuntoPrincipal = document.getElementById('formSubject').value;
+            const campoLocalizacao = document.getElementById('formLocation').value;
+            const campoDetalhes = document.getElementById('formDetails').value;
+            
+            if(chaveFormulario === 'register_pet') {
+                // Algoritmo de Armazenamento de Pet no Perfil do Cidadão
+                const idadeInformada = document.getElementById('petAge').value || "0";
+                const especieInformada = document.getElementById('petBreed').value || "Animal de Estimação";
+                
+                meusPets.push({
+                    nome: assuntoPrincipal,
+                    idade: idadeInformada,
+                    especie: especieInformada,
+                    local: campoLocalizacao,
+                    foto: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=150&q=80" // Placeholder Premium de pet cadastrado
+                });
+                
+                triggerToast("🐾 Animal catalogado na base nacional de pets!");
+                document.getElementById('confirmMsg').innerText = `O pet "${assuntoPrincipal}" foi registrado e indexado com sucesso ao seu histórico.`;
+            } else {
+                // Algoritmo de roteamento para a Fila do Funcionário
+                dbOcorrencias.push({
+                    id: Date.now(),
+                    tipo: tituloOcorrencia,
+                    assunto: assuntoPrincipal,
+                    localizacao: campoLocalizacao,
+                    detalhes: campoDetalhes,
+                    isAnonima: false,
+                    timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                });
+                triggerToast("🚀 Alerta enviado à central de triagem!");
+                document.getElementById('confirmMsg').innerText = `Seu boletim de chamado para "${assuntoPrincipal}" foi georreferenciado e transmitido.`;
+            }
+
+            event.target.reset();
+            nextScreen('confirmationScreen');
+        }
+
+        // --- FLUXO SEGURO / ANÔNIMO ---
+        function openAnonForm() {
+            nextScreen('scrAnonForm');
+        }
+
+        function registrarAcaoAnonima(event) {
+            event.preventDefault();
+            const assunto = document.getElementById('anonSubject').value;
+            const localizacao = document.getElementById('anonLocation').value;
+            const detalhes = document.getElementById('anonDetails').value;
+
+            // Injeção direta com flag de ocultação ativada
+            dbOcorrencias.push({
+                id: Date.now(),
+                tipo: "🚨 DENÚNCIA ULTRA-ANÔNIMA CRIPTOGRAFADA",
+                assunto: assunto,
+                localizacao: localizacao,
+                detalhes: detalhes,
+                isAnonima: true,
+                timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+            });
+
+            triggerToast("🛡️ Criptografia Blindada Executada sem Rastros!");
+            document.getElementById('confirmMsg').innerText = "Denúncia transmitida com sucesso. Seus dados de identificação foram expurgados do pacote de rede por segurança.";
+            
+            event.target.reset();
+            nextScreen('confirmationScreen');
+        }
+
+        // --- SISTEMA DE VISUALIZAÇÃO DE PERFIL, PETS E TEMAS ---
+        function renderPerfilCidadao() {
+            if(usuarioLogado) {
+                document.getElementById('citizenProfileName').innerText = usuarioLogado.nome;
+            }
+            
+            const listContainer = document.getElementById('myPetsContainer');
+            listContainer.innerHTML = '';
+
+            // Renderização controlada via laço (Garante Ademir e novos pets na tela)
+            meusPets.forEach(pet => {
+                const itemBox = document.createElement('div');
+                itemBox.className = 'pet-item-box';
+                itemBox.innerHTML = `
+                    <img src="${pet.foto}" style="width:50px; height:50px; border-radius:12px; object-fit:cover; border:1px solid rgba(0,0,0,0.1);">
+                    <div>
+                        <strong style="font-size:15px; display:block;">${pet.nome} (${pet.especie})</strong>
+                        <small style="font-size:12px; color:var(--text-light)">Idade: ${pet.idade} anos | Abrigo: ${pet.local}</small>
+                    </div>
+                `;
+                listContainer.appendChild(itemBox);
+            });
+
+            nextScreen('citizenProfile');
+        }
+
+        function salvarDadosPerfil() {
+            triggerToast("💾 Informações modificadas salvas com sucesso!");
+        }
+
+        function atualizarFotoPerfil(inputElement) {
+            if (inputElement.files && inputElement.files[0]) {
+                const fileReader = new FileReader();
+                fileReader.onload = function(event) {
+                    document.getElementById('profileAvatar').src = event.target.result;
+                };
+                fileReader.readAsDataURL(inputElement.files[0]);
+                triggerToast("📸 Imagem de perfil atualizada localmente.");
+            }
+        }
+
+        function alternarModoEscuro() {
+            const toggleState = document.getElementById('darkModeToggle').checked;
+            if(toggleState) {
+                document.body.classList.add('dark-theme');
+                triggerToast("🌙 Modo Escuro Ativado.");
+            } else {
+                document.body.classList.remove('dark-theme');
+                triggerToast("☀️ Modo Claro Ativado.");
+            }
+        }
+
+        // --- TERMINAL OPERACIONAL E TRATAMENTO DE FILAS (FUNCIONÁRIO) ---
+        function abrirOcorrenciasPro() {
+            const queueContainer = document.getElementById('listaIntegradaPro');
+            queueContainer.innerHTML = '';
+
+            if(dbOcorrencias.length === 0) {
+                queueContainer.innerHTML = `
+                    <div class="occurrence-card" style="text-align:center; border-left-color: var(--text-light);">
+                        <p style="font-size: 14px; color: var(--text-light);">Fila vazia. Não há nenhuma ocorrência ou pedido de resgate pendente.</p>
+                    </div>`;
+            } else {
+                dbOcorrencias.forEach(ocorrencia => {
+                    const cardElement = document.createElement('div');
+                    cardElement.className = 'occurrence-card';
+                    
+                    // Altera a cor de destaque se o chamado for oriundo da aba blindada
+                    if(ocorrencia.isAnonima) {
+                        cardElement.style.borderLeftColor = '#ef4444';
+                    }
+                    
+                    cardElement.innerHTML = `
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <strong style="font-size:15px; color: var(--text-dark);">${ocorrencia.tipo}</strong>
+                            <span style="font-size:12px; color:var(--text-light); font-weight:600;">${ocorrencia.timestamp}</span>
+                        </div>
+                        <div style="font-size:14px; margin-bottom:10px;">
+                            <span style="display:block; margin-bottom:4px;"><strong>Alvo:</strong> ${ocorrencia.assunto}</span>
+                            <span style="color:var(--blue-accent); font-weight:600; display:block; margin-bottom:6px;">📍 GPS: ${ocorrencia.localizacao}</span>
+                            <p style="background:rgba(0,0,0,0.02); padding:12px; border-radius:8px; font-size:13px; color:var(--text-dark); line-height:1.4;">${ocorrencia.detalhes}</p>
+                        </div>
+                        <button class="btn" style="padding:12px; font-size:13px; margin:0;" onclick="despacharViatura(${ocorrencia.id})">Despachar Ambulância/Viatura Operacional 🚒</button>
+                    `;
+                    queueContainer.appendChild(cardElement);
+                });
+            }
+            nextScreen('proListScreen');
+        }
+
+        function despacharViatura(idChamado) {
+            dbOcorrencias = dbOcorrencias.filter(item => item.id !== idChamado);
+            estatisticasPro.chamadosAtendidos++;
+            alert("Ação executada! Unidade tática de socorristas despachada via rádio para as coordenadas.");
+            abrirOcorrenciasPro();
+        }
+
+        // --- COMPONENTE FLUTUANTE DE NOTIFICAÇÃO (TOAST) ---
+        function triggerToast(mensagem) {
+            const toastBox = document.getElementById('toast');
+            toastBox.innerText = mensagem;
+            toastBox.style.top = '30px';
+            setTimeout(() => { 
+                toastBox.style.top = '-100px'; 
+            }, 4000);
+        }
+    </script>
 </body>
 </html>
