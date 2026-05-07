@@ -132,12 +132,45 @@ function logout() {
 }
 
 /* ==========================================================================
-   5. COLETA DE DADOS: FORMULÁRIOS DINÂMICOS, FOTO E LOCALIZAÇÃO
+   5. COLETA DE DADOS: FORMULÁRIOS DINÂMICOS, FOTO E LOCALIZAÇÃO (ATUALIZADO)
    ========================================================================== */
+
+// Função para obter localização via GPS real do smartphone
+function capturarGPS(inputId) {
+    triggerToast("🛰️ Localizando coordenadas...");
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((position) => {
+            const lat = position.coords.latitude.toFixed(6);
+            const lon = position.coords.longitude.toFixed(6);
+            document.getElementById(inputId).value = `Localização GPS: ${lat}, ${lon}`;
+            triggerToast("📍 Localização capturada com sucesso!");
+        }, () => {
+            alert("Não foi possível acessar o GPS. Por favor, digite o endereço manualmente.");
+        });
+    }
+}
+
+// Função para mostrar o preview da foto selecionada
+function handleImagePreview(input, previewId) {
+    const preview = document.getElementById(previewId);
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
 function openCitizenForm(title, key) {
     document.getElementById('formTitle').innerText = title;
     document.getElementById('formKey').value = key;
     
+    // Reseta o preview de imagem ao abrir novo formulário
+    const preview = document.getElementById('formPreview');
+    if(preview) preview.style.display = 'none';
+
     // Condicional para abrir a idade e a espécie apenas quando for cadastro de pet
     const petFieldsContainer = document.getElementById('conditionalPetFields');
     petFieldsContainer.style.display = (key === 'register_pet') ? 'block' : 'none';
@@ -152,9 +185,10 @@ function registrarAcao(event) {
     const assuntoPrincipal = document.getElementById('formSubject').value;
     const campoLocalizacao = document.getElementById('formLocation').value;
     const campoDetalhes = document.getElementById('formDetails').value;
+    const previewFoto = document.getElementById('formPreview').src;
     
     if (chaveFormulario === 'register_pet') {
-        // Fluxo de Negócio: Salvar animal de estimação diretamente no perfil do usuário
+        // Salvar pet com a foto real do preview ou placeholder
         const idadeInformada = document.getElementById('petAge').value || "0";
         const especieInformada = document.getElementById('petBreed').value || "Animal";
         
@@ -163,19 +197,20 @@ function registrarAcao(event) {
             idade: idadeInformada,
             especie: especieInformada,
             local: campoLocalizacao,
-            foto: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=150&q=80" // Placeholder premium para novas fotos
+            foto: previewFoto.includes('data:image') ? previewFoto : "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=150&q=80"
         });
         
         triggerToast("🐾 Novo pet registrado na sua conta!");
         document.getElementById('confirmMsg').innerText = `O pet "${assuntoPrincipal}" foi cadastrado e agora aparece na sua lista de configurações.`;
     } else {
-        // Fluxo de Negócio: Direcionar denúncia/chamado para a fila de triagem do funcionário
+        // Enviar ocorrência para a fila com a foto capturada
         dbOcorrencias.push({
             id: Date.now(),
             tipo: tituloOcorrencia,
             assunto: assuntoPrincipal,
             localizacao: campoLocalizacao,
             detalhes: campoDetalhes,
+            foto: previewFoto.includes('data:image') ? previewFoto : null,
             isAnonima: false,
             timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
         });
@@ -183,7 +218,7 @@ function registrarAcao(event) {
         document.getElementById('confirmMsg').innerText = `Sua solicitação de "${assuntoPrincipal}" foi enviada com sucesso para os agentes locais.`;
     }
 
-    event.target.reset(); // Limpa o formulário
+    event.target.reset(); 
     nextScreen('confirmationScreen');
 }
 
@@ -227,9 +262,8 @@ function renderPerfilCidadao() {
     }
     
     const listContainer = document.getElementById('myPetsContainer');
-    listContainer.innerHTML = ''; // Reseta o container visual
+    listContainer.innerHTML = ''; 
 
-    // Loop que renderiza todos os pets salvos (garantindo o Ademir ativo)
     meusPets.forEach(pet => {
         const itemBox = document.createElement('div');
         itemBox.className = 'pet-item-box';
@@ -289,7 +323,6 @@ function abrirOcorrenciasPro() {
             const cardElement = document.createElement('div');
             cardElement.className = 'occurrence-card';
             
-            // Atribui uma borda vermelha de alerta urgente caso seja denúncia anônima
             if (ocorrencia.isAnonima) {
                 cardElement.style.borderLeftColor = '#ef4444';
             }
@@ -302,6 +335,7 @@ function abrirOcorrenciasPro() {
                 <div style="font-size:14px; margin-bottom:10px;">
                     <span style="display:block; margin-bottom:4px;"><strong>Caso / Raça:</strong> ${ocorrencia.assunto}</span>
                     <span style="color:var(--blue-accent); font-weight:600; display:block; margin-bottom:6px;">📍 GPS: ${ocorrencia.localizacao}</span>
+                    ${ocorrencia.foto ? `<img src="${ocorrencia.foto}" style="width:100%; border-radius:12px; margin:10px 0;">` : ''}
                     <p style="background:rgba(0,0,0,0.02); padding:12px; border-radius:8px; font-size:13px; color:var(--text-dark); line-height:1.4;">${ocorrencia.detalhes}</p>
                 </div>
                 <button class="btn" style="padding:12px; font-size:13px; margin:0;" onclick="despacharViatura(${ocorrencia.id})">Despachar Ambulância/Viatura Operacional 🚒</button>
@@ -313,11 +347,10 @@ function abrirOcorrenciasPro() {
 }
 
 function despacharViatura(idChamado) {
-    // Remove o chamado da fila operando o resgate
     dbOcorrencias = dbOcorrencias.filter(item => item.id !== idChamado);
     estatisticasPro.chamadosAtendidos++;
-    alert("Operação confirmada: Sirenes acionadas. Unidade de pronto-atendimento móvel veterinária a caminho das coordenadas!");
-    abrirOcorrenciasPro(); // Recarrega a fila atualizada
+    alert("Operação confirmada: Sirenes acionadas. Unidade de pronto-atendimento móvel veterinária a caminho!");
+    abrirOcorrenciasPro(); 
 }
 
 /* ==========================================================================
@@ -326,9 +359,9 @@ function despacharViatura(idChamado) {
 function triggerToast(mensagem) {
     const toastBox = document.getElementById('toast');
     toastBox.innerText = mensagem;
-    toastBox.style.top = '30px'; // Desce o banner
+    toastBox.style.top = '30px'; 
     
     setTimeout(() => { 
-        toastBox.style.top = '-100px'; // Recolhe o banner após 4 segundos
+        toastBox.style.top = '-100px'; 
     }, 4000);
 }
