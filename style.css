@@ -58,7 +58,7 @@ body {
    ========================================================================== */
 #app {
     width: 100%; 
-    max-width: 480px; /* Garante que o layout não fique espremido ou minúsculo */
+    max-width: 480px; 
     min-height: 100vh; 
     position: relative;
     padding: 30px 24px;
@@ -317,7 +317,7 @@ input:checked + .slider:before { transform: translateX(22px); }
     color: #f8fafc !important;
 }
 
-/* Caixa dos Pets Listados (Onde fica o Ademir) */
+/* Caixa dos Pets Listados */
 .pet-item-box {
     display: flex; 
     align-items: center; 
@@ -384,6 +384,15 @@ body.dark-theme .pet-item-box { border-top-color: rgba(255,255,255,0.06); }
     align-items: center;
     justify-content: center;
     gap: 10px;
+}
+
+/* Preview de Imagem (Para a função de foto nova) */
+.preview-img {
+    width: 100%;
+    border-radius: var(--border-radius-medium);
+    margin: 10px 0;
+    display: none;
+    box-shadow: var(--box-shadow-card);
 }
 
 /* Animação Suave de Entrada de Telas */
