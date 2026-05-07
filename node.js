@@ -6,10 +6,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middlewares para comunicação com o Front-end e tratamento de dados
-// Ajustado: limit definido para 10mb para suportar o envio das fotos em Base64
 app.use(cors());
-app.use(bodyParser.json({ limit: '10mb' }));
-app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
+app.use(bodyParser.json());
 
 /* ==========================================================================
    BANCO DE DADOS EM MEMÓRIA (SIMULADO NO SERVIDOR)
@@ -86,7 +84,7 @@ app.post('/api/auth/login', (req, res) => {
 
 // Rota para registrar uma ocorrência padrão ou SOS Emergência
 app.post('/api/ocorrencias', (req, res) => {
-    const { tipo, assunto, localizacao, detalhes, foto } = req.body;
+    const { tipo, assunto, localizacao, detalhes } = req.body;
 
     if (!assunto || !localizacao || !detalhes) {
         return res.status(400).json({ error: "Informações de campo insuficientes." });
@@ -98,7 +96,6 @@ app.post('/api/ocorrencias', (req, res) => {
         assunto,
         localizacao,
         detalhes,
-        foto: foto || null, // Captura a foto vinda do front-end
         isAnonima: false,
         timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
     };
@@ -160,7 +157,7 @@ app.get('/api/pets', (req, res) => {
 
 // Rota para cadastrar um novo pet
 app.post('/api/pets', (req, res) => {
-    const { nome, idade, especie, local, foto } = req.body;
+    const { nome, idade, especie, local } = req.body;
 
     if (!nome) {
         return res.status(400).json({ error: "Nome do animal é obrigatório." });
@@ -172,7 +169,7 @@ app.post('/api/pets', (req, res) => {
         idade: idade || 0,
         especie: especie || "Animal",
         local: local || "Não informado",
-        foto: foto || "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=150&q=80"
+        foto: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=150&q=80"
     };
 
     meusPets.push(novoPet);
@@ -181,7 +178,7 @@ app.post('/api/pets', (req, res) => {
 
 
 /* ==========================================================================
-   INICIALIZAÇÃO DO SERVIDOR
+   INICIALIZAÇÃO DO SERVIDORbackend
    ========================================================================== */
 app.listen(PORT, () => {
     console.log(`====================================================`);
