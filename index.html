@@ -6,7 +6,7 @@
     <title>Safe Life Ecosystem - Premium Standalone</title>
     <style>
         /* ==========================================================================
-           1. CORE DESIGN SYSTEMS & VARIABLES
+           1. CORE DESIGN SYSTEMS & VARIABLES (ORIGINAL)
            ========================================================================== */
         :root {
             --bg-gradient-start: #b9c6ff; 
@@ -146,7 +146,9 @@
             z-index: 9999; transition: 0.4s; box-shadow: 0 10px 20px rgba(0,0,0,0.2);
         }
 
-        .anon-mode { background: #090d16 !important; color: #fff !important; margin: -30px -24px; padding: 30px 24px; }
+        .preview-img { width: 100%; border-radius: 12px; margin: 10px 0; display: none; }
+
+        .anon-mode { background: #090d16 !important; color: #fff !important; margin: -30px -24px; padding: 30px 24px; min-height: 100vh; }
 
         @keyframes premiumFadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
@@ -165,8 +167,10 @@
 
         <div class="screen" id="locationScreen">
             <header><h1>Sinal de GPS</h1><p>Validação de Campo</p></header>
-            <p style="text-align:center; margin-bottom:30px;">Ative o mapa para agilizar o rastreio de ambulâncias.</p>
-            <button class="btn" onclick="nextScreen('loginScreen')">Permitir Localização 📍</button>
+            <div class="occurrence-card" style="text-align: center;">
+                <p style="margin-bottom: 20px;">Para garantir a precisão dos resgates, o Safe Life requer acesso à sua localização real.</p>
+                <button class="btn" onclick="ativarGPSReal()">Ativar Localização 📍</button>
+            </div>
         </div>
 
         <div class="screen" id="loginScreen">
@@ -186,7 +190,7 @@
             <label>CPF</label>
             <input type="number" id="cpfInput" placeholder="Apenas números">
             <button class="btn" onclick="autenticar()">Entrar 🚀</button>
-            <p style="text-align:center; font-size:12px; color:var(--text-light)">Cidadão: 11111111111 | Pro: 99999999999</p>
+            <p style="text-align:center; font-size:12px; color:var(--text-light)">Cidadão: 111 | Pro: 999</p>
         </div>
 
         <div class="screen" id="menuScreen">
@@ -195,7 +199,7 @@
                 <button class="btn emergency" onclick="openForm('Emergência Red', 'emergency')">⚠️ SOS EMERGÊNCIA</button>
                 <button class="btn" onclick="openForm('Cadastrar Pet', 'pet')"><span>📋</span>Cadastrar Pet</button>
                 <button class="btn" onclick="openForm('Denúncia', 'report')"><span>💚</span>Maus-Tratos</button>
-                <button class="btn" onclick="nextScreen('scrAnonForm')"><span>🕵️</span>Denúncia Anônima</button>
+                <button class="btn" onclick="openForm('Anônimo', 'anon')"><span>🕵️</span>Denúncia Anônima</button>
             </div>
             <nav class="bottom-nav">
                 <button class="active-nav" onclick="nextScreen('menuScreen')">🏠 Início</button>
@@ -205,28 +209,22 @@
 
         <div class="screen" id="scrForm">
             <header><h1 id="formTitle">Formulário</h1></header>
-            <form onsubmit="registrarAcao(event)">
+            <form id="mainForm" onsubmit="registrarAcao(event)">
                 <input type="hidden" id="formKey">
                 <label>Título / Nome</label>
                 <input type="text" id="formSubject" required>
-                <label>Localização</label>
+                <label>Localização (Referência)</label>
                 <input type="text" id="formLocation" required>
                 <label>Detalhes</label>
                 <textarea id="formDetails" style="height:100px"></textarea>
+                
+                <label>Anexar Imagem</label>
+                <input type="file" id="formFile" accept="image/*" onchange="previewImage(this, 'imgPrev')">
+                <img id="imgPrev" class="preview-img">
+
                 <button type="submit" class="btn">Enviar Dados 🚀</button>
             </form>
             <button class="btn" style="background:#64748b" onclick="nextScreen('menuScreen')">Voltar</button>
-        </div>
-
-        <div class="screen anon-mode" id="scrAnonForm">
-            <header><h1 style="color:#ef4444">Canal Blindado</h1></header>
-            <div class="occurrence-card" style="background:#111827; border-color:#ef4444; color:#fff">
-                Seu IP e localização foram ocultados por criptografia.
-            </div>
-            <label>Relato da Infração</label>
-            <textarea id="anonDetails" style="background:#1f2937; color:#fff; height:150px"></textarea>
-            <button class="btn" onclick="registrarAcaoAnonima()">Disparar Denúncia 🕶️</button>
-            <button class="btn" style="background:#334155" onclick="nextScreen('menuScreen')">Cancelar</button>
         </div>
 
         <div class="screen" id="citizenProfile">
@@ -250,12 +248,29 @@
         <div class="screen" id="proDashboard">
             <header><h1>Terminal Pro</h1><p id="proCompanyLabel"></p></header>
             <button class="btn" onclick="renderListaPro()">📋 Ver Chamados Ativos</button>
-            <button class="btn" style="background:#64748b" onclick="nextScreen('loginScreen')">Logoff</button>
+            <button class="btn" onclick="mostrarLocalizacaoPro()">📍 Localização em Tempo Real</button>
+            <button class="btn" onclick="nextScreen('proHistory')">🕒 Histórico de Atendimentos</button>
+            <button class="btn" onclick="nextScreen('proEscalas')">📅 Escalas de Plantão</button>
+            <button class="btn" style="background:#64748b; margin-top: 30px;" onclick="nextScreen('loginScreen')">Logoff</button>
         </div>
 
         <div class="screen" id="proListScreen">
             <header><h1>Fila de Resgate</h1></header>
             <div id="listaOcorrencias"></div>
+            <button class="btn" onclick="nextScreen('proDashboard')">Voltar</button>
+        </div>
+
+        <div class="screen" id="proHistory">
+            <header><h1>Histórico</h1></header>
+            <div class="occurrence-card"><strong>Viatura 08:</strong> Resgate concluído (Setor Sul)</div>
+            <div class="occurrence-card"><strong>Viatura 03:</strong> Atendimento Clínico Finalizado</div>
+            <button class="btn" onclick="nextScreen('proDashboard')">Voltar</button>
+        </div>
+
+        <div class="screen" id="proEscalas">
+            <header><h1>Escalas</h1></header>
+            <div class="occurrence-card"><strong>Hoje:</strong> Dr. Henrique (Cirurgia) / Enf. Ana</div>
+            <div class="occurrence-card"><strong>Amanhã:</strong> Dra. Juliana / Agente Marcos</div>
             <button class="btn" onclick="nextScreen('proDashboard')">Voltar</button>
         </div>
 
@@ -269,8 +284,11 @@
     </div>
 
     <script>
+        // Armazenamento Local Simulado
         let db = [];
-        let pets = [{nome: "Ademir", raca: "Gato"}];
+        let pets = [];
+        let userCoords = { lat: '', lon: '' };
+        let currentPhotoBase64 = "";
 
         function nextScreen(id) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -284,6 +302,44 @@
             setTimeout(() => t.style.top = '-100px', 3000);
         }
 
+        // --- FUNÇÃO GPS REAL ---
+        function ativarGPSReal() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => {
+                        userCoords.lat = pos.coords.latitude;
+                        userCoords.lon = pos.coords.longitude;
+                        triggerToast("GPS Sincronizado com Sucesso!");
+                        nextScreen('loginScreen');
+                    },
+                    (err) => {
+                        alert("Erro ao obter localização. Certifique-se que o GPS está ligado.");
+                    }
+                );
+            } else {
+                alert("Seu navegador não suporta GPS.");
+            }
+        }
+
+        function mostrarLocalizacaoPro() {
+            alert(`Sua localização atual:\nLatitude: ${userCoords.lat}\nLongitude: ${userCoords.lon}\n\nO sistema está rastreando em tempo real.`);
+        }
+
+        // --- FUNÇÃO DE FOTOS ---
+        function previewImage(input, previewId) {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.getElementById(previewId);
+                    img.src = e.target.result;
+                    img.style.display = "block";
+                    currentPhotoBase64 = e.target.result; // Salva a foto em texto
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
         function toggleLoginCompanyField() {
             const isPro = document.getElementById('loginRole').value === 'professional';
             document.getElementById('loginCompanyWrapper').style.display = isPro ? 'block' : 'none';
@@ -292,16 +348,18 @@
         function autenticar() {
             const cpf = document.getElementById('cpfInput').value;
             const role = document.getElementById('loginRole').value;
-            if(cpf === '11111111111' && role === 'citizen') nextScreen('menuScreen');
-            else if(cpf === '99999999999' && role === 'professional') {
+            if((cpf === '111') && role === 'citizen') nextScreen('menuScreen');
+            else if((cpf === '999') && role === 'professional') {
                 document.getElementById('proCompanyLabel').innerText = document.getElementById('loginCompany').value;
                 nextScreen('proDashboard');
-            } else alert('Acesso Negado');
+            } else alert('Acesso Negado (Use 111 ou 999)');
         }
 
         function openForm(title, key) {
             document.getElementById('formTitle').innerText = title;
             document.getElementById('formKey').value = key;
+            document.getElementById('imgPrev').style.display = "none";
+            currentPhotoBase64 = "";
             nextScreen('scrForm');
         }
 
@@ -310,31 +368,49 @@
             const key = document.getElementById('formKey').value;
             const sub = document.getElementById('formSubject').value;
             
+            const novoItem = {
+                id: Date.now(),
+                title: sub,
+                local: document.getElementById('formLocation').value,
+                desc: document.getElementById('formDetails').value,
+                foto: currentPhotoBase64,
+                gps: userCoords.lat + ", " + userCoords.lon
+            };
+
             if(key === 'pet') {
-                pets.push({nome: sub, raca: 'Cadastrado'});
-                document.getElementById('confirmMsg').innerText = "Pet cadastrado com sucesso!";
+                pets.push(novoItem);
+                document.getElementById('confirmMsg').innerText = "Pet registrado com sucesso e foto salva!";
             } else {
-                db.push({id: Date.now(), title: sub, local: document.getElementById('formLocation').value});
-                document.getElementById('confirmMsg').innerText = "Solicitação enviada para a central!";
+                db.push(novoItem);
+                document.getElementById('confirmMsg').innerText = "Ocorrência enviada com coordenadas e foto!";
             }
             nextScreen('confirmationScreen');
             e.target.reset();
         }
 
-        function registrarAcaoAnonima() {
-            triggerToast("Denúncia enviada anonimamente!");
-            nextScreen('menuScreen');
-        }
-
         function renderPerfil() {
             const div = document.getElementById('petsList');
-            div.innerHTML = '<h4>Meus Pets</h4>' + pets.map(p => `<div class="occurrence-card">${p.nome} (${p.raca})</div>`).join('');
+            div.innerHTML = '<h4>Meus Pets Registrados</h4>';
+            pets.forEach(p => {
+                div.innerHTML += `
+                    <div class="occurrence-card">
+                        <strong>${p.title}</strong><br>
+                        ${p.foto ? `<img src="${p.foto}" style="width:100%; border-radius:10px; margin-top:10px;">` : ''}
+                    </div>`;
+            });
             nextScreen('citizenProfile');
         }
 
         function renderListaPro() {
             const div = document.getElementById('listaOcorrencias');
-            div.innerHTML = db.length ? db.map(o => `<div class="occurrence-card"><h4>${o.title}</h4><p>${o.local}</p></div>`).join('') : '<p>Sem chamados.</p>';
+            div.innerHTML = db.length ? db.map(o => `
+                <div class="occurrence-card">
+                    <h4>${o.title}</h4>
+                    <p>📍 ${o.local}</p>
+                    <small>🛰️ GPS: ${o.gps}</small>
+                    <p style="margin-top:10px;">${o.desc}</p>
+                    ${o.foto ? `<img src="${o.foto}" style="width:100%; border-radius:10px; margin-top:10px;">` : ''}
+                </div>`).join('') : '<p>Sem chamados no momento.</p>';
             nextScreen('proListScreen');
         }
     </script>
