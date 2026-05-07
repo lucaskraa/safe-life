@@ -1,7 +1,8 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Safe Life Ecosystem</title>
     <title>Safe Life Ecosystem - Premium Standalone</title>
     <style>
         /* ==========================================================================
@@ -403,7 +404,6 @@
 </head>
 <body>
 
-    <div id="toast">🚀 Atualização processada com sucesso!</div>
     <div id="toast">📌 Operação concluída com sucesso!</div>
 
     <div id="app">
@@ -413,10 +413,6 @@
                 <h1>Safe Life</h1>
                 <p>Ecosistema de Salvamento & Proteção</p>
             </header>
-            <main>
-                <img src="https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=500&q=80" class="welcome-img" alt="Humano e cachorro feliz">
-                <p><strong>Transformando o mundo, um resgate por vez.</strong></p>
-                <button class="btn-large" onclick="nextScreen('locationScreen')">Começar 🐾</button>
             <main style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
                 <img src="https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=600&q=80" class="welcome-img" alt="Humano e cachorro feliz">
                 <p class="screen-desc"><strong>Transformando o mundo, um resgate por vez.</strong> Conectando protetores, cidadãos e corporações veterinárias.</p>
@@ -429,9 +425,6 @@
                 <h1>Sinal de GPS</h1>
                 <p>Etapa de Coordenadas de Campo</p>
             </header>
-            <main>
-                <p>Para conectar você às redes de apoio locais, precisamos calibrar seu mapa e garantir que os resgates tenham precisão cirúrgica.</p>
-                <button class="btn" onclick="nextScreen('registerScreen')">Permitir Acesso Confiável 📍</button>
             <main style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
                 <p class="screen-desc">Para vincular sua conta aos polos de acolhimento e agilizar o rastreio de ambulâncias veterinárias, valide a leitura de mapa de seu dispositivo.</p>
                 <button class="btn" onclick="nextScreen('registerScreen')">Permitir Conexão de Mapa 📍</button>
@@ -445,35 +438,27 @@
             </header>
             <main>
                 <label for="regName">Nome Completo</label>
-                <input type="text" id="regName" placeholder="Digite seu nome completo">
                 <input type="text" id="regName" placeholder="Nome do responsável ou agente">
-
-                <label for="regCpf">CPF</label>
-                <input type="number" id="regCpf" placeholder="CPF (Apenas números)">
+                
                 <label for="regCpf">CPF Regulamentar</label>
                 <input type="number" id="regCpf" placeholder="Apenas algarismos numéricos">
-
-                <label for="regType">Tipo de Perfil</label>
+                
                 <label for="regType">Tipo de Atuação (Perfil)</label>
                 <select id="regType" onchange="toggleRegCompanyField()">
-                    <option value="citizen">Cidadão</option>
-                    <option value="professional">Funcionário Operacional</option>
                     <option value="citizen">Cidadão / Protetor Civil</option>
                     <option value="professional">Funcionário Operacional / Corporação</option>
                 </select>
 
                 <div id="companyRegWrapper" style="display: none;">
-                    <label for="regCompany">Sua Base/Instituição</label>
                     <label for="regCompany">Base Corporativa / Empregador</label>
                     <select id="regCompany">
                         <option value="Safe Life Matriz">Safe Life Matriz</option>
                         <option value="ONG Patas Livres">ONG Patas Livres</option>
-@@ -59,146 +459,179 @@ <h1>Criar Conta</h1>
+                        <option value="Centro de Controle de Zoonoses">Centro de Controle de Zoonoses</option>
+                        <option value="Protetores Independentes Associados">Protetores Independentes Associados</option>
                     </select>
                 </div>
 
-                <button class="btn" onclick="efetuarCadastro()">Finalizar Cadastro ✨</button>
-                <p style="cursor:pointer;" onclick="nextScreen('loginScreen')">Já tem conta? Ir para Login</p>
                 <button class="btn" onclick="efetuarCadastro()">Finalizar Inscrição ✨</button>
                 <p style="cursor:pointer; text-align: center; margin-top: 15px; font-weight: 600;" onclick="nextScreen('loginScreen')">Possui uma conta? Acesse aqui</p>
             </main>
@@ -481,22 +466,17 @@
 
         <div class="screen" id="loginScreen">
             <header>
-                <h1>Acessar Plataforma</h1>
                 <h1>Acesso à Rede</h1>
                 <p>Validação de Identidade Criptografada</p>
             </header>
             <main>
-                <label for="loginRole">Como deseja entrar?</label>
                 <label for="loginRole">Selecione o Portal de Entrada</label>
                 <select id="loginRole" onchange="toggleLoginCompanyField()">
-                    <option value="citizen">Cidadão</option>
-                    <option value="professional">Funcionário / Agente</option>
                     <option value="citizen">Portal do Cidadão</option>
                     <option value="professional">Portal do Funcionário / Corporativo</option>
                 </select>
 
                 <div id="loginCompanyWrapper" style="display: none;">
-                    <label for="loginCompany">Selecione sua Empresa/Empregador</label>
                     <label for="loginCompany">Selecione a Empresa Conveniada</label>
                     <select id="loginCompany">
                         <option value="Safe Life Matriz">Safe Life Matriz</option>
@@ -505,15 +485,11 @@
                     </select>
                 </div>
 
-                <label for="cpfInput">Documento de Identificação</label>
-                <input type="number" id="cpfInput" placeholder="Digite seu CPF cadastrado">
                 <label for="cpfInput">Insira seu CPF Cadastrado</label>
                 <input type="number" id="cpfInput" placeholder="000.000.000-00">
                 
                 <button class="btn" onclick="autenticar()">Efetuar Login Seguro 🚀</button>
-
-                <button class="btn" onclick="autenticar()">Entrar no Ecossistema 🚀</button>
-                <p style="font-size: 11px; color: gray;">Dica de teste -> Cidadão: 11111111111 | Funcionário: 99999999999</p>
+                
                 <div class="occurrence-card" style="margin-top: 30px; border-left-color: var(--text-light);">
                     <small style="display: block; text-align: center; color: var(--text-light);">
                         <strong>Bypass de Homologação:</strong><br>
@@ -530,11 +506,6 @@
                 <p>Menu de Serviços e Alertas</p>
             </header>
             <main class="action-buttons">
-                <button class="btn btn-large emergency" onclick="openCitizenForm('Emergência Crítica', 'emergency')">⚠️ SOS Emergência</button>
-                <button class="btn btn-large" onclick="openCitizenForm('Registrar Novo Pet', 'register_pet')">📋 Cadastrar Meu Pet</button>
-                <button class="btn btn-large" onclick="openCitizenForm('Ocorrência de Maus-Tratos', 'report')">💚 Reportar Ocorrência</button>
-                <button class="btn btn-large" onclick="openAnonForm()">🕵️ Denúncia Anônima Segura</button>
-                <button class="btn btn-large" onclick="openCitizenForm('Pedido de Resgate Comunitário', 'rescue')">🍃 Solicitar Resgate</button>
                 <button class="btn emergency" onclick="openCitizenForm('Emergência Crítica / Código Vermelho', 'emergency')">
                     <span>⚠️ SOS EMERGÊNCIA IMEDIATA</span>
                 </button>
@@ -556,8 +527,6 @@
                 </button>
             </main>
             <footer class="bottom-nav">
-                <button class="active-nav" onclick="nextScreen('menuScreen')">🏠 Início</button>
-                <button onclick="renderPerfilCidadao()">👤 Perfil & Configs</button>
                 <button class="active-nav" onclick="nextScreen('menuScreen')">
                     <span class="nav-icon">🏠</span>Início
                 </button>
@@ -569,135 +538,94 @@
 
         <div class="screen" id="scrForm">
             <header>
-                <h1 id="formTitle">Formulário</h1>
                 <h1 id="formTitle">Formulário Operacional</h1>
                 <p>Preenchimento Obrigatório de Evidências</p>
             </header>
             <main>
                 <form onsubmit="registrarAcao(event)">
                     <input type="hidden" id="formKey">
-
+                    
                     <div id="conditionalPetFields" style="display:none;">
-                        <label for="petAge">Idade Estimada (Anos)</label>
-                        <input type="number" id="petAge" placeholder="Ex: 2">
                         <label for="petAge">Idade Cronológica Estimada</label>
                         <input type="number" id="petAge" placeholder="Exemplo: 3">
-
-                        <label for="petBreed">Espécie do Animal</label>
-                        <input type="text" id="petBreed" placeholder="Ex: Cão, Gato, Ave">
+                        
                         <label for="petBreed">Espécie Biológica</label>
                         <input type="text" id="petBreed" placeholder="Ex: Felino, Canino, Equino">
                     </div>
 
-                    <label for="formSubject">Título ou Espécie principal</label>
-                    <input type="text" id="formSubject" placeholder="Ex: Gato ferido, Cachorro abandonado" required>
                     <label for="formSubject">Identificação / Raça ou Fato Principal</label>
                     <input type="text" id="formSubject" placeholder="Ex: Gato Persa, Cão Sem Raça Definida" required>
-
-                    <label for="formLocation">📍 Localização / Endereço Completo</label>
-                    <input type="text" id="formLocation" placeholder="Rua, número, bairro ou ponto de referência" required>
+                    
                     <label for="formLocation">📍 Coordenadas de Localização / Endereço Real</label>
                     <input type="text" id="formLocation" placeholder="Rua, número, bairro ou ponto geográfico" required>
-
-                    <label for="formDetails">Detalhamento da Situação</label>
-                    <textarea id="formDetails" placeholder="Escreva aqui o estado do animal, comportamento ou cenário..." style="height: 100px;" required></textarea>
+                    
                     <label for="formDetails">Descrição Narrativa Detalhada</label>
                     <textarea id="formDetails" placeholder="Insira o quadro clínico do animal ou as especificidades do cenário encontrado..." style="height: 120px;" required></textarea>
-
-                    <label>📸 Adicionar Foto / Evidência Visual:</label>
+                    
                     <label>📸 Registro Fotográfico / Captura de Imagem:</label>
                     <input type="file" id="formFile" accept="image/*">
 
-                    <button type="submit" class="btn">Enviar Informações Seguras 🚀</button>
                     <button type="submit" class="btn">Transmitir Dados à Nuvem 🚀</button>
                 </form>
-                <button class="btn" style="background:#6c757d;" onclick="nextScreen('menuScreen')">Voltar ao Início</button>
                 <button class="btn" style="background:#64748b;" onclick="nextScreen('menuScreen')">Cancelar e Voltar</button>
             </main>
         </div>
 
         <div class="screen anon-mode" id="scrAnonForm">
-            <header style="background: #111827; border-bottom: 2px solid #ef4444;">
-                <h1 style="color:#ef4444;">🛡️ Canal de Proteção Anônimo</h1>
             <header>
                 <h1>Canal de Denúncia Blindado</h1>
                 <p style="color: #94a3b8;">Protocolo de Segurança Ativo</p>
             </header>
             <main>
-                <div style="background: rgba(239, 68, 68, 0.1); padding: 12px; margin: 15px 0; border-radius: 8px; font-size: 13px; color:#fca5a5; text-align: left; line-height: 1.4;">
-                    🔒 Camada Invisível Ativa: Seu endereço IP, dados de conta e localização em tempo real foram mascarados. Esta denúncia é enviada com criptografia de ponta e não deixará nenhum rastro no histórico do seu perfil. Você está seguro.
                 <div class="occurrence-card" style="line-height: 1.5; font-size: 13px;">
                     🛡️ <strong>SEGURANÇA EXTREMA ATIVADA:</strong> Seus metadados identitários, credenciais de conta de usuário, endereços lógicos de IP e localização geográfica primária foram desvinculados do banco de dados central. Esta ação trafega por um túnel criptográfico blindado e é 100% indestrutível. Ninguém saberá quem enviou.
                 </div>
                 <form onsubmit="registrarAcaoAnonima(event)">
-                    <label for="anonSubject" style="color:#fff;">Fato / Animal Alvo do Abuso</label>
-                    <input type="text" id="anonSubject" placeholder="Ex: Cão acorrentado sem água" required>
                     <label for="anonSubject" style="color:#ffffff;">Fato Delituoso / Infração Identificada</label>
                     <input type="text" id="anonSubject" placeholder="Ex: Canil clandestino, Agressão física ativa" required>
-
-                    <label for="anonLocation" style="color:#fff;">📍 Local Exato do Acontecido</label>
-                    <input type="text" id="anonLocation" placeholder="Endereço aproximado ou pontos de referência" required>
+                    
                     <label for="anonLocation" style="color:#ffffff;">📍 Endereço da Infração</label>
                     <input type="text" id="anonLocation" placeholder="Localização exata, portão, comércio próximo" required>
-
-                    <label for="anonDetails" style="color:#fff;">Descrição dos Fatos</label>
-                    <textarea id="anonDetails" placeholder="Descreva a agressão ou abandono sem fornecer dados que revelem sua identidade..." style="height: 120px;" required></textarea>
+                    
                     <label for="anonDetails" style="color:#ffffff;">Relato Livre dos Fatos</label>
                     <textarea id="anonDetails" placeholder="Digite detalhadamente a infração sem citar dados que permitam sua identificação indireta..." style="height: 130px;" required></textarea>
-
-                    <label style="color:#fff;">📸 Anexar Foto (Metadados de rastreamento EXIF serão removidos):</label>
+                    
                     <label style="color:#ffffff;">📸 Evidência Digital Fotográfica (Remoção Automática de EXIF/GPS da Imagem):</label>
                     <input type="file" id="anonFile" accept="image/*">
 
-                    <button type="submit" class="btn" style="background: #ef4444;">Disparar Denúncia Blindada 🕶️</button>
                     <button type="submit" class="btn">Disparar Criptografia Blindada 🕶️</button>
                 </form>
-                <button class="btn" style="background:#374151;" onclick="nextScreen('menuScreen')">Abortar e Voltar</button>
                 <button class="btn" style="background:#334155;" onclick="nextScreen('menuScreen')">Abortar Transmissão</button>
             </main>
         </div>
 
         <div class="screen" id="citizenProfile">
             <header>
-                <h1>Meu Perfil</h1>
                 <h1>Central do Usuário</h1>
                 <p>Configurações de Conta e Identidade</p>
             </header>
             <main>
                 <div class="occurrence-card" style="text-align: center;">
-                    <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80" id="profileAvatar" style="width:80px; height:80px; border-radius:50%; object-fit: cover; margin-bottom: 10px;" alt="Avatar">
-                    <h3 id="citizenProfileName" style="margin:5px 0;">Usuário Ativo</h3>
-                    <p style="font-size:12px; margin:0; color: gray;">Nível: Protetor Honorário</p>
                     <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80" id="profileAvatar" style="width:90px; height:90px; border-radius:50%; object-fit: cover; margin-bottom: 12px; border: 3px solid var(--blue-accent);" alt="Avatar">
                     <h3 id="citizenProfileName" style="margin: 0; font-size: 20px;">Usuário Homologado</h3>
                     <p style="font-size:13px; color: var(--text-light); margin:4px 0 0 0;">Membro da Rede Safe Life</p>
                 </div>
 
                 <div class="occurrence-card">
-                    <h4>⚙️ Alterar Dados da Conta</h4>
                     <h4>⚙️ Atualizar Informações Cadastrais</h4>
-
-                    <label for="editEmail">E-mail de Contato</label>
-                    <input type="email" id="editEmail" placeholder="Mudar E-mail de Contato" value="defensor@safelife.com">
+                    
                     <label for="editEmail">E-mail de Notificação</label>
                     <input type="email" id="editEmail" value="defensor@safelife.com">
-
-                    <label for="editPhone">Número de Celular</label>
-                    <input type="text" id="editPhone" placeholder="Mudar Número de Telefone" value="(11) 99999-8888">
+                    
                     <label for="editPhone">Telefone / WhatsApp</label>
                     <input type="text" id="editPhone" value="(11) 99999-8888">
-
-                    <label>Atualizar Foto de Perfil:</label>
+                    
                     <label>Alterar Foto de Perfil:</label>
                     <input type="file" id="editAvatarFile" accept="image/*" onchange="atualizarFotoPerfil(this)">
-
-                    <button class="btn" style="padding:10px; font-size:13px; margin-top: 15px;" onclick="salvarDadosPerfil()">Salvar Alterações</button>
+                    
                     <button class="btn" style="padding:12px; font-size:14px; margin-top: 15px;" onclick="salvarDadosPerfil()">Salvar Alterações</button>
                 </div>
 
-                <div class="occurrence-card" style="display:flex; justify-content: space-between; align-items:center;">
-                    <strong>🌓 Visualização em Modo Escuro</strong>
-                    <input type="checkbox" id="darkModeToggle" onchange="alternarModoEscuro()" style="width:40px; margin:0;">
                 <div class="occurrence-card switch-container">
                     <strong>🌓 Ativar Modo Escuro Premium</strong>
                     <label class="switch-control">
@@ -707,16 +635,14 @@
                 </div>
 
                 <div class="occurrence-card">
-@@ -207,56 +640,373 @@ <h4>🐾 Meus Pets Registrados</h4>
+                    <h4>🐾 Meus Pets Registrados</h4>
+                    <div id="myPetsContainer">
                         </div>
                 </div>
 
-                <button class="btn" style="background: #ef4444; box-shadow: none;" onclick="logout()">🚪 Encerrar Sessão (Sair)</button>
                 <button class="btn" style="background: var(--emergency-color); box-shadow: none;" onclick="logout()">🚪 Encerrar Sessão (Sair)</button>
             </main>
             <footer class="bottom-nav">
-                <button onclick="nextScreen('menuScreen')">🏠 Início</button>
-                <button class="active-nav" onclick="renderPerfilCidadao()">👤 Perfil & Configs</button>
                 <button onclick="nextScreen('menuScreen')">
                     <span class="nav-icon">🏠</span>Início
                 </button>
@@ -728,56 +654,42 @@
 
         <div class="screen" id="proDashboard">
             <header>
-                <h1>Central Operacional</h1>
                 <h1>Terminal Corporativo</h1>
                 <p>Controle de Logística e Despacho</p>
             </header>
             <main>
                 <div class="occurrence-card" style="text-align: center;">
-                    <h3 id="proWelcomeName">Olá, Agente</h3>
-                    <p id="proCompanyName" style="font-weight:700; margin:0; color: #254bfa;"></p>
                     <h3 id="proWelcomeName">Agente Técnico</h3>
                     <p id="proCompanyName" style="font-weight:700; margin-top: 4px; color: var(--blue-accent);"></p>
                 </div>
 
                 <div class="action-buttons" style="grid-template-columns: 1fr;">
-                    <button class="btn" onclick="abrirOcorrenciasPro()">📋 Fila de Chamados Ativos</button>
-                    <button class="btn" onclick="triggerToast('🗺️ Coordenadas e rastreio de satélite fixados no mapa do chamado!')">📍 Rastrear Localização do Chamado</button>
-                    <button class="btn" onclick="triggerToast('🚒 Sistema de Frotas: 3 viaturas ativas em ronda perimetral.')">🛞 Histórico & Status de Viaturas</button>
-                    <button class="btn" onclick="triggerToast('🩺 Escala médica veterinária integrada de prontidão para código vermelho.')">🩺 Escala do Plantão Técnico</button>
                     <button class="btn" style="height: auto; padding: 18px;" onclick="abrirOcorrenciasPro()">📋 Visualizar Fila de Chamados Ativos</button>
                     <button class="btn" style="height: auto; padding: 18px;" onclick="triggerToast('🗺️ Sistema de Mapas: Triangulação efetuada para o chamado mais próximo!')">📍 Rastrear Localização Real do Chamado</button>
                     <button class="btn" style="height: auto; padding: 18px;" onclick="triggerToast('🚒 Logística: Viaturas Alfa e Beta operacionais e com tanque cheio.')">🛞 Histórico & Status das Viaturas</button>
                     <button class="btn" style="height: auto; padding: 18px;" onclick="triggerToast('🩺 Escala Médica: Veterinários de trauma em prontidão na Base SP.')">🩺 Escala e Alocação do Plantão Técnico</button>
                 </div>
-
-                <button class="btn" style="background:#6c757d; margin-top:20px;" onclick="logout()">Sair do Sistema</button>
+                
                 <button class="btn" style="background:#64748b; margin-top:30px;" onclick="logout()">Desconectar Terminal</button>
             </main>
         </div>
 
         <div class="screen" id="proListScreen">
             <header>
-                <h1>Chamados Pendentes</h1>
                 <h1>Chamados Recebidos</h1>
                 <p>Despacho e Triagem Ambulatorial</p>
             </header>
             <main>
                 <div id="listaIntegradaPro"></div>
-                <button class="btn" style="background:#6c757d;" onclick="nextScreen('proDashboard')">Voltar ao Painel</button>
                 <button class="btn" style="background:#64748b;" onclick="nextScreen('proDashboard')">Voltar ao Painel</button>
             </main>
         </div>
 
         <div class="screen" id="confirmationScreen">
             <header>
-                <h1>Sucesso!</h1>
                 <h1>Sucesso Operacional</h1>
                 <p>Protocolo Transmitido</p>
             </header>
-            <main>
-                <p id="confirmMsg" style="text-align: center; margin: 20px 0;">Ação computada com sucesso.</p>
-                <button class="btn" onclick="nextScreen('menuScreen')">Voltar para Home 🏠</button>
             <main style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
                 <div class="occurrence-card" style="border-left-color: var(--success-color); text-align: center;">
                     <p id="confirmMsg" style="text-align: center; font-weight: 500;"></p>
