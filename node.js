@@ -5,15 +5,13 @@ const bodyParser = require('body-parser');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middlewares para comunicação com o Front-end e tratamento de dados
+
 app.use(cors());
 app.use(bodyParser.json());
 
-/* ==========================================================================
-   BANCO DE DADOS EM MEMÓRIA (SIMULADO NO SERVIDOR)
-   ========================================================================== */
+
 let cadastrosUsuarios = [
-    // Massa de teste padrão (Bypass de homologação)
+
     { nome: "Cidadão Exemplo", cpf: "11111111111", type: "citizen", company: "Nenhum" },
     { nome: "Agente Técnico Plantonista", cpf: "99999999999", type: "professional", company: "Safe Life Matriz" }
 ];
@@ -31,11 +29,6 @@ let meusPets = [
     }
 ];
 
-/* ==========================================================================
-   ROTAS DE AUTENTICAÇÃO (CADASTRO E LOGIN)
-   ========================================================================== */
-
-// Rota para registrar novos usuários (Cidadão ou Funcionário)
 app.post('/api/auth/register', (req, res) => {
     const { nome, cpf, type, company } = req.body;
 
@@ -59,7 +52,7 @@ app.post('/api/auth/register', (req, res) => {
     return res.status(201).json({ message: "Usuário homologado com sucesso!", user: novoUsuario });
 });
 
-// Rota de Login com validação de perfil e empresa
+
 app.post('/api/auth/login', (req, res) => {
     const { cpf, role, company } = req.body;
 
@@ -69,7 +62,6 @@ app.post('/api/auth/login', (req, res) => {
         return res.status(401).json({ error: "Credenciais inválidas ou perfil incorreto." });
     }
 
-    // Se for profissional, valida se selecionou a empresa correta configurada no cadastro
     if (role === 'professional' && company && usuario.company !== company) {
         return res.status(401).json({ error: "Vínculo corporativo divergente para este agente." });
     }
@@ -78,11 +70,7 @@ app.post('/api/auth/login', (req, res) => {
 });
 
 
-/* ==========================================================================
-   ROTAS DE OCORRÊNCIAS E CHAMADOS (TRIAGEM OPERACIONAL)
-   ========================================================================== */
 
-// Rota para registrar uma ocorrência padrão ou SOS Emergência
 app.post('/api/ocorrencias', (req, res) => {
     const { tipo, assunto, localizacao, detalhes } = req.body;
 
@@ -103,8 +91,6 @@ app.post('/api/ocorrencias', (req, res) => {
     dbOcorrencias.push(novaOcorrencia);
     return res.status(201).json({ message: "Ocorrência enviada à central de triagem.", data: novaOcorrencia });
 });
-
-// Rota blindada para Denúncias Anônimas (Zera metadados de IP/User no Servidor)
 app.post('/api/ocorrencias/anonima', (req, res) => {
     const { assunto, localizacao, detalhes } = req.body;
 
@@ -126,12 +112,11 @@ app.post('/api/ocorrencias/anonima', (req, res) => {
     return res.status(201).json({ message: "Denúncia blindada transmitida.", data: novaDenunciaAnonima });
 });
 
-// Rota para o Funcionário listar todas as ocorrências ativas
+
 app.get('/api/ocorrencias', (req, res) => {
     return res.status(200).json(dbOcorrencias);
 });
 
-// Rota para o Funcionário despachar viatura e encerrar o chamado
 app.delete('/api/ocorrencias/:id', (req, res) => {
     const { id } = req.params;
     const totalAntes = dbOcorrencias.length;
@@ -146,16 +131,10 @@ app.delete('/api/ocorrencias/:id', (req, res) => {
 });
 
 
-/* ==========================================================================
-   ROTAS DO GERENCIADOR DE PETS DO CIDADÃO
-   ========================================================================== */
-
-// Rota para listar os pets (Sempre retorna o Ademir + novos cadastros)
 app.get('/api/pets', (req, res) => {
     return res.status(200).json(meusPets);
 });
 
-// Rota para cadastrar um novo pet
 app.post('/api/pets', (req, res) => {
     const { nome, idade, especie, local } = req.body;
 
@@ -177,9 +156,6 @@ app.post('/api/pets', (req, res) => {
 });
 
 
-/* ==========================================================================
-   INICIALIZAÇÃO DO SERVIDORbackend
-   ========================================================================== */
 app.listen(PORT, () => {
     console.log(`====================================================`);
     console.log(`🚀 SERVIDOR SAFE LIFE ONLINE EM: http://localhost:${PORT}`);
