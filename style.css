@@ -1,6 +1,4 @@
-/* ==========================================================================
-   1. SISTEMA DE CORES E VARIÁVEIS (PREMIUM BLUE ACCENT)
-   ========================================================================== */
+
 :root {
     --bg-gradient-start: #b9c6ff; 
     --bg-gradient-end: #e8eeff;
@@ -19,8 +17,6 @@
     --box-shadow-premium: 0 10px 30px rgba(37, 75, 250, 0.08);
     --box-shadow-card: 0 6px 20px rgba(0, 0, 0, 0.03);
 }
-
-/* Modificadores Globais para o Modo Escuro Ativo (Dark Theme) */
 body.dark-theme {
     --bg-gradient-start: #0f172a; 
     --bg-gradient-end: #1e293b;
@@ -33,7 +29,7 @@ body.dark-theme {
     --box-shadow-card: 0 6px 20px rgba(0, 0, 0, 0.2);
 }
 
-/* Reset de Margens e Configurações de Toque */
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -53,12 +49,10 @@ body {
     transition: background var(--transition-speed) ease, color var(--transition-speed) ease;
 }
 
-/* ==========================================================================
-   2. ESTRUTURA DO APP (SIMULADOR SMARTPHONE EXPANSIVO)
-   ========================================================================== */
+
 #app {
     width: 100%; 
-    max-width: 480px; /* Garante que o layout não fique espremido ou minúsculo */
+    max-width: 480px;
     min-height: 100vh; 
     position: relative;
     padding: 30px 24px;
@@ -67,7 +61,7 @@ body {
     background: transparent;
 }
 
-/* Gerenciador de Transição e Visibilidade de Telas */
+
 .screen { 
     display: none; 
     flex-direction: column; 
@@ -78,7 +72,6 @@ body {
 }
 .screen.active { display: flex; }
 
-/* Cabeçalhos Modernos e Arredondados */
 header {
     background: var(--white-card);
     border-bottom-left-radius: var(--border-radius-large); 
@@ -103,7 +96,7 @@ header p {
     margin-bottom: 0;
 }
 
-/* Elementos de Mídia e Textos Descritivos */
+
 .welcome-img { 
     width: 100%; 
     height: 260px;
@@ -121,9 +114,6 @@ p.screen-desc {
     color: var(--text-dark);
 }
 
-/* ==========================================================================
-   3. BOTÕES E COMPONENTES DE CLIQUE
-   ========================================================================== */
 .btn-large {
     background: rgba(255, 255, 255, 0.45);
     border: 2px solid rgba(255, 255, 255, 0.7);
@@ -167,7 +157,7 @@ body.dark-theme .btn-large {
 .btn:hover { background: var(--blue-hover); }
 .btn:active { transform: scale(0.98); }
 
-/* Botão de Pânico / Código Vermelho */
+
 .emergency { 
     background: var(--emergency-color) !important; 
     box-shadow: 0 8px 24px rgba(239, 68, 68, 0.3) !important;
@@ -177,7 +167,7 @@ body.dark-theme .btn-large {
 }
 .emergency:hover { background: var(--emergency-hover) !important; }
 
-/* Grid de Grade de Botões (Painel de Ações) */
+
 .action-buttons { 
     display: grid; 
     grid-template-columns: 1fr 1fr; 
@@ -206,9 +196,7 @@ body.dark-theme .btn-large {
     margin-bottom: 8px;
 }
 
-/* ==========================================================================
-   4. CARDS, INPUTS E COMPONENTES DE FORMULÁRIO
-   ========================================================================== */
+
 .occurrence-card {
     background: var(--white-card); 
     padding: 22px; 
@@ -244,7 +232,6 @@ input:focus, textarea:focus, select:focus {
     border-color: var(--blue-accent); 
 }
 
-/* Inputs de Upload Estilizados */
 input[type="file"] {
     background: rgba(0, 0, 0, 0.02);
     border: 2px dashed var(--text-light);
@@ -264,11 +251,6 @@ label {
     letter-spacing: 0.5px;
 }
 
-/* ==========================================================================
-   5. COMPONENTES EXCLUSIVOS (DARK SWITCH, DENÚNCIA BLINDADA E NAV)
-   ========================================================================== */
-
-/* Interruptor do Modo Escuro */
 .switch-container {
     display: flex;
     justify-content: space-between;
@@ -293,7 +275,6 @@ label {
 input:checked + .slider { background-color: var(--blue-accent); }
 input:checked + .slider:before { transform: translateX(22px); }
 
-/* Layout Isolado e Blindado do Canal Anônimo (Preto e Vermelho Alerta) */
 .screen.anon-mode {
     background: #090d16 !important;
     color: #f8fafc !important;
@@ -317,7 +298,6 @@ input:checked + .slider:before { transform: translateX(22px); }
     color: #f8fafc !important;
 }
 
-/* Caixa dos Pets Listados (Onde fica o Ademir) */
 .pet-item-box {
     display: flex; 
     align-items: center; 
@@ -328,7 +308,6 @@ input:checked + .slider:before { transform: translateX(22px); }
 }
 body.dark-theme .pet-item-box { border-top-color: rgba(255,255,255,0.06); }
 
-/* Menu Fixo de Navegação de Rodapé */
 .bottom-nav {
     position: fixed; 
     bottom: 0; 
@@ -362,7 +341,6 @@ body.dark-theme .pet-item-box { border-top-color: rgba(255,255,255,0.06); }
 .bottom-nav button span.nav-icon { font-size: 20px; }
 .bottom-nav button.active-nav { color: var(--blue-accent); }
 
-/* Caixa Dinâmica de Alerta Superior (Toast Notification) */
 #toast {
     position: fixed; 
     top: -100px; 
@@ -385,8 +363,6 @@ body.dark-theme .pet-item-box { border-top-color: rgba(255,255,255,0.06); }
     justify-content: center;
     gap: 10px;
 }
-
-/* Animação Suave de Entrada de Telas */
 @keyframes premiumFadeIn { 
     from { opacity: 0; transform: translateY(8px) scale(0.99); } 
     to { opacity: 1; transform: translateY(0) scale(1); } 
