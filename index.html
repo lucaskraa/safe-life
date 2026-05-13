@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Safe Life Ecosystem - Premium Standalone</title>
     <style>
-   
+        /* ==========================================================================
+           1. CORE DESIGN SYSTEMS & VARIABLES (PREMIUM BLUE ACCENT)
+           ========================================================================== */
         :root {
             --bg-gradient-start: #b9c6ff; 
             --bg-gradient-end: #e8eeff;
@@ -25,6 +27,7 @@
             --box-shadow-card: 0 6px 20px rgba(0, 0, 0, 0.03);
         }
 
+        /* Modificadores Globais para o Modo Escuro Ativo */
         body.dark-theme {
             --bg-gradient-start: #0f172a; 
             --bg-gradient-end: #1e293b;
@@ -37,6 +40,7 @@
             --box-shadow-card: 0 6px 20px rgba(0, 0, 0, 0.2);
         }
 
+        /* Reset e Configurações de Escalonamento */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -56,7 +60,7 @@
             transition: background var(--transition-speed) ease, color var(--transition-speed) ease;
         }
 
- 
+        /* Container Principal Expansivo e Responsivo (Previne efeito minúsculo) */
         #app {
             width: 100%; 
             max-width: 480px;
@@ -68,7 +72,11 @@
             background: transparent;
         }
 
+        /* ==========================================================================
+           2. COMPONENTES E ARQUITETURA VISUAL
+           ========================================================================== */
         
+        /* Controlador das Telas do App */
         .screen { 
             display: none; 
             flex-direction: column; 
@@ -79,7 +87,7 @@
         }
         .screen.active { display: flex; }
 
-
+        /* Estrutura de Cabeçalho Flutuante com Cantos Arredondados */
         header {
             background: var(--white-card);
             border-bottom-left-radius: var(--border-radius-large); 
@@ -104,6 +112,7 @@
             margin-bottom: 0;
         }
 
+        /* Elementos Multimídia */
         .welcome-img { 
             width: 100%; 
             height: 260px;
@@ -121,6 +130,9 @@
             color: var(--text-dark);
         }
 
+        /* ==========================================================================
+           3. CENTRAL DE BOTÕES E INTERATIVIDADE
+           ========================================================================== */
         
         .btn-large {
             background: rgba(255, 255, 255, 0.45);
@@ -174,6 +186,7 @@
         }
         .emergency:hover { background: var(--emergency-hover) !important; }
 
+        /* Grid de Opções do Cidadão */
         .action-buttons { 
             display: grid; 
             grid-template-columns: 1fr 1fr; 
@@ -220,7 +233,9 @@
             color: var(--text-dark);
         }
 
-       
+        /* ==========================================================================
+           4. FORMULÁRIOS, INPUTS E SELETORES
+           ========================================================================== */
         
         input, textarea, select {
             width: 100%; 
@@ -259,6 +274,7 @@
             letter-spacing: 0.5px;
         }
 
+        /* Custom Switch para o Controle de Tema */
         .switch-container {
             display: flex;
             justify-content: space-between;
@@ -283,7 +299,9 @@
         input:checked + .slider { background-color: var(--blue-accent); }
         input:checked + .slider:before { transform: translateX(22px); }
 
-   /
+        /* ==========================================================================
+           5. MENUS DE NAVEGAÇÃO E UTILITÁRIOS
+           ========================================================================== */
         
         .bottom-nav {
             position: fixed; 
@@ -318,6 +336,7 @@
         .bottom-nav button span.nav-icon { font-size: 20px; }
         .bottom-nav button.active-nav { color: var(--blue-accent); }
 
+        /* Banner Dinâmico Flutuante (Toast) */
         #toast {
             position: fixed; 
             top: -100px; 
@@ -341,7 +360,7 @@
             gap: 10px;
         }
 
-    
+        /* Interface Isolada para Canal Anônimo (Preto e Vermelho Segurança) */
         .screen.anon-mode {
             background: #090d16 !important;
             color: #f8fafc !important;
@@ -365,6 +384,7 @@
             color: #f8fafc !important;
         }
 
+        /* Lista de Pets Estilizada */
         .pet-item-box {
             display: flex; 
             align-items: center; 
@@ -680,12 +700,14 @@
 
     </div>
 
-    <script>-
+    <script>
+        // --- ARMAZENAMENTO VOLÁTIL (ESTADO DA APLICAÇÃO) ---
         let dbOcorrencias = [];
         let estatisticasPro = { chamadosAtendidos: 0 };
         let cadastrosSimulados = [];
         let usuarioLogado = null;
 
+        // Base Inicial de Pets Cadastrados (Regra de Negócio: Gato Ademir Pré-Existente)
         let meusPets = [
             { 
                 nome: "Ademir", 
@@ -696,7 +718,7 @@
             }
         ];
 
-
+        // --- MOTOR DE NAVEGAÇÃO E TRANSIÇÃO INTERNA ---
         function nextScreen(id) {
             document.querySelectorAll('.screen').forEach(screenElement => {
                 screenElement.classList.remove('active');
@@ -708,7 +730,7 @@
             }
         }
 
-
+        // --- MANIPULAÇÃO DINÂMICA DE INTERFACES CONDICIONAIS ---
         function toggleRegCompanyField() {
             const currentSelection = document.getElementById('regType').value;
             const companyBlock = document.getElementById('companyRegWrapper');
@@ -747,6 +769,7 @@
             nextScreen('loginScreen');
         }
 
+        // --- NÚCLEO DE AUTENTICAÇÃO (BIFURCAÇÃO DE PERFIS) ---
         function autenticar() {
             const inputCpf = document.getElementById('cpfInput').value;
             const chosenRole = document.getElementById('loginRole').value;
@@ -766,7 +789,7 @@
                 return;
             }
 
-        
+            // Pesquisa Avançada no Banco Local Dinâmico
             const contaLocalizada = cadastrosSimulados.find(user => user.cpf === inputCpf && user.type === chosenRole);
             if(contaLocalizada) {
                 usuarioLogado = contaLocalizada;
@@ -795,10 +818,12 @@
             nextScreen('loginScreen');
         }
 
+        // --- NÚCLEO DE COMPORTAMENTO DO CIDADÃO (FORMULÁRIOS & REQUISITOS) ---
         function openCitizenForm(title, key) {
             document.getElementById('formTitle').innerText = title;
             document.getElementById('formKey').value = key;
             
+            // Exibe formulários específicos de pet somente se a chave for correspondente
             const petFieldsContainer = document.getElementById('conditionalPetFields');
             petFieldsContainer.style.display = (key === 'register_pet') ? 'block' : 'none';
             
@@ -814,7 +839,7 @@
             const campoDetalhes = document.getElementById('formDetails').value;
             
             if(chaveFormulario === 'register_pet') {
-             
+                // Algoritmo de Armazenamento de Pet no Perfil do Cidadão
                 const idadeInformada = document.getElementById('petAge').value || "0";
                 const especieInformada = document.getElementById('petBreed').value || "Animal de Estimação";
                 
@@ -823,12 +848,13 @@
                     idade: idadeInformada,
                     especie: especieInformada,
                     local: campoLocalizacao,
-                    foto: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=150&q=80" 
+                    foto: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=150&q=80" // Placeholder Premium de pet cadastrado
                 });
                 
                 triggerToast("🐾 Animal catalogado na base nacional de pets!");
                 document.getElementById('confirmMsg').innerText = `O pet "${assuntoPrincipal}" foi registrado e indexado com sucesso ao seu histórico.`;
             } else {
+                // Algoritmo de roteamento para a Fila do Funcionário
                 dbOcorrencias.push({
                     id: Date.now(),
                     tipo: tituloOcorrencia,
@@ -846,6 +872,7 @@
             nextScreen('confirmationScreen');
         }
 
+        // --- FLUXO SEGURO / ANÔNIMO ---
         function openAnonForm() {
             nextScreen('scrAnonForm');
         }
@@ -856,7 +883,7 @@
             const localizacao = document.getElementById('anonLocation').value;
             const detalhes = document.getElementById('anonDetails').value;
 
-        
+            // Injeção direta com flag de ocultação ativada
             dbOcorrencias.push({
                 id: Date.now(),
                 tipo: "🚨 DENÚNCIA ULTRA-ANÔNIMA CRIPTOGRAFADA",
@@ -873,6 +900,8 @@
             event.target.reset();
             nextScreen('confirmationScreen');
         }
+
+        // --- SISTEMA DE VISUALIZAÇÃO DE PERFIL, PETS E TEMAS ---
         function renderPerfilCidadao() {
             if(usuarioLogado) {
                 document.getElementById('citizenProfileName').innerText = usuarioLogado.nome;
@@ -881,6 +910,7 @@
             const listContainer = document.getElementById('myPetsContainer');
             listContainer.innerHTML = '';
 
+            // Renderização controlada via laço (Garante Ademir e novos pets na tela)
             meusPets.forEach(pet => {
                 const itemBox = document.createElement('div');
                 itemBox.className = 'pet-item-box';
@@ -923,7 +953,7 @@
             }
         }
 
-
+        // --- TERMINAL OPERACIONAL E TRATAMENTO DE FILAS (FUNCIONÁRIO) ---
         function abrirOcorrenciasPro() {
             const queueContainer = document.getElementById('listaIntegradaPro');
             queueContainer.innerHTML = '';
@@ -937,7 +967,8 @@
                 dbOcorrencias.forEach(ocorrencia => {
                     const cardElement = document.createElement('div');
                     cardElement.className = 'occurrence-card';
-      
+                    
+                    // Altera a cor de destaque se o chamado for oriundo da aba blindada
                     if(ocorrencia.isAnonima) {
                         cardElement.style.borderLeftColor = '#ef4444';
                     }
@@ -967,7 +998,7 @@
             abrirOcorrenciasPro();
         }
 
- 
+        // --- COMPONENTE FLUTUANTE DE NOTIFICAÇÃO (TOAST) ---
         function triggerToast(mensagem) {
             const toastBox = document.getElementById('toast');
             toastBox.innerText = mensagem;
