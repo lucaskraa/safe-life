@@ -1,0 +1,26 @@
+{
+  "name": "safe-life",
+  "version": "1.0.0",
+  "description": "Safe Life - app de proteção animal com perfis de cidadão, profissional e administrador.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.3",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "pg": "^8.12.0"
+  },
+  "keywords": [
+    "safe-life",
+    "protecao-animal",
+    "tcc",
+    "javascript",
+    "node",
+    "postgresql"
+  ],
+  "author": "Safe Life",
+  "license": "MIT"
+}
