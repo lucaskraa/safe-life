@@ -2304,3 +2304,185 @@ button,
 .occurrence-card {
     transition-duration: .08s !important;
 }
+
+
+
+/* =====================================================
+   AJUSTE PERFIL CIDADÃO / NOTIFICAÇÕES / AGENTES
+===================================================== */
+
+.safe-profile-section {
+    margin-top: 18px;
+}
+
+.safe-profile-section h4 {
+    margin-bottom: 12px;
+}
+
+.safe-notification-card {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding: 16px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #ecfdf5, #ffffff);
+    border: 1px solid rgba(16, 185, 129, .28);
+    margin-bottom: 12px;
+}
+
+.safe-notification-icon {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border-radius: 14px;
+    background: #10b981;
+    color: white;
+    font-size: 22px;
+    flex: 0 0 auto;
+}
+
+.agent-card {
+    border-left: 5px solid var(--success-color, #10b981);
+}
+
+
+
+/* =====================================================
+   FLUIDEZ EXTRA + OPÇÕES PROFISSIONAIS
+===================================================== */
+
+html,
+body {
+    scroll-behavior: auto !important;
+}
+
+.screen {
+    animation: none !important;
+    transition: none !important;
+}
+
+button,
+.btn,
+.admin-tool-card,
+.pro-action-card,
+.occurrence-card,
+.card,
+input,
+select,
+textarea {
+    transition-duration: .05s !important;
+}
+
+button:active,
+.btn:active,
+.admin-tool-card:active,
+.pro-action-card:active {
+    transform: scale(.99) !important;
+}
+
+.pro-extra-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin: 18px 0;
+}
+
+.pro-action-card {
+    border: 1px solid rgba(124, 58, 237, .18);
+    border-radius: 22px;
+    padding: 18px;
+    background: #ffffff;
+    text-align: left;
+    box-shadow: 0 10px 28px rgba(30, 41, 59, .08);
+    cursor: pointer;
+}
+
+.pro-action-card span {
+    display: inline-grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    background: rgba(124, 58, 237, .12);
+    margin-bottom: 10px;
+    font-size: 22px;
+}
+
+.pro-action-card strong {
+    display: block;
+    color: var(--text-dark, #1e293b);
+    margin-bottom: 6px;
+}
+
+.pro-action-card small {
+    color: var(--text-light, #64748b);
+}
+
+.checklist-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 14px;
+    border-radius: 18px;
+    background: #ffffff;
+    border: 1px solid rgba(124, 58, 237, .16);
+    margin-bottom: 10px;
+}
+
+.checklist-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    background: rgba(16, 185, 129, .13);
+    color: #047857;
+    flex: 0 0 auto;
+    font-weight: 900;
+}
+
+@media (max-width: 720px) {
+    .pro-extra-actions {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+
+/* =====================================================
+   SAFE LIFE 10/10 - POLIMENTO FINAL
+===================================================== */
+
+.safe-action-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.safe-status-pending {
+    background: rgba(245, 158, 11, .14) !important;
+    color: #b45309 !important;
+}
+
+.safe-status-accepted {
+    background: rgba(59, 130, 246, .14) !important;
+    color: #1d4ed8 !important;
+}
+
+.safe-status-progress {
+    background: rgba(124, 58, 237, .14) !important;
+    color: #6d28d9 !important;
+}
+
+.safe-status-done {
+    background: rgba(16, 185, 129, .14) !important;
+    color: #047857 !important;
+}
+
+@media (max-width: 720px) {
+    .safe-action-row {
+        grid-template-columns: 1fr;
+    }
+}
