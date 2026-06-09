@@ -1,3 +1,4 @@
+
 /* =====================================================
    CONFIGURAÇÃO DAS OPÇÕES VISUAIS ORIGINAIS
    Necessário para o cidadão marcar a opção do problema
@@ -5915,4 +5916,1284 @@ document.addEventListener("DOMContentLoaded", function() {
         `;
         document.head.appendChild(style);
     }
+})();
+
+
+/* =====================================================
+   PATCH FINAL - AGENTES ATIVOS + NOTIFICAÇÃO + PERFIL LIMPO
+   - Agentes ativos funciona no painel profissional
+   - Perfil cidadão não duplica Meus Pets
+   - Ocorrência concluída aparece como notificação no perfil do cidadão
+   - Confirmação de envio fica simples para a população entender
+===================================================== */
+
+(function () {
+    const USERS_KEY = "safeLifeUsuarios";
+    const OCC_KEY = "safeLifeOcorrencias";
+    const PET_KEY = "safeLifePets";
+    const HISTORY_KEY = "safeLifeHistoricoOcorrencias";
+    const NOTIF_KEY = "safeLifeNotificacoes";
+
+    function get(key, fallback) {
+        try {
+            const raw = localStorage.getItem(key);
+            if (!raw) return fallback;
+            return JSON.parse(raw) ?? fallback;
+        } catch (e) {
+            return fallback;
+        }
+    }
+
+    function set(key, value) {
+        localStorage.setItem(key, JSON.stringify(value));
+    }
+
+    function cpf(value) {
+        return String(value || "").replace(/\D/g, "");
+    }
+
+    function el(id) {
+        return document.getElementById(id);
+    }
+
+    function esc(value) {
+        return String(value ?? "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+    }
+
+    function toast(msg) {
+        if (typeof window.triggerToast === "function") window.triggerToast(msg);
+        else alert(msg);
+    }
+
+    function users() {
+        return get(USERS_KEY, []);
+    }
+
+    function occurrences() {
+        return get(OCC_KEY, []);
+    }
+
+    function history() {
+        return get(HISTORY_KEY, []);
+    }
+
+    function pets() {
+        return get(PET_KEY, []);
+    }
+
+    function notifications() {
+        return get(NOTIF_KEY, []);
+    }
+
+    function setOccurrences(list) {
+        set(OCC_KEY, list);
+        try { dbOcorrencias = list; } catch (e) { window.dbOcorrencias = list; }
+    }
+
+    function setHistory(list) {
+        set(HISTORY_KEY, list);
+    }
+
+    function setNotifications(list) {
+        set(NOTIF_KEY, list);
+    }
+
+    function getVitor() {
+        return users().find(user => cpf(user.cpf) === "11111111111") || {};
+    }
+
+    function getZeca() {
+        return users().find(user => cpf(user.cpf) === "99999999999") || {};
+    }
+
+    function getCurrentCitizenCpf() {
+        try {
+            if (typeof usuarioLogado !== "undefined" && usuarioLogado && usuarioLogado.cpf) {
+                return cpf(usuarioLogado.cpf);
+            }
+        } catch (e) {}
+
+        const saved = get("safeLifeLoggedUser", null);
+        if (saved && saved.cpf) return cpf(saved.cpf);
+
+        return "11111111111";
+    }
+
+    function getOccTitle(item) {
+        return item.opcaoEscolhida || item.opcao_escolhida || item.assunto || item.optionTitle || item.tipo || item.type || "Ocorrência";
+    }
+
+    function getOccDesc(item) {
+        return item.detalhes || item.descricao || item.description || "Sem descrição";
+    }
+
+    function getOccAddress(item) {
+        return item.localizacao || item.endereco_completo || item.endereco || item.address || item.local || "Sem endereço";
+    }
+
+    function getOccPhoto(item) {
+        return item.fotoOcorrencia || item.fotoEvidencia || item.occurrencePhoto || item.evidencePhoto || item.foto || "";
+    }
+
+    function getReporterPhoto(item) {
+        return item.fotoSolicitante || item.foto_usuario || item.reporterPhoto || "";
+    }
+
+    function notificationCard(item) {
+        return `
+            <div class="safe-notification-card">
+                <div class="safe-notification-icon">✅</div>
+                <div>
+                    <strong>Sua ocorrência foi concluída</strong>
+                    <p>
+                        O profissional <b>${esc(item.profissionalNome || "Zeca do Santos")}</b>
+                        concluiu o atendimento de <b>${esc(getOccTitle(item))}</b>.
+                    </p>
+                    <small>${esc(item.concluidaEm || item.completedAt || "")}</small>
+                </div>
+            </div>
+        `;
+    }
+
+    function completedCard(item) {
+        const foto = getOccPhoto(item);
+
+        return `
+            <div class="occurrence-card completed-occurrence">
+                <div class="occurrence-header">
+                    <h4>✅ ${esc(getOccTitle(item))}</h4>
+                    <span class="status-badge success-badge">Concluída</span>
+                </div>
+
+                <p><strong>Descrição:</strong> ${esc(getOccDesc(item))}</p>
+                <p><strong>Endereço:</strong> ${esc(getOccAddress(item))}</p>
+                <p><strong>Profissional:</strong> ${esc(item.profissionalNome || "Zeca do Santos")}</p>
+                <p><strong>Empresa:</strong> ${esc(item.empresaProfissional || "Safe Life Matriz")}</p>
+
+                ${foto ? `
+                    <div class="occurrence-photo-box">
+                        <img class="occurrence-evidence-img" src="${foto}" alt="Foto da ocorrência">
+                    </div>
+                ` : ""}
+
+                <small>Concluída em: ${esc(item.concluidaEm || item.completedAt || "")}</small>
+            </div>
+        `;
+    }
+
+    function petCard(pet) {
+        return `
+            <div class="occurrence-card pet-card">
+                ${pet.foto || pet.photo ? `<img class="pet-card-img" src="${pet.foto || pet.photo}" alt="Foto do pet">` : ""}
+                <h4>🐾 ${esc(pet.nome || pet.name || "Pet")}</h4>
+                <p><strong>Espécie:</strong> ${esc(pet.especie || pet.species || "Animal")}</p>
+                <p><strong>Raça:</strong> ${esc(pet.raca || pet.breed || "Não informada")}</p>
+                <p><strong>Idade:</strong> ${esc(pet.idade || pet.age || "Não informada")}</p>
+                <p><strong>Local:</strong> ${esc(pet.local || pet.location || "Não informado")}</p>
+            </div>
+        `;
+    }
+
+    function renderCitizenProfileClean() {
+        const profileContainer = el("myPetsContainer");
+        if (!profileContainer) return;
+
+        const citizenCpf = getCurrentCitizenCpf();
+        const userPets = pets().filter(pet => {
+            const owner = cpf(pet.donoCpf || pet.ownerCpf);
+            return !owner || owner === citizenCpf;
+        });
+
+        const completed = history().filter(item => {
+            const occCpf = cpf(item.citizenCpf || item.cpf_usuario || item.reporterCpf);
+            return !occCpf || occCpf === citizenCpf;
+        });
+
+        const notifs = notifications().filter(item => {
+            const nCpf = cpf(item.citizenCpf);
+            return !nCpf || nCpf === citizenCpf;
+        });
+
+        profileContainer.innerHTML = `
+            <div class="safe-profile-section">
+                <h4>🔔 Notificações</h4>
+                ${
+                    notifs.length
+                        ? notifs.map(notificationCard).join("")
+                        : `<p class="empty-message">Nenhuma notificação ainda.</p>`
+                }
+            </div>
+
+            <div class="safe-profile-section">
+                <h4>🐾 Meus Pets</h4>
+                ${
+                    userPets.length
+                        ? userPets.map(petCard).join("")
+                        : `<p class="empty-message">Nenhum pet cadastrado ainda.</p>`
+                }
+            </div>
+
+            <div class="safe-profile-section">
+                <h4>✅ Ocorrências realizadas</h4>
+                ${
+                    completed.length
+                        ? completed.map(completedCard).join("")
+                        : `<p class="empty-message">Nenhuma ocorrência concluída ainda.</p>`
+                }
+            </div>
+        `;
+    }
+
+    const oldRenderPerfilCidadao = window.renderPerfilCidadao;
+    window.renderPerfilCidadao = function renderPerfilCidadaoSemDuplicar() {
+        const vitor = getVitor();
+
+        if (el("profileAvatar")) el("profileAvatar").src = vitor.foto || vitor.avatar || el("profileAvatar").src;
+        if (el("citizenProfileName")) el("citizenProfileName").textContent = vitor.nome || vitor.name || "Vitor Chineque";
+        if (el("citizenProfileType")) el("citizenProfileType").textContent = "Cidadão";
+        if (el("citizenProfileContact")) el("citizenProfileContact").textContent = vitor.email || "vitor.chinequero@safelife.com";
+
+        if (el("editName")) el("editName").value = vitor.nome || vitor.name || "Vitor Chineque";
+        if (el("editEmail")) el("editEmail").value = vitor.email || "vitor.chinequero@safelife.com";
+        if (el("editPhone")) el("editPhone").value = vitor.telefone || vitor.phone || "";
+
+        if (typeof window.nextScreen === "function") window.nextScreen("citizenProfile");
+
+        setTimeout(renderCitizenProfileClean, 0);
+    };
+
+    function pendingOccurrences() {
+        return occurrences().filter(item => {
+            const status = String(item.status || "Pendente").toLowerCase();
+            return !status.includes("conclu") && !status.includes("atendida") && !status.includes("finalizada");
+        });
+    }
+
+    function proOccurrenceCard(item) {
+        const reporterFoto = getReporterPhoto(item);
+        const occFoto = getOccPhoto(item);
+
+        return `
+            <article class="occurrence-card occurrence-full-card">
+                <div class="occurrence-header">
+                    <div>
+                        <h4>${esc(item.tipo || item.type || "Ocorrência")}</h4>
+                        <small>${esc(item.createdAt || item.timestamp || "")}</small>
+                    </div>
+                    <span class="status-badge">${esc(item.status || "Pendente")}</span>
+                </div>
+
+                <div class="reporter-row">
+                    ${
+                        reporterFoto
+                            ? `<img class="reporter-avatar" src="${reporterFoto}" alt="Foto do cidadão">`
+                            : `<div class="reporter-avatar empty">👤</div>`
+                    }
+                    <div>
+                        <strong>${esc(item.citizenName || item.nome_usuario || item.reporterName || "Vitor Chineque")}</strong>
+                        <small>CPF: ${esc(item.citizenCpf || item.cpf_usuario || "11111111111")}</small>
+                    </div>
+                </div>
+
+                <div class="occurrence-photo-box">
+                    ${
+                        occFoto
+                            ? `<img class="occurrence-evidence-img" src="${occFoto}" alt="Foto da ocorrência">`
+                            : `<div class="occ-photo-placeholder">📷 Sem foto enviada</div>`
+                    }
+                </div>
+
+                <p><strong>Opção marcada:</strong> ${esc(getOccTitle(item))}</p>
+                <p><strong>Descrição:</strong> ${esc(getOccDesc(item))}</p>
+                <p><strong>Endereço:</strong> ${esc(getOccAddress(item))}</p>
+                <p><strong>Prioridade:</strong> ${esc(item.prioridade || "NORMAL")}</p>
+
+                <button class="btn small-btn" type="button" onclick="concluirOcorrenciaProfissional('${item.id}')">
+                    ✅ Concluir atendimento
+                </button>
+            </article>
+        `;
+    }
+
+    window.abrirOcorrenciasPro = function abrirOcorrenciasProFinal() {
+        const container = el("listaIntegradaPro");
+        const list = pendingOccurrences();
+
+        if (container) {
+            container.innerHTML = list.length
+                ? list.map(proOccurrenceCard).join("")
+                : `
+                    <div class="occurrence-card">
+                        <h4>Nenhum chamado pendente</h4>
+                        <p>As ocorrências concluídas saem daqui e aparecem no perfil do cidadão.</p>
+                    </div>
+                `;
+        }
+
+        if (typeof window.nextScreen === "function") window.nextScreen("proListScreen");
+    };
+
+    window.concluirOcorrenciaProfissional = function concluirOcorrenciaProfissionalFinal(idOcorrencia) {
+        const list = occurrences();
+        const index = list.findIndex(item => String(item.id) === String(idOcorrencia));
+
+        if (index === -1) {
+            toast("Ocorrência não encontrada.");
+            return;
+        }
+
+        const zeca = getZeca();
+        const item = list[index];
+
+        const completed = {
+            ...item,
+            status: "Concluída",
+            profissionalNome: zeca.nome || zeca.name || "Zeca do Santos",
+            profissionalCpf: zeca.cpf || "99999999999",
+            empresaProfissional: zeca.company || zeca.empresa || "Safe Life Matriz",
+            concluidaEm: new Date().toLocaleString("pt-BR"),
+            completedAt: new Date().toLocaleString("pt-BR")
+        };
+
+        list.splice(index, 1);
+        setOccurrences(list);
+
+        const h = history();
+        h.unshift(completed);
+        setHistory(h);
+
+        const n = notifications();
+        n.unshift({
+            id: Date.now().toString(),
+            citizenCpf: completed.citizenCpf || completed.cpf_usuario || "11111111111",
+            title: "Ocorrência concluída",
+            message: `O profissional ${completed.profissionalNome} concluiu o atendimento de ${getOccTitle(completed)}.`,
+            occurrenceId: completed.id,
+            createdAt: new Date().toLocaleString("pt-BR"),
+            ...completed
+        });
+        setNotifications(n);
+
+        toast("✅ Atendimento concluído. O cidadão recebeu a notificação no perfil.");
+        window.abrirOcorrenciasPro();
+    };
+
+    window.marcarOcorrenciaAtendida = window.concluirOcorrenciaProfissional;
+
+    window.abrirAgentesAtivos = function abrirAgentesAtivosFinal() {
+        const container = el("activeAgentsList");
+        const zeca = getZeca();
+        const list = pendingOccurrences();
+
+        const agents = [
+            {
+                nome: zeca.nome || zeca.name || "Zeca do Santos",
+                empresa: zeca.company || zeca.empresa || "Safe Life Matriz",
+                status: "Disponível",
+                tempo: "10 min",
+                foto: zeca.foto || zeca.avatar || "",
+                especialidade: "Resgate e atendimento animal"
+            },
+            {
+                nome: "Equipe Patas Livres",
+                empresa: "ONG Patas Livres",
+                status: list.length ? "Em deslocamento" : "Disponível",
+                tempo: list.length ? "15 min" : "12 min",
+                foto: "",
+                especialidade: "Apoio em denúncias"
+            },
+            {
+                nome: "Equipe Zoonoses",
+                empresa: "Centro de Controle de Zoonoses",
+                status: "Disponível",
+                tempo: "18 min",
+                foto: "",
+                especialidade: "Casos de risco e saúde pública"
+            }
+        ];
+
+        if (container) {
+            container.innerHTML = agents.map(agent => `
+                <div class="occurrence-card agent-card">
+                    <div class="reporter-row">
+                        ${
+                            agent.foto
+                                ? `<img class="reporter-avatar" src="${agent.foto}" alt="Foto do agente">`
+                                : `<div class="reporter-avatar empty">🚑</div>`
+                        }
+                        <div>
+                            <h4>${esc(agent.nome)}</h4>
+                            <small>${esc(agent.empresa)}</small>
+                        </div>
+                    </div>
+
+                    <p><strong>Status:</strong> ${esc(agent.status)}</p>
+                    <p><strong>Tempo estimado:</strong> ${esc(agent.tempo)}</p>
+                    <p><strong>Especialidade:</strong> ${esc(agent.especialidade)}</p>
+
+                    ${
+                        list.length
+                            ? `<p><strong>Chamados pendentes:</strong> ${list.length}</p>`
+                            : `<p>Sem chamados pendentes no momento.</p>`
+                    }
+                </div>
+            `).join("");
+        }
+
+        if (typeof window.nextScreen === "function") window.nextScreen("activeAgentsScreen");
+    };
+
+    // Mensagem de confirmação mais natural para cidadão
+    const originalRegistrarAcao = window.registrarAcao;
+    window.registrarAcao = async function registrarAcaoMensagemPublica(event) {
+        if (typeof originalRegistrarAcao === "function") {
+            await originalRegistrarAcao(event);
+        }
+
+        const msg = el("confirmMsg");
+        if (msg) {
+            msg.textContent = "Denúncia enviada com sucesso. Um profissional da Safe Life irá analisar o caso e acompanhar o atendimento.";
+        }
+    };
+
+    const originalRegistrarAcaoAnonima = window.registrarAcaoAnonima;
+    window.registrarAcaoAnonima = async function registrarAcaoAnonimaMensagemPublica(event) {
+        if (typeof originalRegistrarAcaoAnonima === "function") {
+            await originalRegistrarAcaoAnonima(event);
+        }
+
+        const msg = el("confirmMsg");
+        if (msg) {
+            msg.textContent = "Denúncia anônima enviada com sucesso. A equipe profissional irá analisar o caso com segurança.";
+        }
+    };
+
+    function injectCss() {
+        if (el("safeLifeNotificationFixCss")) return;
+
+        const style = document.createElement("style");
+        style.id = "safeLifeNotificationFixCss";
+        style.textContent = `
+            .safe-profile-section {
+                margin-top: 18px;
+            }
+
+            .safe-profile-section h4 {
+                margin-bottom: 12px;
+            }
+
+            .safe-notification-card {
+                display: flex;
+                gap: 14px;
+                align-items: flex-start;
+                padding: 16px;
+                border-radius: 18px;
+                background: linear-gradient(135deg, #ecfdf5, #ffffff);
+                border: 1px solid rgba(16, 185, 129, .28);
+                margin-bottom: 12px;
+            }
+
+            .safe-notification-icon {
+                width: 42px;
+                height: 42px;
+                display: grid;
+                place-items: center;
+                border-radius: 14px;
+                background: #10b981;
+                color: white;
+                font-size: 22px;
+                flex: 0 0 auto;
+            }
+
+            .agent-card {
+                border-left: 5px solid var(--success-color, #10b981);
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        injectCss();
+
+        const oldMyPets = el("myPetsContainer");
+        if (oldMyPets) {
+            // deixa o perfil limpo quando abrir depois
+            oldMyPets.dataset.safeLifeCleanProfile = "1";
+        }
+    });
+})();
+
+
+/* =====================================================
+   PATCH FLUIDEZ EXTRA + PERFIL PROFISSIONAL MAIS ÚTIL
+   Adiciona:
+   - Histórico de Atendimentos
+   - Checklist de Resgate
+   E deixa troca de telas/cliques mais fluidos.
+===================================================== */
+
+(function () {
+    const HISTORY_KEY = "safeLifeHistoricoOcorrencias";
+    const OCC_KEY = "safeLifeOcorrencias";
+
+    function get(key, fallback) {
+        try {
+            const raw = localStorage.getItem(key);
+            if (!raw) return fallback;
+            return JSON.parse(raw) ?? fallback;
+        } catch (e) {
+            return fallback;
+        }
+    }
+
+    function el(id) {
+        return document.getElementById(id);
+    }
+
+    function esc(value) {
+        return String(value ?? "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+    }
+
+    function getTitle(item) {
+        return item.opcaoEscolhida || item.opcao_escolhida || item.assunto || item.optionTitle || item.tipo || item.type || "Ocorrência";
+    }
+
+    function getDesc(item) {
+        return item.detalhes || item.descricao || item.description || "Sem descrição";
+    }
+
+    function getAddress(item) {
+        return item.localizacao || item.endereco_completo || item.endereco || item.address || item.local || "Sem endereço";
+    }
+
+    function getPhoto(item) {
+        return item.fotoOcorrencia || item.fotoEvidencia || item.occurrencePhoto || item.evidencePhoto || item.foto || "";
+    }
+
+    function fastScreen(screenId) {
+        document.querySelectorAll(".screen").forEach(screen => {
+            screen.classList.remove("active");
+        });
+
+        const target = el(screenId);
+
+        if (!target) {
+            console.warn("Tela não encontrada:", screenId);
+            return;
+        }
+
+        target.classList.add("active");
+        window.scrollTo(0, 0);
+    }
+
+    // Sobrescreve nextScreen mais uma vez para ficar direto.
+    window.nextScreen = fastScreen;
+
+    window.abrirHistoricoAtendimentosPro = function abrirHistoricoAtendimentosPro() {
+        const list = get(HISTORY_KEY, []);
+        const container = el("proHistoryList");
+
+        if (container) {
+            container.innerHTML = list.length
+                ? list.map(item => {
+                    const foto = getPhoto(item);
+
+                    return `
+                        <article class="occurrence-card completed-occurrence">
+                            <div class="occurrence-header">
+                                <div>
+                                    <h4>✅ ${esc(getTitle(item))}</h4>
+                                    <small>${esc(item.concluidaEm || item.completedAt || "")}</small>
+                                </div>
+                                <span class="status-badge success-badge">Concluída</span>
+                            </div>
+
+                            <p><strong>Descrição:</strong> ${esc(getDesc(item))}</p>
+                            <p><strong>Endereço:</strong> ${esc(getAddress(item))}</p>
+                            <p><strong>Cidadão:</strong> ${esc(item.citizenName || item.nome_usuario || "Vitor Chineque")}</p>
+
+                            ${foto ? `
+                                <div class="occurrence-photo-box">
+                                    <img class="occurrence-evidence-img" src="${foto}" alt="Foto da ocorrência">
+                                </div>
+                            ` : ""}
+                        </article>
+                    `;
+                }).join("")
+                : `
+                    <div class="occurrence-card">
+                        <h4>Nenhum atendimento concluído ainda</h4>
+                        <p>Quando você concluir uma ocorrência, ela aparece aqui.</p>
+                    </div>
+                `;
+        }
+
+        fastScreen("proHistoryScreen");
+    };
+
+    window.abrirChecklistResgatePro = function abrirChecklistResgatePro() {
+        const container = el("proChecklistBox");
+        const pending = get(OCC_KEY, []).filter(item => {
+            const status = String(item.status || "Pendente").toLowerCase();
+            return !status.includes("conclu") && !status.includes("atendida");
+        });
+
+        if (container) {
+            container.innerHTML = `
+                <div class="occurrence-card">
+                    <h4>🧰 Checklist rápido do profissional</h4>
+                    <p>Use isso antes de concluir um chamado.</p>
+                    <p><strong>Chamados pendentes:</strong> ${pending.length}</p>
+                </div>
+
+                <div class="checklist-item">
+                    <div class="checklist-icon">1</div>
+                    <div>
+                        <strong>Conferir endereço e referência</strong>
+                        <p>Veja bairro, rua, número ou ponto de referência informado pelo cidadão.</p>
+                    </div>
+                </div>
+
+                <div class="checklist-item">
+                    <div class="checklist-icon">2</div>
+                    <div>
+                        <strong>Ver foto da ocorrência</strong>
+                        <p>Confirme se é emergência, denúncia, resgate ou maus-tratos.</p>
+                    </div>
+                </div>
+
+                <div class="checklist-item">
+                    <div class="checklist-icon">3</div>
+                    <div>
+                        <strong>Separar equipamento básico</strong>
+                        <p>Caixa de transporte, luvas, guia, água, kit de primeiros cuidados e contato de apoio.</p>
+                    </div>
+                </div>
+
+                <div class="checklist-item">
+                    <div class="checklist-icon">4</div>
+                    <div>
+                        <strong>Concluir somente após atendimento</strong>
+                        <p>Ao concluir, o chamado sai da sua fila e o cidadão recebe notificação no perfil.</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        fastScreen("proChecklistScreen");
+    };
+
+    function bindFastClicks() {
+        document.querySelectorAll("button, .btn, .admin-tool-card, .pro-action-card").forEach(btn => {
+            if (btn.dataset.fastBound === "1") return;
+            btn.dataset.fastBound = "1";
+
+            btn.addEventListener("touchstart", () => {}, { passive: true });
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        document.documentElement.classList.add("safe-life-no-delay");
+        bindFastClicks();
+
+        // garante que as 2 opções existam visualmente mesmo se o HTML antigo não renderizar no lugar certo
+        const dashboard = el("proDashboard");
+        const main = dashboard ? dashboard.querySelector("main") : null;
+
+        if (main && !document.querySelector('[onclick="abrirHistoricoAtendimentosPro()"]')) {
+            const wrap = document.createElement("section");
+            wrap.className = "pro-extra-actions";
+            wrap.innerHTML = `
+                <button class="pro-action-card" onclick="abrirHistoricoAtendimentosPro()" type="button">
+                    <span>✅</span>
+                    <strong>Histórico de Atendimentos</strong>
+                    <small>Veja ocorrências já concluídas por você.</small>
+                </button>
+
+                <button class="pro-action-card" onclick="abrirChecklistResgatePro()" type="button">
+                    <span>🧰</span>
+                    <strong>Checklist de Resgate</strong>
+                    <small>Passos rápidos para atender com segurança.</small>
+                </button>
+            `;
+            main.appendChild(wrap);
+        }
+    });
+})();
+
+
+/* =====================================================
+   SAFE LIFE 10/10 - FLUXO PROFISSIONAL REAL + ADMIN FORTE
+   Cidadão envia -> Zeca aceita -> Em atendimento -> Conclui
+   -> Vitor recebe notificação -> Gustavo acompanha tudo.
+===================================================== */
+
+(function () {
+    const USERS_KEY = "safeLifeUsuarios";
+    const OCC_KEY = "safeLifeOcorrencias";
+    const HISTORY_KEY = "safeLifeHistoricoOcorrencias";
+    const NOTIF_KEY = "safeLifeNotificacoes";
+    const AUDIT_KEY = "safeLifeAuditoria";
+    const EMP_KEY = "safeLifeEmpresas";
+    const PET_KEY = "safeLifePets";
+
+    function get(key, fallback) {
+        try {
+            const raw = localStorage.getItem(key);
+            if (!raw) return fallback;
+            return JSON.parse(raw) ?? fallback;
+        } catch (e) {
+            return fallback;
+        }
+    }
+
+    function set(key, value) {
+        localStorage.setItem(key, JSON.stringify(value));
+    }
+
+    function cpf(value) {
+        return String(value || "").replace(/\D/g, "");
+    }
+
+    function el(id) {
+        return document.getElementById(id);
+    }
+
+    function esc(value) {
+        return String(value ?? "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+    }
+
+    function toast(msg) {
+        if (typeof window.triggerToast === "function") window.triggerToast(msg);
+        else alert(msg);
+    }
+
+    function users() {
+        return get(USERS_KEY, []);
+    }
+
+    function occs() {
+        return get(OCC_KEY, []);
+    }
+
+    function history() {
+        return get(HISTORY_KEY, []);
+    }
+
+    function notifs() {
+        return get(NOTIF_KEY, []);
+    }
+
+    function audits() {
+        return get(AUDIT_KEY, []);
+    }
+
+    function pets() {
+        return get(PET_KEY, []);
+    }
+
+    function companies() {
+        return get(EMP_KEY, [
+            { id: "empresa-matriz", nome: "Safe Life Matriz", ativo: true },
+            { id: "ong-patas", nome: "ONG Patas Livres", ativo: true },
+            { id: "ccz", nome: "Centro de Controle de Zoonoses", ativo: true }
+        ]);
+    }
+
+    function saveOccs(list) {
+        set(OCC_KEY, list);
+        try { dbOcorrencias = list; } catch (e) { window.dbOcorrencias = list; }
+    }
+
+    function saveHistory(list) {
+        set(HISTORY_KEY, list);
+    }
+
+    function saveNotifs(list) {
+        set(NOTIF_KEY, list);
+    }
+
+    function saveAudit(action, detail) {
+        const list = audits();
+        list.unshift({
+            id: Date.now().toString(),
+            action,
+            detail,
+            createdAt: new Date().toLocaleString("pt-BR")
+        });
+        set(AUDIT_KEY, list);
+    }
+
+    function zeca() {
+        return users().find(user => cpf(user.cpf) === "99999999999") || {
+            nome: "Zeca do Santos",
+            name: "Zeca do Santos",
+            cpf: "99999999999",
+            company: "Safe Life Matriz"
+        };
+    }
+
+    function vitor() {
+        return users().find(user => cpf(user.cpf) === "11111111111") || {
+            nome: "Vitor Chineque",
+            name: "Vitor Chineque",
+            cpf: "11111111111"
+        };
+    }
+
+    function gustavo() {
+        return users().find(user => cpf(user.cpf) === "45317828791") || {
+            nome: "Gustavo Siri",
+            name: "Gustavo Siri",
+            cpf: "45317828791"
+        };
+    }
+
+    function title(item) {
+        return item.opcaoEscolhida || item.opcao_escolhida || item.assunto || item.optionTitle || item.tipo || item.type || "Ocorrência";
+    }
+
+    function desc(item) {
+        return item.detalhes || item.descricao || item.description || "Sem descrição";
+    }
+
+    function addr(item) {
+        return item.localizacao || item.endereco_completo || item.endereco || item.address || item.local || "Sem endereço";
+    }
+
+    function occPhoto(item) {
+        return item.fotoOcorrencia || item.fotoEvidencia || item.occurrencePhoto || item.evidencePhoto || item.foto || "";
+    }
+
+    function reporterPhoto(item) {
+        return item.fotoSolicitante || item.foto_usuario || item.reporterPhoto || "";
+    }
+
+    function statusClass(status) {
+        const s = String(status || "").toLowerCase();
+        if (s.includes("concl")) return "safe-status-done";
+        if (s.includes("atendimento")) return "safe-status-progress";
+        if (s.includes("aceito")) return "safe-status-accepted";
+        return "safe-status-pending";
+    }
+
+    function pending() {
+        return occs().filter(item => {
+            const s = String(item.status || "Pendente").toLowerCase();
+            return !s.includes("conclu") && !s.includes("finalizada");
+        });
+    }
+
+    function reporterBlock(item) {
+        const foto = reporterPhoto(item);
+        return `
+            <div class="reporter-row">
+                ${foto ? `<img class="reporter-avatar" src="${foto}" alt="Foto do cidadão">` : `<div class="reporter-avatar empty">👤</div>`}
+                <div>
+                    <strong>${esc(item.citizenName || item.nome_usuario || item.reporterName || "Vitor Chineque")}</strong>
+                    <small>${item.anonima ? "Denúncia anônima" : `CPF: ${esc(item.citizenCpf || item.cpf_usuario || "11111111111")}`}</small>
+                </div>
+            </div>
+        `;
+    }
+
+    function photoBlock(item) {
+        const foto = occPhoto(item);
+        if (!foto) return `<div class="occ-photo-placeholder">📷 Sem foto enviada</div>`;
+        return `<img class="occurrence-evidence-img" src="${foto}" alt="Foto da ocorrência">`;
+    }
+
+    function professionalCard(item) {
+        const status = item.status || "Pendente";
+        const accepted = String(status).toLowerCase().includes("aceito") || String(status).toLowerCase().includes("atendimento");
+
+        return `
+            <article class="occurrence-card occurrence-full-card">
+                <div class="occurrence-header">
+                    <div>
+                        <h4>${esc(title(item))}</h4>
+                        <small>${esc(item.createdAt || item.timestamp || "")}</small>
+                    </div>
+                    <span class="status-badge ${statusClass(status)}">${esc(status)}</span>
+                </div>
+
+                ${reporterBlock(item)}
+
+                <div class="occurrence-photo-box">${photoBlock(item)}</div>
+
+                <p><strong>Opção marcada:</strong> ${esc(title(item))}</p>
+                <p><strong>Descrição:</strong> ${esc(desc(item))}</p>
+                <p><strong>Endereço:</strong> ${esc(addr(item))}</p>
+                <p><strong>Prioridade:</strong> ${esc(item.prioridade || "NORMAL")}</p>
+
+                <div class="safe-action-row">
+                    <button class="btn secondary-btn small-btn" type="button" onclick="aceitarChamadoProfissional('${item.id}')">
+                        🤝 Aceitar
+                    </button>
+
+                    <button class="btn secondary-btn small-btn" type="button" onclick="marcarEmAtendimentoProfissional('${item.id}')">
+                        🚑 Em atendimento
+                    </button>
+
+                    <button class="btn small-btn" type="button" onclick="concluirOcorrenciaProfissional('${item.id}')">
+                        ✅ Concluir
+                    </button>
+                </div>
+            </article>
+        `;
+    }
+
+    function notifyCitizen(item, message) {
+        const list = notifs();
+        list.unshift({
+            id: Date.now().toString(),
+            citizenCpf: item.citizenCpf || item.cpf_usuario || "11111111111",
+            title: "Atualização da ocorrência",
+            message,
+            occurrenceId: item.id,
+            createdAt: new Date().toLocaleString("pt-BR"),
+            ...item
+        });
+        saveNotifs(list);
+    }
+
+    function updateOccurrenceStatus(id, status, notificationMessage, auditAction) {
+        const list = occs();
+        const item = list.find(occ => String(occ.id) === String(id));
+
+        if (!item) {
+            toast("Ocorrência não encontrada.");
+            return null;
+        }
+
+        const pro = zeca();
+
+        item.status = status;
+        item.profissionalNome = pro.nome || pro.name || "Zeca do Santos";
+        item.profissionalCpf = pro.cpf || "99999999999";
+        item.empresaProfissional = pro.company || pro.empresa || "Safe Life Matriz";
+        item.updatedAt = new Date().toLocaleString("pt-BR");
+
+        saveOccs(list);
+
+        if (notificationMessage) notifyCitizen(item, notificationMessage);
+        if (auditAction) saveAudit(auditAction, `${title(item)} - ${item.profissionalNome}`);
+
+        return item;
+    }
+
+    window.aceitarChamadoProfissional = function aceitarChamadoProfissional(id) {
+        const item = updateOccurrenceStatus(
+            id,
+            "Aceito pelo profissional",
+            `O profissional Zeca do Santos aceitou sua ocorrência: ${title(occs().find(o => String(o.id) === String(id)) || {})}.`,
+            "Chamado aceito"
+        );
+
+        if (item) {
+            toast("🤝 Chamado aceito. O cidadão recebeu uma atualização.");
+            window.abrirOcorrenciasPro();
+        }
+    };
+
+    window.marcarEmAtendimentoProfissional = function marcarEmAtendimentoProfissional(id) {
+        const item = updateOccurrenceStatus(
+            id,
+            "Em atendimento",
+            `O profissional Zeca do Santos está em atendimento da sua ocorrência: ${title(occs().find(o => String(o.id) === String(id)) || {})}.`,
+            "Chamado em atendimento"
+        );
+
+        if (item) {
+            toast("🚑 Ocorrência marcada como em atendimento.");
+            window.abrirOcorrenciasPro();
+        }
+    };
+
+    window.concluirOcorrenciaProfissional = function concluirOcorrenciaProfissional10(id) {
+        const list = occs();
+        const index = list.findIndex(item => String(item.id) === String(id));
+
+        if (index === -1) {
+            toast("Ocorrência não encontrada.");
+            return;
+        }
+
+        const pro = zeca();
+        const item = list[index];
+
+        const completed = {
+            ...item,
+            status: "Concluída",
+            profissionalNome: pro.nome || pro.name || "Zeca do Santos",
+            profissionalCpf: pro.cpf || "99999999999",
+            empresaProfissional: pro.company || pro.empresa || "Safe Life Matriz",
+            concluidaEm: new Date().toLocaleString("pt-BR"),
+            completedAt: new Date().toLocaleString("pt-BR")
+        };
+
+        list.splice(index, 1);
+        saveOccs(list);
+
+        const hist = history();
+        hist.unshift(completed);
+        saveHistory(hist);
+
+        notifyCitizen(completed, `Sua ocorrência "${title(completed)}" foi concluída pelo profissional Zeca do Santos.`);
+        saveAudit("Chamado concluído", `${title(completed)} - Zeca do Santos`);
+
+        toast("✅ Ocorrência concluída. O cidadão recebeu a notificação.");
+        window.abrirOcorrenciasPro();
+    };
+
+    window.marcarOcorrenciaAtendida = window.concluirOcorrenciaProfissional;
+
+    window.abrirOcorrenciasPro = function abrirOcorrenciasPro10() {
+        const container = document.getElementById("listaIntegradaPro");
+        const list = pending();
+
+        if (container) {
+            container.innerHTML = list.length
+                ? list.map(professionalCard).join("")
+                : `
+                    <div class="occurrence-card">
+                        <h4>Fila limpa</h4>
+                        <p>Nenhum chamado pendente. Os atendimentos concluídos ficam no histórico.</p>
+                    </div>
+                `;
+        }
+
+        window.nextScreen("proListScreen");
+    };
+
+    window.abrirRelatorioPlantao = function abrirRelatorioPlantao10() {
+        const box = document.getElementById("shiftReportBox");
+        const pend = pending();
+        const hist = history();
+
+        if (box) {
+            box.innerHTML = `
+                <div class="occurrence-card">
+                    <h4>📊 Relatório do plantão</h4>
+                    <p><strong>Profissional:</strong> Zeca do Santos</p>
+                    <p><strong>Pendentes:</strong> ${pend.length}</p>
+                    <p><strong>Concluídas:</strong> ${hist.length}</p>
+                    <p><strong>Empresas de apoio:</strong> ${companies().length}</p>
+                </div>
+                ${pend.length ? pend.map(professionalCard).join("") : `<div class="occurrence-card"><h4>Sem pendências</h4></div>`}
+            `;
+        }
+
+        window.nextScreen("shiftReportScreen");
+    };
+
+    function notificationCard(item) {
+        return `
+            <div class="safe-notification-card">
+                <div class="safe-notification-icon">🔔</div>
+                <div>
+                    <strong>${esc(item.title || "Atualização")}</strong>
+                    <p>${esc(item.message || "Sua ocorrência recebeu uma atualização.")}</p>
+                    <small>${esc(item.createdAt || "")}</small>
+                </div>
+            </div>
+        `;
+    }
+
+    function completedCard(item) {
+        return `
+            <div class="occurrence-card completed-occurrence">
+                <div class="occurrence-header">
+                    <h4>✅ ${esc(title(item))}</h4>
+                    <span class="status-badge safe-status-done">Concluída</span>
+                </div>
+
+                <p><strong>Descrição:</strong> ${esc(desc(item))}</p>
+                <p><strong>Endereço:</strong> ${esc(addr(item))}</p>
+                <p><strong>Profissional:</strong> ${esc(item.profissionalNome || "Zeca do Santos")}</p>
+                <p><strong>Empresa:</strong> ${esc(item.empresaProfissional || "Safe Life Matriz")}</p>
+
+                <div class="occurrence-photo-box">${photoBlock(item)}</div>
+
+                <small>Concluída em: ${esc(item.concluidaEm || item.completedAt || "")}</small>
+            </div>
+        `;
+    }
+
+    function petCard(pet) {
+        return `
+            <div class="occurrence-card pet-card">
+                ${pet.foto || pet.photo ? `<img class="pet-card-img" src="${pet.foto || pet.photo}" alt="Foto do pet">` : ""}
+                <h4>🐾 ${esc(pet.nome || pet.name || "Pet")}</h4>
+                <p><strong>Espécie:</strong> ${esc(pet.especie || pet.species || "Animal")}</p>
+                <p><strong>Raça:</strong> ${esc(pet.raca || pet.breed || "Não informada")}</p>
+                <p><strong>Idade:</strong> ${esc(pet.idade || pet.age || "Não informada")}</p>
+                <p><strong>Local:</strong> ${esc(pet.local || pet.location || "Não informado")}</p>
+            </div>
+        `;
+    }
+
+    window.renderPerfilCidadao = function renderPerfilCidadao10() {
+        const user = vitor();
+        const container = document.getElementById("myPetsContainer");
+
+        if (document.getElementById("profileAvatar")) document.getElementById("profileAvatar").src = user.foto || user.avatar || document.getElementById("profileAvatar").src;
+        if (document.getElementById("citizenProfileName")) document.getElementById("citizenProfileName").textContent = user.nome || user.name || "Vitor Chineque";
+        if (document.getElementById("citizenProfileType")) document.getElementById("citizenProfileType").textContent = "Cidadão";
+        if (document.getElementById("citizenProfileContact")) document.getElementById("citizenProfileContact").textContent = user.email || "vitor.chinequero@safelife.com";
+
+        if (document.getElementById("editName")) document.getElementById("editName").value = user.nome || user.name || "Vitor Chineque";
+        if (document.getElementById("editEmail")) document.getElementById("editEmail").value = user.email || "vitor.chinequero@safelife.com";
+        if (document.getElementById("editPhone")) document.getElementById("editPhone").value = user.telefone || user.phone || "";
+
+        if (container) {
+            const clean = cpf(user.cpf || "11111111111");
+
+            const userNotifs = notifs().filter(n => !n.citizenCpf || cpf(n.citizenCpf) === clean);
+            const userPets = pets().filter(p => !p.donoCpf || cpf(p.donoCpf || p.ownerCpf) === clean);
+            const userHistory = history().filter(h => !h.citizenCpf || cpf(h.citizenCpf || h.cpf_usuario || h.reporterCpf) === clean);
+
+            container.innerHTML = `
+                <div class="safe-profile-section">
+                    <h4>🔔 Notificações</h4>
+                    ${userNotifs.length ? userNotifs.map(notificationCard).join("") : `<p class="empty-message">Nenhuma notificação ainda.</p>`}
+                </div>
+
+                <div class="safe-profile-section">
+                    <h4>🐾 Meus Pets</h4>
+                    ${userPets.length ? userPets.map(petCard).join("") : `<p class="empty-message">Nenhum pet cadastrado ainda.</p>`}
+                </div>
+
+                <div class="safe-profile-section">
+                    <h4>✅ Ocorrências realizadas</h4>
+                    ${userHistory.length ? userHistory.map(completedCard).join("") : `<p class="empty-message">Nenhuma ocorrência concluída ainda.</p>`}
+                </div>
+            `;
+        }
+
+        window.nextScreen("citizenProfile");
+    };
+
+    window.abrirRelatorioAdmin = function abrirRelatorioAdmin10() {
+        const box = document.getElementById("adminReportBox");
+        const pend = pending();
+        const hist = history();
+
+        if (box) {
+            box.innerHTML = `
+                <div class="occurrence-card">
+                    <h4>📊 Relatório Geral do Gustavo</h4>
+                    <p><strong>Usuários:</strong> ${users().length}</p>
+                    <p><strong>Profissionais:</strong> ${users().filter(u => u.type === "professional").length}</p>
+                    <p><strong>Empresas:</strong> ${companies().length}</p>
+                    <p><strong>Ocorrências pendentes:</strong> ${pend.length}</p>
+                    <p><strong>Ocorrências concluídas:</strong> ${hist.length}</p>
+                </div>
+
+                <h3>Pendentes / em atendimento</h3>
+                ${pend.length ? pend.map(professionalCard).join("") : `<div class="occurrence-card"><h4>Nenhum chamado pendente</h4></div>`}
+
+                <h3>Concluídas</h3>
+                ${hist.length ? hist.map(completedCard).join("") : `<div class="occurrence-card"><h4>Nenhuma concluída ainda</h4></div>`}
+            `;
+        }
+
+        window.nextScreen("adminReportScreen");
+    };
+
+    window.abrirAuditoriaAdmin = function abrirAuditoriaAdmin10() {
+        const container = document.getElementById("adminAuditList");
+        const list = audits();
+
+        if (container) {
+            container.innerHTML = list.length
+                ? list.map(item => `
+                    <div class="occurrence-card">
+                        <h4>${esc(item.action)}</h4>
+                        <p>${esc(item.detail)}</p>
+                        <small>${esc(item.createdAt)}</small>
+                    </div>
+                `).join("")
+                : `<div class="occurrence-card"><h4>Nenhuma ação registrada ainda</h4></div>`;
+        }
+
+        window.nextScreen("adminAuditScreen");
+    };
+
+    window.inicializarPainelAdmin = function inicializarPainelAdmin10() {
+        const admin = gustavo();
+
+        if (document.getElementById("adminAvatar")) document.getElementById("adminAvatar").src = admin.foto || admin.avatar || document.getElementById("adminAvatar").src;
+        if (document.getElementById("adminWelcomeName")) document.getElementById("adminWelcomeName").textContent = admin.nome || admin.name || "Gustavo Siri";
+        if (document.getElementById("adminCpfText")) document.getElementById("adminCpfText").textContent = "CPF: 45317828791";
+
+        const pend = pending();
+        const hist = history();
+
+        if (document.getElementById("adminStatUsers")) document.getElementById("adminStatUsers").textContent = users().length;
+        if (document.getElementById("adminStatProfessionals")) document.getElementById("adminStatProfessionals").textContent = users().filter(u => u.type === "professional").length;
+        if (document.getElementById("adminStatReports")) document.getElementById("adminStatReports").textContent = pend.length + hist.length;
+        if (document.getElementById("adminStatSuspicious")) document.getElementById("adminStatSuspicious").textContent = users().filter(u => u.ativo === false || !u.email).length;
+
+        window.nextScreen("adminDashboard");
+    };
+
+    function inject10Css() {
+        if (document.getElementById("safeLife10Css")) return;
+
+        const style = document.createElement("style");
+        style.id = "safeLife10Css";
+        style.textContent = `
+            .safe-action-row {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+                margin-top: 14px;
+            }
+
+            .safe-status-pending {
+                background: rgba(245, 158, 11, .14) !important;
+                color: #b45309 !important;
+            }
+
+            .safe-status-accepted {
+                background: rgba(59, 130, 246, .14) !important;
+                color: #1d4ed8 !important;
+            }
+
+            .safe-status-progress {
+                background: rgba(124, 58, 237, .14) !important;
+                color: #6d28d9 !important;
+            }
+
+            .safe-status-done {
+                background: rgba(16, 185, 129, .14) !important;
+                color: #047857 !important;
+            }
+
+            @media (max-width: 720px) {
+                .safe-action-row {
+                    grid-template-columns: 1fr;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    document.addEventListener("DOMContentLoaded", inject10Css);
 })();
