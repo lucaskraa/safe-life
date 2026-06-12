@@ -2612,3 +2612,1221 @@ button:active,
         grid-template-columns: 1fr;
     }
 }
+
+
+.pet-form-shell-modern {
+    background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(245,247,255,0.98));
+    border-radius: 30px;
+    padding: 22px;
+    box-shadow: 0 20px 40px rgba(37, 75, 250, 0.10);
+    border: 1px solid rgba(37, 75, 250, 0.08);
+    display: grid;
+    gap: 16px;
+}
+
+.pet-form-top-modern {
+    background: linear-gradient(135deg, rgba(37, 75, 250, 0.10), rgba(124, 58, 237, 0.12));
+    border-radius: 24px;
+    padding: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.pet-form-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: #fff;
+    color: var(--blue-accent);
+    font-size: 12px;
+    font-weight: 900;
+    margin-bottom: 10px;
+}
+
+.pet-form-top-modern h3 {
+    font-size: 24px;
+    margin: 0 0 6px;
+    color: var(--text-dark);
+}
+
+.pet-form-top-modern p {
+    margin: 0;
+    color: var(--text-light);
+    line-height: 1.5;
+}
+
+.pet-form-side-icon {
+    width: 74px;
+    height: 74px;
+    border-radius: 24px;
+    display: grid;
+    place-items: center;
+    background: rgba(255,255,255,0.9);
+    font-size: 34px;
+    flex: 0 0 auto;
+    box-shadow: 0 10px 24px rgba(37, 75, 250, 0.10);
+}
+
+.pet-form-grid-modern {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.pet-field-card {
+    background: rgba(255,255,255,0.96);
+    border: 1px solid rgba(37, 75, 250, 0.08);
+    border-radius: 22px;
+    padding: 14px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+}
+
+.pet-field-card-full {
+    grid-column: 1 / -1;
+}
+
+.pet-field-card label {
+    display: block;
+    margin-bottom: 10px;
+}
+
+.pet-field-card input,
+.pet-field-card select,
+.pet-field-card textarea {
+    margin-bottom: 0;
+    background: #f8faff;
+}
+
+.pet-photo-card input[type="file"] {
+    padding: 14px;
+    background: rgba(37, 75, 250, 0.05);
+    border: 1px dashed rgba(37, 75, 250, 0.22);
+}
+
+.pet-location-btn {
+    margin-top: 12px !important;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pet-missing-fields {
+    background: linear-gradient(180deg, rgba(254, 242, 242, 0.90), rgba(255, 255, 255, 0.95));
+    border: 1px solid rgba(239, 68, 68, 0.16);
+    border-radius: 26px;
+    padding: 16px;
+}
+
+.pet-mode-banner {
+    background: rgba(239, 68, 68, 0.10);
+    border: 1px solid rgba(239, 68, 68, 0.14);
+    color: #b91c1c;
+    padding: 14px 16px;
+    border-radius: 18px;
+    font-weight: 800;
+    margin-bottom: 14px;
+}
+
+.pet-form-shell-modern.is-missing .pet-form-top-modern {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(251, 113, 133, 0.12));
+}
+
+.pet-form-shell-modern.is-missing .pet-form-chip {
+    color: #b91c1c;
+}
+
+.citizen-menu-grid .rescue-card {
+    grid-column: 1 / -1;
+    justify-self: center;
+    align-self: center;
+    width: min(240px, 100%);
+    text-align: center !important;
+    align-items: center !important;
+}
+
+.professional-missing-wrapper {
+    display: grid;
+    gap: 16px;
+}
+
+.professional-missing-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.professional-summary-card {
+    background: #fff;
+    border-radius: 22px;
+    padding: 16px;
+    box-shadow: var(--box-shadow-card);
+}
+
+.professional-summary-card strong {
+    display: block;
+    font-size: 22px;
+    color: var(--text-dark);
+    margin-bottom: 6px;
+}
+
+.missing-pet-grid {
+    display: grid;
+    gap: 16px;
+}
+
+.missing-pet-card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,247,247,0.98));
+    border-left: 6px solid #ef4444;
+    border-radius: 24px;
+    padding: 16px;
+    box-shadow: var(--box-shadow-card);
+}
+
+.missing-pet-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.missing-pet-photo {
+    width: 82px;
+    height: 82px;
+    border-radius: 22px;
+    object-fit: cover;
+    flex: 0 0 auto;
+    background: #eef2ff;
+}
+
+.missing-pet-header h4 {
+    margin: 0 0 5px;
+    color: var(--text-dark);
+    font-size: 20px;
+}
+
+.missing-pet-header p {
+    margin: 0;
+    color: var(--text-light);
+    line-height: 1.45;
+}
+
+.missing-pet-badge {
+    display: inline-flex;
+    margin-top: 8px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(239, 68, 68, 0.12);
+    color: #b91c1c;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.missing-pet-lines {
+    display: grid;
+    gap: 10px;
+}
+
+.missing-pet-line {
+    background: rgba(239, 68, 68, 0.05);
+    border-radius: 14px;
+    padding: 11px 12px;
+    font-size: 13px;
+    color: var(--text-light);
+}
+
+.missing-pet-line strong {
+    color: var(--text-dark);
+}
+
+@media (max-width: 720px) {
+    .pet-form-top-modern {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .pet-form-side-icon {
+        width: 62px;
+        height: 62px;
+        border-radius: 20px;
+    }
+    .pet-form-grid-modern,
+    .professional-missing-summary {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+.citizen-menu-grid {
+    align-items: stretch;
+}
+
+.citizen-menu-grid .rescue-card {
+    grid-column: 1 / -1 !important;
+    width: min(230px, calc(50% - 10px));
+    justify-self: center !important;
+    margin: 0 auto !important;
+    align-items: center;
+    text-align: center;
+}
+
+.premium-pet-shell {
+    gap: 18px;
+    padding: 20px;
+    background: transparent;
+    box-shadow: none;
+}
+
+.pet-form-hero {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    background: linear-gradient(135deg, rgba(37, 75, 250, 0.12), rgba(124, 58, 237, 0.14));
+    border-radius: 24px;
+    padding: 18px;
+    box-shadow: var(--box-shadow-card);
+}
+
+.pet-form-hero-icon {
+    width: 58px;
+    height: 58px;
+    border-radius: 20px;
+    display: grid;
+    place-items: center;
+    background: #fff;
+    font-size: 28px;
+    flex: 0 0 auto;
+}
+
+.pet-form-hero h3 {
+    margin: 0 0 6px;
+    font-size: 22px;
+    color: var(--text-dark);
+}
+
+.pet-form-hero p {
+    margin: 0;
+    color: var(--text-light);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.pet-form-card {
+    background: var(--white-card);
+    border-radius: 24px;
+    padding: 18px;
+    box-shadow: var(--box-shadow-card);
+    display: grid;
+    gap: 12px;
+}
+
+.pet-form-card h4 {
+    margin: 0 0 6px;
+    color: var(--text-dark);
+    font-size: 16px;
+}
+
+.pet-form-card input,
+.pet-form-card select,
+.pet-form-card textarea,
+.pet-missing-fields input,
+.pet-missing-fields textarea {
+    background: #f8faff;
+    border: 1px solid rgba(37, 75, 250, 0.12);
+}
+
+.pet-missing-fields {
+    padding: 18px;
+    border-radius: 24px;
+    box-shadow: var(--box-shadow-card);
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(255,255,255,1));
+}
+
+.location-small-btn {
+    margin-top: 4px;
+    margin-bottom: 4px;
+}
+
+.professional-tool-card:first-child span {
+    background: rgba(239, 68, 68, 0.12);
+    color: #dc2626;
+}
+
+#activeAgentsList .safe-life-pet-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+}
+
+#activeAgentsList .safe-life-pet-card {
+    border-left-color: #ef4444;
+}
+
+#activeAgentsScreen .occurrence-card {
+    margin-bottom: 14px;
+}
+
+#activeAgentsScreen .agent-card {
+    display: none !important;
+}
+
+.safe-life-pet-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.safe-life-pet-card {
+    border-left: 5px solid var(--success-color);
+    border-radius: 22px;
+}
+
+.safe-life-pet-card.missing {
+    border-left-color: #ef4444;
+}
+
+@media (max-width: 720px) {
+    .safe-life-pet-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .citizen-menu-grid .rescue-card {
+        width: min(240px, 100%);
+    }
+
+    .pet-form-hero {
+        align-items: flex-start;
+    }
+}
+
+
+.citizen-menu-grid .action-card:not(.rescue-card) {
+    min-height: 118px;
+}
+
+.citizen-menu-grid .rescue-card {
+    grid-column: 1 / -1 !important;
+    max-width: 210px !important;
+    width: 100% !important;
+    justify-self: center !important;
+    align-self: center !important;
+    margin: 0 auto !important;
+}
+
+#menuScreen .action-card:nth-child(2),
+#menuScreen .action-card:nth-child(3) {
+    background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
+    border: 1px solid rgba(37, 75, 250, 0.12);
+}
+
+#menuScreen .action-card:nth-child(2) .action-icon,
+#menuScreen .action-card:nth-child(3) .action-icon {
+    display: inline-grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 16px;
+    background: rgba(37, 75, 250, 0.10);
+}
+
+#activeAgentsScreen #activeAgentsList {
+    display: block;
+}
+
+#activeAgentsScreen .safe-life-pet-grid {
+    grid-template-columns: 1fr;
+}
+
+#activeAgentsScreen .safe-life-pet-card .safe-life-pet-actions {
+    display: none;
+}
+
+.screen,
+.action-buttons .btn,
+.professional-tool-card,
+.safe-life-pet-card,
+.btn {
+    transition-duration: 0.04s !important;
+    animation-duration: 0.04s !important;
+}
+
+html {
+    scroll-behavior: auto !important;
+}
+
+
+#scrPetForm header {
+    margin-bottom: 18px;
+}
+
+#scrPetForm .premium-pet-shell {
+    padding: 0;
+    gap: 18px;
+}
+
+#scrPetForm .pet-form-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: 28px;
+    padding: 22px;
+    background: linear-gradient(135deg, rgba(37, 75, 250, 0.16), rgba(124, 58, 237, 0.15));
+    box-shadow: 0 16px 38px rgba(37, 75, 250, 0.14);
+}
+
+#scrPetForm .pet-form-hero::after {
+    content: '';
+    position: absolute;
+    right: -20px;
+    top: -20px;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.28);
+}
+
+#scrPetForm .pet-form-hero-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 22px;
+    background: #fff;
+    box-shadow: 0 10px 24px rgba(0,0,0,0.08);
+}
+
+#scrPetForm .pet-form-hero h3 {
+    font-size: 24px;
+    margin: 0 0 8px;
+}
+
+#scrPetForm .pet-form-card,
+#scrPetForm .pet-missing-fields {
+    background: rgba(255,255,255,0.98);
+    border: 1px solid rgba(37, 75, 250, 0.10);
+    border-radius: 26px;
+    padding: 20px;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+}
+
+#scrPetForm .pet-form-card h4,
+#scrPetForm .pet-missing-fields h4 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 18px;
+    margin: 0 0 12px;
+}
+
+#scrPetForm .pet-form-card h4::before {
+    content: '✦';
+    width: 28px;
+    height: 28px;
+    border-radius: 12px;
+    display: inline-grid;
+    place-items: center;
+    background: rgba(37, 75, 250, 0.10);
+    color: var(--blue-accent);
+    font-size: 14px;
+}
+
+#scrPetForm .pet-missing-fields {
+    background: linear-gradient(180deg, rgba(255, 243, 243, 0.98), rgba(255,255,255,0.98));
+    border-color: rgba(239, 68, 68, 0.16);
+}
+
+#scrPetForm .pet-form-alert {
+    border-radius: 16px;
+    padding: 12px 14px;
+}
+
+#scrPetForm .pet-form-grid {
+    gap: 14px;
+}
+
+#scrPetForm input,
+#scrPetForm select,
+#scrPetForm textarea {
+    border-radius: 18px;
+    min-height: 56px;
+    border: 1px solid rgba(37, 75, 250, 0.14);
+    background: #fbfcff;
+    box-shadow: inset 0 1px 2px rgba(15,23,42,0.02);
+}
+
+#scrPetForm textarea {
+    min-height: 110px;
+}
+
+#scrPetForm #petSubmitButton {
+    border-radius: 18px;
+    min-height: 58px;
+    font-size: 16px;
+    box-shadow: 0 14px 28px rgba(37, 75, 250, 0.18);
+}
+
+#menuScreen .action-buttons {
+    justify-items: stretch;
+}
+
+#menuScreen .rescue-card {
+    grid-column: 1 / -1 !important;
+    width: 220px !important;
+    max-width: 220px !important;
+    place-self: center !important;
+}
+
+#menuScreen .action-card.pet-primary {
+    background: linear-gradient(180deg, #ffffff 0%, #f7f9ff 100%);
+    border: 1px solid rgba(37, 75, 250, 0.12);
+    box-shadow: 0 12px 28px rgba(37, 75, 250, 0.10);
+}
+
+#menuScreen .action-card.pet-primary .action-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+    display: grid;
+    place-items: center;
+    background: rgba(37, 75, 250, 0.10);
+}
+
+.professional-missing-wrapper {
+    display: grid;
+    gap: 14px;
+}
+
+.professional-missing-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.professional-summary-card {
+    background: #fff;
+    border-radius: 20px;
+    padding: 16px;
+    box-shadow: var(--box-shadow-card);
+}
+
+.professional-summary-card strong {
+    display: block;
+    font-size: 24px;
+    color: var(--text-dark);
+    margin-bottom: 4px;
+}
+
+.missing-pet-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+}
+
+.missing-pet-card {
+    background: #fff;
+    border-radius: 24px;
+    padding: 16px;
+    border-left: 5px solid #ef4444;
+    box-shadow: var(--box-shadow-card);
+}
+
+.missing-pet-head {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.missing-pet-photo {
+    width: 74px;
+    height: 74px;
+    border-radius: 20px;
+    object-fit: cover;
+    background: #eef2ff;
+}
+
+.missing-pet-meta h4 {
+    margin: 0 0 4px;
+    font-size: 18px;
+}
+
+.missing-pet-badge {
+    display: inline-block;
+    margin-top: 6px;
+    background: rgba(239,68,68,0.12);
+    color: #dc2626;
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.missing-pet-lines {
+    display: grid;
+    gap: 8px;
+}
+
+.missing-pet-lines div {
+    background: #f8faff;
+    border-radius: 14px;
+    padding: 10px 12px;
+    font-size: 13px;
+    color: var(--text-dark);
+}
+
+@media (max-width: 720px) {
+    .professional-missing-summary,
+    #scrPetForm .pet-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    #menuScreen .rescue-card {
+        width: 220px !important;
+        max-width: calc(100% - 24px) !important;
+    }
+}
+
+
+#scrPetForm main {
+    max-width: 760px;
+    margin: 0 auto;
+}
+
+#scrPetForm .premium-pet-shell {
+    gap: 20px;
+    padding: 6px 0 0;
+}
+
+#scrPetForm .pet-form-hero {
+    position: relative;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 74px 1fr;
+    gap: 16px;
+    align-items: center;
+    padding: 24px;
+    border-radius: 30px;
+    background: linear-gradient(135deg, rgba(37, 75, 250, 0.18), rgba(124, 58, 237, 0.16));
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    box-shadow: 0 18px 42px rgba(37, 75, 250, 0.16);
+}
+
+#scrPetForm .pet-form-hero::before {
+    content: '';
+    position: absolute;
+    right: -26px;
+    top: -28px;
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.30);
+}
+
+#scrPetForm .pet-form-hero::after {
+    content: '';
+    position: absolute;
+    left: 18px;
+    bottom: -18px;
+    width: 82px;
+    height: 82px;
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.12);
+    transform: rotate(18deg);
+}
+
+#scrPetForm .pet-form-hero-icon {
+    width: 74px;
+    height: 74px;
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.10);
+    display: grid;
+    place-items: center;
+    font-size: 34px;
+    position: relative;
+    z-index: 1;
+}
+
+#scrPetForm .pet-form-hero h3,
+#scrPetForm .pet-form-hero p {
+    position: relative;
+    z-index: 1;
+}
+
+#scrPetForm .pet-form-hero h3 {
+    margin: 0 0 6px;
+    font-size: 26px;
+    line-height: 1.1;
+    color: var(--text-dark);
+}
+
+#scrPetForm .pet-form-hero p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #334155;
+    max-width: 560px;
+}
+
+#scrPetForm .pet-form-card,
+#scrPetForm .pet-missing-fields {
+    position: relative;
+    overflow: hidden;
+    padding: 22px;
+    border-radius: 28px;
+    background: rgba(255, 255, 255, 0.98);
+    border: 1px solid rgba(37, 75, 250, 0.10);
+    box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
+}
+
+#scrPetForm .pet-form-card::before,
+#scrPetForm .pet-missing-fields::before {
+    position: absolute;
+    top: 16px;
+    right: 18px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+}
+
+#scrPetForm .pet-form-card:nth-of-type(1)::before {
+    content: 'ETAPA 1';
+    color: var(--blue-accent);
+    background: rgba(37, 75, 250, 0.10);
+}
+
+#scrPetForm .pet-form-card:nth-of-type(2)::before {
+    content: 'ETAPA 2';
+    color: #0f766e;
+    background: rgba(16, 185, 129, 0.10);
+}
+
+#scrPetForm .pet-missing-fields::before {
+    content: 'ETAPA 3';
+    color: #dc2626;
+    background: rgba(239, 68, 68, 0.12);
+}
+
+#scrPetForm .pet-form-card h4,
+#scrPetForm .pet-missing-fields h4 {
+    margin: 0 0 16px;
+    padding-right: 92px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 19px;
+    color: var(--text-dark);
+}
+
+#scrPetForm .pet-form-card h4::before,
+#scrPetForm .pet-missing-fields h4::before {
+    width: 34px;
+    height: 34px;
+    border-radius: 14px;
+    display: inline-grid;
+    place-items: center;
+    font-size: 15px;
+    flex: 0 0 auto;
+}
+
+#scrPetForm .pet-form-card:nth-of-type(1) h4::before {
+    content: '🐾';
+    background: rgba(37, 75, 250, 0.12);
+}
+
+#scrPetForm .pet-form-card:nth-of-type(2) h4::before {
+    content: '📍';
+    background: rgba(16, 185, 129, 0.12);
+}
+
+#scrPetForm .pet-missing-fields h4::before {
+    content: '🚨';
+    background: rgba(239, 68, 68, 0.12);
+}
+
+#scrPetForm .pet-form-card h4 + .pet-form-grid,
+#scrPetForm .pet-form-card h4 + label,
+#scrPetForm .pet-missing-fields h4 + label {
+    margin-top: 6px;
+}
+
+#scrPetForm .pet-form-alert {
+    margin-bottom: 16px;
+    border: 1px dashed rgba(239, 68, 68, 0.24);
+    background: linear-gradient(180deg, rgba(254, 242, 242, 0.98), rgba(255, 255, 255, 0.98));
+}
+
+#scrPetForm .pet-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+#scrPetForm .pet-form-grid > div {
+    background: #f8faff;
+    border: 1px solid rgba(37, 75, 250, 0.08);
+    border-radius: 22px;
+    padding: 14px;
+}
+
+#scrPetForm .pet-form-card > label,
+#scrPetForm .pet-missing-fields > label,
+#scrPetForm .pet-form-grid label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #0f172a;
+}
+
+#scrPetForm .pet-form-card > input,
+#scrPetForm .pet-form-card > select,
+#scrPetForm .pet-form-card > textarea,
+#scrPetForm .pet-missing-fields > input,
+#scrPetForm .pet-missing-fields > textarea,
+#scrPetForm .pet-form-grid input,
+#scrPetForm .pet-form-grid select {
+    width: 100%;
+    min-height: 58px;
+    border-radius: 18px;
+    background: #ffffff;
+    border: 1px solid rgba(37, 75, 250, 0.14);
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+#scrPetForm .pet-form-card > textarea,
+#scrPetForm .pet-missing-fields > textarea {
+    min-height: 112px;
+}
+
+#scrPetForm input:focus,
+#scrPetForm select:focus,
+#scrPetForm textarea:focus {
+    border-color: rgba(37, 75, 250, 0.42);
+    box-shadow: 0 0 0 4px rgba(37, 75, 250, 0.10);
+}
+
+#scrPetForm .location-small-btn {
+    min-height: 52px;
+    border-radius: 18px;
+    margin: 10px 0 16px;
+    box-shadow: 0 12px 24px rgba(37, 75, 250, 0.16);
+}
+
+#scrPetForm #petSubmitButton {
+    min-height: 60px;
+    border-radius: 20px;
+    font-size: 16px;
+    font-weight: 900;
+    box-shadow: 0 16px 28px rgba(37, 75, 250, 0.18);
+}
+
+#scrPetForm .pet-missing-fields {
+    background: linear-gradient(180deg, rgba(255, 246, 246, 0.98), rgba(255, 255, 255, 0.98));
+    border-color: rgba(239, 68, 68, 0.14);
+}
+
+@media (max-width: 720px) {
+    #scrPetForm .pet-form-hero {
+        grid-template-columns: 1fr;
+        text-align: left;
+    }
+
+    #scrPetForm .pet-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    #scrPetForm .pet-form-card,
+    #scrPetForm .pet-missing-fields,
+    #scrPetForm .pet-form-hero {
+        padding: 18px;
+    }
+}
+
+
+
+
+#scrPetForm main{max-width:780px!important;margin:0 auto!important;padding-bottom:110px!important;}
+#scrPetForm form{display:block!important;}
+#scrPetForm .premium-pet-shell{padding:0!important;background:transparent!important;box-shadow:none!important;display:grid!important;gap:22px!important;}
+#scrPetForm .pet-form-hero{display:grid!important;grid-template-columns:78px 1fr!important;gap:18px!important;align-items:center!important;position:relative!important;overflow:hidden!important;border-radius:32px!important;padding:24px!important;background:linear-gradient(135deg,#ffffff 0%,#f4f7ff 52%,#ebe9ff 100%)!important;border:1px solid rgba(37,75,250,.16)!important;box-shadow:0 22px 48px rgba(37,75,250,.18)!important;}
+#scrPetForm .pet-form-hero:before{content:""!important;position:absolute!important;right:-34px!important;top:-40px!important;width:155px!important;height:155px!important;border-radius:50%!important;background:radial-gradient(circle,rgba(37,75,250,.18),rgba(37,75,250,0))!important;}
+#scrPetForm .pet-form-hero:after{content:""!important;position:absolute!important;right:24px!important;bottom:18px!important;width:82px!important;height:82px!important;border-radius:26px!important;background:rgba(255,255,255,.58)!important;transform:rotate(18deg)!important;}
+#scrPetForm .pet-form-hero-icon{position:relative!important;z-index:2!important;width:78px!important;height:78px!important;border-radius:26px!important;display:grid!important;place-items:center!important;font-size:36px!important;background:linear-gradient(180deg,#fff,#f5f7ff)!important;box-shadow:0 14px 28px rgba(15,23,42,.10)!important;}
+#scrPetForm .pet-form-hero h3{position:relative!important;z-index:2!important;margin:0 0 7px!important;color:#0f172a!important;font-size:28px!important;line-height:1.05!important;letter-spacing:-.03em!important;}
+#scrPetForm .pet-form-hero p{position:relative!important;z-index:2!important;margin:0!important;color:#475569!important;font-size:14px!important;line-height:1.55!important;}
+#scrPetForm .pet-form-card,#scrPetForm .pet-missing-fields{position:relative!important;overflow:hidden!important;border-radius:30px!important;padding:24px!important;background:linear-gradient(180deg,#ffffff 0%,#fbfcff 100%)!important;border:1px solid rgba(37,75,250,.13)!important;box-shadow:0 18px 40px rgba(15,23,42,.10)!important;}
+#scrPetForm .pet-form-card:before,#scrPetForm .pet-missing-fields:before{position:absolute!important;top:18px!important;right:20px!important;padding:8px 13px!important;border-radius:999px!important;font-size:11px!important;font-weight:900!important;letter-spacing:.08em!important;z-index:2!important;}
+#scrPetForm .pet-form-card:nth-of-type(1):before{content:"ETAPA 1"!important;color:#254bfa!important;background:rgba(37,75,250,.10)!important;}
+#scrPetForm .pet-form-card:nth-of-type(2):before{content:"ETAPA 2"!important;color:#059669!important;background:rgba(16,185,129,.12)!important;}
+#scrPetForm .pet-missing-fields:before{content:"ALERTA"!important;color:#dc2626!important;background:rgba(239,68,68,.12)!important;}
+#scrPetForm .pet-form-card h4{margin:0 0 18px!important;padding-right:96px!important;color:#0f172a!important;font-size:20px!important;font-weight:900!important;display:flex!important;align-items:center!important;gap:10px!important;}
+#scrPetForm .pet-form-card h4:before{content:"🐾"!important;width:38px!important;height:38px!important;border-radius:15px!important;display:grid!important;place-items:center!important;background:rgba(37,75,250,.10)!important;font-size:18px!important;}
+#scrPetForm .pet-form-card:nth-of-type(2) h4:before{content:"📍"!important;background:rgba(16,185,129,.12)!important;}
+#scrPetForm .pet-form-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:16px!important;}
+#scrPetForm .pet-form-grid>div{padding:15px!important;border-radius:24px!important;background:#f7f9ff!important;border:1px solid rgba(37,75,250,.09)!important;}
+#scrPetForm label{display:block!important;margin:0 0 9px!important;color:#0f172a!important;font-size:12px!important;font-weight:900!important;letter-spacing:.055em!important;text-transform:uppercase!important;}
+#scrPetForm input,#scrPetForm select,#scrPetForm textarea{width:100%!important;min-height:58px!important;border-radius:19px!important;border:1px solid rgba(37,75,250,.15)!important;background:#fff!important;color:#0f172a!important;box-shadow:inset 0 1px 2px rgba(15,23,42,.03)!important;}
+#scrPetForm textarea{min-height:116px!important;}
+#scrPetForm input:focus,#scrPetForm select:focus,#scrPetForm textarea:focus{outline:none!important;border-color:#254bfa!important;box-shadow:0 0 0 4px rgba(37,75,250,.13)!important;}
+#scrPetForm .location-small-btn{min-height:54px!important;border-radius:19px!important;margin:11px 0 17px!important;box-shadow:0 14px 28px rgba(37,75,250,.18)!important;}
+#scrPetForm #petSubmitButton{min-height:62px!important;border-radius:22px!important;font-size:16px!important;font-weight:900!important;box-shadow:0 18px 34px rgba(37,75,250,.20)!important;}
+#scrPetForm .pet-missing-fields{background:linear-gradient(180deg,#fff7f7 0%,#ffffff 100%)!important;border-color:rgba(239,68,68,.18)!important;}
+#scrPetForm .pet-form-alert{border-radius:18px!important;padding:13px 15px!important;margin-bottom:16px!important;background:rgba(239,68,68,.10)!important;border:1px dashed rgba(239,68,68,.25)!important;color:#b91c1c!important;font-weight:900!important;}
+@media(max-width:720px){#scrPetForm .pet-form-hero{grid-template-columns:1fr!important;padding:20px!important;}#scrPetForm .pet-form-grid{grid-template-columns:1fr!important;}#scrPetForm .pet-form-card,#scrPetForm .pet-missing-fields{padding:20px!important;}}
+
+
+
+
+#scrPetForm main {
+    max-width: 780px;
+    margin: 0 auto;
+    padding-bottom: 110px;
+}
+
+#scrPetForm form {
+    display: block;
+}
+
+#scrPetForm .premium-pet-shell {
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+    display: grid;
+    gap: 22px;
+}
+
+#scrPetForm .pet-form-hero {
+    display: grid;
+    grid-template-columns: 78px 1fr;
+    gap: 18px;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+    border-radius: 32px;
+    padding: 24px;
+    background: linear-gradient(135deg, #ffffff 0%, #f4f7ff 52%, #ebe9ff 100%);
+    border: 1px solid rgba(37, 75, 250, 0.16);
+    box-shadow: 0 22px 48px rgba(37, 75, 250, 0.18);
+}
+
+#scrPetForm .pet-form-hero::before {
+    content: "";
+    position: absolute;
+    right: -34px;
+    top: -40px;
+    width: 155px;
+    height: 155px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(37, 75, 250, 0.18), rgba(37, 75, 250, 0));
+}
+
+#scrPetForm .pet-form-hero::after {
+    content: "";
+    position: absolute;
+    right: 24px;
+    bottom: 18px;
+    width: 82px;
+    height: 82px;
+    border-radius: 26px;
+    background: rgba(255, 255, 255, 0.58);
+    transform: rotate(18deg);
+}
+
+#scrPetForm .pet-form-hero-icon {
+    position: relative;
+    z-index: 2;
+    width: 78px;
+    height: 78px;
+    border-radius: 26px;
+    display: grid;
+    place-items: center;
+    font-size: 36px;
+    background: linear-gradient(180deg, #fff, #f5f7ff);
+    box-shadow: 0 14px 28px rgba(15, 23, 42, 0.10);
+}
+
+#scrPetForm .pet-form-hero h3 {
+    position: relative;
+    z-index: 2;
+    margin: 0 0 7px;
+    color: #0f172a;
+    font-size: 28px;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+}
+
+#scrPetForm .pet-form-hero p {
+    position: relative;
+    z-index: 2;
+    margin: 0;
+    color: #475569;
+    font-size: 14px;
+    line-height: 1.55;
+}
+
+#scrPetForm .pet-form-card,
+#scrPetForm .pet-missing-fields {
+    position: relative;
+    overflow: hidden;
+    border-radius: 30px;
+    padding: 24px;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
+    border: 1px solid rgba(37, 75, 250, 0.13);
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.10);
+}
+
+#scrPetForm .pet-form-card::before,
+#scrPetForm .pet-missing-fields::before {
+    position: absolute;
+    top: 18px;
+    right: 20px;
+    padding: 8px 13px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    z-index: 2;
+}
+
+#scrPetForm .pet-form-card:nth-of-type(1)::before {
+    content: 'ETAPA 1';
+    color: #254bfa;
+    background: rgba(37, 75, 250, 0.10);
+}
+
+#scrPetForm .pet-form-card:nth-of-type(2)::before {
+    content: 'ETAPA 2';
+    color: #059669;
+    background: rgba(16, 185, 129, 0.12);
+}
+
+#scrPetForm .pet-missing-fields::before {
+    content: 'ALERTA';
+    color: #dc2626;
+    background: rgba(239, 68, 68, 0.12);
+}
+
+#scrPetForm .pet-form-card h4 {
+    margin: 0 0 18px;
+    padding-right: 96px;
+    color: #0f172a;
+    font-size: 20px;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#scrPetForm .pet-form-card h4::before {
+    content: '🐾';
+    width: 38px;
+    height: 38px;
+    border-radius: 15px;
+    display: grid;
+    place-items: center;
+    background: rgba(37, 75, 250, 0.10);
+    font-size: 18px;
+}
+
+#scrPetForm .pet-form-card:nth-of-type(2) h4::before {
+    content: '📍';
+    background: rgba(16, 185, 129, 0.12);
+}
+
+#scrPetForm .pet-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+#scrPetForm .pet-form-grid > div {
+    padding: 15px;
+    border-radius: 24px;
+    background: #f7f9ff;
+    border: 1px solid rgba(37, 75, 250, 0.09);
+}
+
+#scrPetForm label {
+    display: block;
+    margin: 0 0 9px;
+    color: #0f172a;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 0.055em;
+    text-transform: uppercase;
+}
+
+#scrPetForm input,
+#scrPetForm select,
+#scrPetForm textarea {
+    width: 100%;
+    min-height: 58px;
+    border-radius: 19px;
+    border: 1px solid rgba(37, 75, 250, 0.15);
+    background: #fff;
+    color: #0f172a;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+#scrPetForm textarea {
+    min-height: 116px;
+}
+
+#scrPetForm input:focus,
+#scrPetForm select:focus,
+#scrPetForm textarea:focus {
+    outline: none;
+    border-color: #254bfa;
+    box-shadow: 0 0 0 4px rgba(37, 75, 250, 0.13);
+}
+
+#scrPetForm .location-small-btn {
+    min-height: 54px;
+    border-radius: 19px;
+    margin: 11px 0 17px;
+    box-shadow: 0 14px 28px rgba(37, 75, 250, 0.18);
+}
+
+#scrPetForm #petSubmitButton {
+    min-height: 62px;
+    border-radius: 22px;
+    font-size: 16px;
+    font-weight: 900;
+    box-shadow: 0 18px 34px rgba(37, 75, 250, 0.20);
+}
+
+#scrPetForm .pet-missing-fields {
+    background: linear-gradient(180deg, #fff7f7 0%, #ffffff 100%);
+    border-color: rgba(239, 68, 68, 0.18);
+}
+
+#scrPetForm .pet-form-alert {
+    border-radius: 18px;
+    padding: 13px 15px;
+    margin-bottom: 16px;
+    background: rgba(239, 68, 68, 0.10);
+    border: 1px dashed rgba(239, 68, 68, 0.25);
+    color: #b91c1c;
+    font-weight: 900;
+}
+
+@media (max-width: 720px) {
+    #scrPetForm .pet-form-hero {
+        grid-template-columns: 1fr;
+        padding: 20px;
+    }
+
+    #scrPetForm .pet-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    #scrPetForm .pet-form-card,
+    #scrPetForm .pet-missing-fields {
+        padding: 20px;
+    }
+}
