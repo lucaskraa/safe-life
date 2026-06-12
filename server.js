@@ -1428,19 +1428,7 @@ app.get("/api/pets", async (req, res) => {
             const result = await pool.query(
                 `
                 SELECT
-                    p.id,
-                    p.nome,
-                    p.idade,
-                    p.especie,
-                    p.raca,
-                    p.sexo,
-                    p.cor,
-                    p.peso,
-                    p.localizacao,
-                    p.observacoes,
-                    p.foto,
-                    p.ativo,
-                    p.criado_em,
+                    p.*,
                     u.cpf AS dono_cpf,
                     u.nome AS dono_nome
                 FROM pets p
@@ -1475,6 +1463,35 @@ app.get("/api/pets", async (req, res) => {
     } catch (erro) {
         return res.status(500).json({
             error: "Erro ao listar pets.",
+            details: erro.message
+        });
+    }
+});
+
+
+app.get("/api/pets/desaparecidos", async (req, res) => {
+    try {
+        const result = await pool.query(
+            `
+            SELECT
+                p.*,
+                u.nome AS dono_nome,
+                u.cpf AS dono_cpf,
+                u.email AS dono_email,
+                u.telefone AS dono_telefone
+            FROM pets p
+            INNER JOIN usuarios u
+            ON u.id = p.usuario_id
+            WHERE p.ativo = TRUE
+            AND p.desaparecido = TRUE
+            ORDER BY p.desaparecido_em DESC NULLS LAST, p.criado_em DESC
+            `
+        );
+
+        return res.status(200).json(result.rows);
+    } catch (erro) {
+        return res.status(500).json({
+            error: "Erro ao listar pets desaparecidos.",
             details: erro.message
         });
     }
@@ -1526,7 +1543,11 @@ app.post("/api/pets", async (req, res) => {
             peso,
             local,
             observacoes,
-            foto
+            foto,
+            desaparecido,
+            statusPet,
+            localDesaparecimento,
+            detalhesDesaparecimento
         } = req.body;
 
         if (!nome) {
@@ -1565,10 +1586,15 @@ app.post("/api/pets", async (req, res) => {
                 peso,
                 localizacao,
                 observacoes,
-                foto
+                foto,
+                desaparecido,
+                status_pet,
+                local_desaparecimento,
+                detalhes_desaparecimento,
+                desaparecido_em
             )
             VALUES
-            ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+            ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
             RETURNING *
             `,
             [
@@ -1582,7 +1608,12 @@ app.post("/api/pets", async (req, res) => {
                 peso || null,
                 local ? limparTexto(local) : "Não informado",
                 observacoes ? limparTexto(observacoes) : null,
-                foto || fotoPadrao
+                foto || fotoPadrao,
+                Boolean(desaparecido) || statusPet === "DESAPARECIDO",
+                Boolean(desaparecido) || statusPet === "DESAPARECIDO" ? "DESAPARECIDO" : "CADASTRADO",
+                localDesaparecimento ? limparTexto(localDesaparecimento) : null,
+                detalhesDesaparecimento ? limparTexto(detalhesDesaparecimento) : null,
+                Boolean(desaparecido) || statusPet === "DESAPARECIDO" ? new Date() : null
             ]
         );
 
@@ -1612,6 +1643,10 @@ app.put("/api/pets/:id", async (req, res) => {
             local,
             observacoes,
             foto,
+            desaparecido,
+            statusPet,
+            localDesaparecimento,
+            detalhesDesaparecimento,
             ativo
         } = req.body;
 
@@ -1629,8 +1664,20 @@ app.put("/api/pets/:id", async (req, res) => {
                 localizacao = COALESCE($8, localizacao),
                 observacoes = COALESCE($9, observacoes),
                 foto = COALESCE($10, foto),
-                ativo = COALESCE($11, ativo)
-            WHERE id = $12
+                desaparecido = COALESCE($11, desaparecido),
+                status_pet = COALESCE($12, status_pet),
+                local_desaparecimento = COALESCE($13, local_desaparecimento),
+                detalhes_desaparecimento = COALESCE($14, detalhes_desaparecimento),
+                desaparecido_em = CASE
+                    WHEN $11 = TRUE THEN COALESCE(desaparecido_em, CURRENT_TIMESTAMP)
+                    ELSE desaparecido_em
+                END,
+                encontrado_em = CASE
+                    WHEN $11 = FALSE THEN CURRENT_TIMESTAMP
+                    ELSE encontrado_em
+                END,
+                ativo = COALESCE($15, ativo)
+            WHERE id = $16
             RETURNING *
             `,
             [
@@ -1644,6 +1691,10 @@ app.put("/api/pets/:id", async (req, res) => {
                 local ? limparTexto(local) : null,
                 observacoes ? limparTexto(observacoes) : null,
                 foto || null,
+                typeof desaparecido === "boolean" ? desaparecido : null,
+                typeof desaparecido === "boolean" ? (desaparecido ? "DESAPARECIDO" : "CADASTRADO") : (statusPet || null),
+                localDesaparecimento ? limparTexto(localDesaparecimento) : null,
+                detalhesDesaparecimento ? limparTexto(detalhesDesaparecimento) : null,
                 typeof ativo === "boolean" ? ativo : null,
                 req.params.id
             ]
@@ -1663,6 +1714,66 @@ app.put("/api/pets/:id", async (req, res) => {
     } catch (erro) {
         return res.status(500).json({
             error: "Erro ao atualizar pet.",
+            details: erro.message
+        });
+    }
+});
+
+
+app.patch("/api/pets/:id/desaparecido", async (req, res) => {
+    try {
+        const {
+            desaparecido,
+            localDesaparecimento,
+            detalhesDesaparecimento
+        } = req.body;
+
+        if (typeof desaparecido !== "boolean") {
+            return res.status(400).json({
+                error: "Informe desaparecido como true ou false."
+            });
+        }
+
+        const result = await pool.query(
+            `
+            UPDATE pets
+            SET
+                desaparecido = $1,
+                status_pet = CASE WHEN $1 = TRUE THEN 'DESAPARECIDO' ELSE 'CADASTRADO' END,
+                local_desaparecimento = COALESCE($2, local_desaparecimento),
+                detalhes_desaparecimento = COALESCE($3, detalhes_desaparecimento),
+                desaparecido_em = CASE
+                    WHEN $1 = TRUE THEN COALESCE(desaparecido_em, CURRENT_TIMESTAMP)
+                    ELSE desaparecido_em
+                END,
+                encontrado_em = CASE
+                    WHEN $1 = FALSE THEN CURRENT_TIMESTAMP
+                    ELSE encontrado_em
+                END
+            WHERE id = $4
+            RETURNING *
+            `,
+            [
+                desaparecido,
+                localDesaparecimento ? limparTexto(localDesaparecimento) : null,
+                detalhesDesaparecimento ? limparTexto(detalhesDesaparecimento) : null,
+                req.params.id
+            ]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                error: "Pet não encontrado."
+            });
+        }
+
+        return res.status(200).json({
+            message: desaparecido ? "Pet marcado como desaparecido." : "Pet marcado como encontrado.",
+            pet: result.rows[0]
+        });
+    } catch (erro) {
+        return res.status(500).json({
+            error: "Erro ao atualizar desaparecimento do pet.",
             details: erro.message
         });
     }
