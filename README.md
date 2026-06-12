@@ -1,4 +1,4 @@
-# safe-lifeSafe Life — Projeto 10/10
+# safe-lifeSafe Life
 Aplicativo web para proteção animal, denúncia, resgate e acompanhamento de ocorrências.
 Perfis padrão
 Perfil	Nome	CPF	Observação
@@ -24,38 +24,3 @@ aparece no perfil do cidadão em `Ocorrências realizadas`
 o cidadão recebe notificação no perfil
 o admin acompanha no relatório e auditoria
 Estrutura
-```txt
-safe-life/
-  index.html
-  style.css
-  script.js
-  server.js
-  package.json
-  README.md
-  database/
-    banco_safe_life.sql
-  docs/
-    FLUXO_DO_APP.md
-```
-Como rodar só o front-end
-Abra o arquivo:
-```txt
-index.html
-```
-Antes de testar uma versão nova, limpe:
-```txt
-F12 > Application > Local Storage > apagar safeLife*
-Ctrl + F5
-```
-Como rodar com Node.js
-```bash
-npm install
-npm start
-```
-Depois acesse:
-```txt
-http://localhost:3000
-```
-Observação técnica
-O front-end usa `localStorage` para prototipação e testes rápidos.  
-O projeto também possui `server.js` e estrutura SQL PostgreSQL para evolução para banco real.
