@@ -3902,3 +3902,61 @@ html {
         max-width: 220px !important;
     }
 }
+
+
+/* CORREÇÃO FINAL V10 - RESGATE NO MEIO, PERFIL SEM DUPLICAR, MENOS DELAY */
+#menuScreen .citizen-menu-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 16px !important;
+    justify-items: stretch !important;
+}
+
+#menuScreen .citizen-menu-grid .emergency {
+    grid-column: 1 / -1 !important;
+}
+
+#menuScreen .citizen-menu-grid .rescue-card {
+    grid-column: 1 / -1 !important;
+    width: 220px !important;
+    max-width: 220px !important;
+    justify-self: center !important;
+    align-self: center !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    text-align: center !important;
+    align-items: center !important;
+}
+
+#menuScreen .citizen-menu-grid .rescue-card .action-icon {
+    align-self: center !important;
+}
+
+.pets-profile-card > h4,
+#myPetsContainer > h4:first-child {
+    display: none !important;
+}
+
+#myPetsContainer {
+    display: grid !important;
+    gap: 16px !important;
+}
+
+.safe-life-profile-block {
+    margin-top: 0 !important;
+}
+
+.screen,
+.btn,
+.action-card,
+.professional-tool-card,
+.occurrence-card,
+.safe-life-pet-card,
+.bottom-nav button {
+    transition: none !important;
+    animation: none !important;
+}
+
+html {
+    scroll-behavior: auto !important;
+}
