@@ -579,6 +579,20 @@
 
                 <button
                     class="btn action-card"
+                    onclick="abrirPetDesaparecido()"
+                    type="button"
+                >
+                    <span class="action-icon">
+                        🚨
+                    </span>
+
+                    <span>
+                        Meu Pet Desapareceu
+                    </span>
+                </button>
+
+                <button
+                    class="btn action-card"
                     onclick="openCitizenForm('report')"
                     type="button"
                 >
@@ -818,6 +832,84 @@
                         id="petBreed"
                         placeholder="Ex: SRD, Poodle, Persa"
                     >
+
+                    <label for="petSex">
+                        Sexo
+                    </label>
+
+                    <select id="petSex">
+                        <option value="NAO_INFORMADO">Não informado</option>
+                        <option value="MACHO">Macho</option>
+                        <option value="FEMEA">Fêmea</option>
+                    </select>
+
+                    <label for="petColor">
+                        Cor principal
+                    </label>
+
+                    <input
+                        type="text"
+                        id="petColor"
+                        placeholder="Ex: Preto, caramelo, cinza"
+                    >
+
+                    <label for="petWeight">
+                        Peso aproximado
+                    </label>
+
+                    <input
+                        type="number"
+                        id="petWeight"
+                        placeholder="Ex: 4.5"
+                        step="0.1"
+                    >
+
+                    <label for="petMissingStatus">
+                        Situação do Pet
+                    </label>
+
+                    <select id="petMissingStatus" onchange="alternarCamposDesaparecido()">
+                        <option value="CADASTRADO">Pet cadastrado normalmente</option>
+                        <option value="DESAPARECIDO">Meu pet está desaparecido</option>
+                    </select>
+
+                    <div id="petMissingFields" class="pet-missing-fields hidden">
+                        <label for="petMissingLocation">
+                            Local onde desapareceu
+                        </label>
+
+                        <input
+                            type="text"
+                            id="petMissingLocation"
+                            placeholder="Rua, bairro, ponto de referência"
+                        >
+
+                        <button
+                            class="btn location-small-btn"
+                            type="button"
+                            onclick="usarMinhaLocalizacaoNoCampo('petMissingLocation')"
+                        >
+                            Usar minha localização atual 📍
+                        </button>
+
+                        <label for="petMissingDetails">
+                            Detalhes do desaparecimento
+                        </label>
+
+                        <textarea
+                            id="petMissingDetails"
+                            placeholder="Ex: fugiu pelo portão, estava usando coleira vermelha, atende pelo nome..."
+                        ></textarea>
+                    </div>
+
+                    <label for="petObservations">
+                        Observações
+                    </label>
+
+                    <textarea
+                        id="petObservations"
+                        placeholder="Temperamento, saúde, coleira, marcas no corpo ou informações importantes"
+                    ></textarea>
 
                     <label for="petLocation">
                         Localização do Pet
@@ -1211,12 +1303,12 @@
 
                     <button
                         class="professional-tool-card"
-                        onclick="abrirRelatorioPlantao()"
+                        onclick="abrirPetsCadastradosPro()"
                         type="button"
                     >
-                        <span>📊</span>
-                        <strong>Relatório</strong>
-                        <small>Resumo rápido do plantão.</small>
+                        <span>🐾</span>
+                        <strong>Ver Pets Cadastrados</strong>
+                        <small>Ver pets dos cidadãos e desaparecidos.</small>
                     </button>
 
                 </section>
@@ -1591,32 +1683,12 @@
 
                     <button
                         class="admin-tool-card"
-                        onclick="inicializarPainelPro()"
-                        type="button"
-                    >
-                        <span>🧰</span>
-                        <strong>Painel Profissional</strong>
-                        <small>Acessar ferramentas de atendimento.</small>
-                    </button>
-
-                    <button
-                        class="admin-tool-card"
                         onclick="abrirRelatorioAdmin()"
                         type="button"
                     >
                         <span>📊</span>
                         <strong>Relatório Geral</strong>
                         <small>Resumo completo do sistema.</small>
-                    </button>
-
-                    <button
-                        class="admin-tool-card"
-                        onclick="abrirAuditoriaAdmin()"
-                        type="button"
-                    >
-                        <span>🧾</span>
-                        <strong>Auditoria</strong>
-                        <small>Ver ações importantes.</small>
                     </button>
 
                 </section>
