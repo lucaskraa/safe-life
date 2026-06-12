@@ -2486,3 +2486,129 @@ button:active,
         grid-template-columns: 1fr;
     }
 }
+
+.safe-life-pet-grid {
+    display: grid;
+    gap: 16px;
+}
+
+.safe-life-pet-card {
+    background: var(--white-card);
+    border-radius: 24px;
+    padding: 18px;
+    box-shadow: var(--box-shadow-card);
+    border-left: 6px solid var(--success-color);
+    overflow: hidden;
+}
+
+.safe-life-pet-card.missing {
+    border-left-color: var(--emergency-color);
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.06), #ffffff);
+}
+
+.safe-life-pet-top {
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+.safe-life-pet-photo {
+    width: 78px;
+    height: 78px;
+    border-radius: 22px;
+    object-fit: cover;
+    object-position: center;
+    background: #eef2ff;
+    flex: 0 0 auto;
+}
+
+.safe-life-pet-info h4 {
+    font-size: 18px;
+    color: var(--text-dark);
+    margin-bottom: 5px;
+}
+
+.safe-life-pet-info small {
+    color: var(--text-light);
+    line-height: 1.4;
+}
+
+.safe-life-pet-lines {
+    display: grid;
+    gap: 9px;
+}
+
+.safe-life-pet-line {
+    background: rgba(37, 75, 250, 0.05);
+    padding: 11px 12px;
+    border-radius: 14px;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--text-light);
+}
+
+.safe-life-pet-line strong {
+    color: var(--text-dark);
+}
+
+.safe-life-pet-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.safe-life-pet-actions .btn {
+    margin: 0;
+    padding: 13px 12px;
+    font-size: 13px;
+}
+
+.pet-missing-fields {
+    background: rgba(239, 68, 68, 0.07);
+    border: 1px solid rgba(239, 68, 68, 0.14);
+    border-radius: 20px;
+    padding: 14px;
+    margin: 12px 0;
+}
+
+.safe-life-alert-badge {
+    display: inline-flex;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(239, 68, 68, 0.12);
+    color: var(--emergency-color);
+    font-size: 11px;
+    font-weight: 900;
+    margin-top: 6px;
+}
+
+.safe-life-normal-badge {
+    display: inline-flex;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(16, 185, 129, 0.12);
+    color: var(--success-color);
+    font-size: 11px;
+    font-weight: 900;
+    margin-top: 6px;
+}
+
+.safe-life-profile-block {
+    margin-top: 18px;
+}
+
+.safe-life-profile-block h4 {
+    margin-bottom: 12px;
+}
+
+.admin-tool-card[data-removed="true"] {
+    display: none !important;
+}
+
+@media (max-width: 420px) {
+    .safe-life-pet-actions {
+        grid-template-columns: 1fr;
+    }
+}
