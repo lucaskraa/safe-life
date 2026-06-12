@@ -620,7 +620,7 @@
                 </button>
 
                 <button
-                    class="btn action-card"
+                    class="btn action-card rescue-card"
                     onclick="openCitizenForm('rescue')"
                     type="button"
                 >
@@ -792,159 +792,94 @@
                     onsubmit="registrarPet(event)"
                 >
 
-                    <label for="petName">
-                        Nome do Pet
-                    </label>
+                    <div class="pet-form-shell">
 
-                    <input
-                        type="text"
-                        id="petName"
-                        placeholder="Ex: Ademir"
-                        required
-                    >
+                        <div class="pet-form-top">
+                            <div>
+                                <h3>Cadastro rápido do pet</h3>
+                                <p>Preencha só o essencial para localizar e identificar seu animal.</p>
+                            </div>
+                            <span class="pet-form-badge">🐾 Fácil e rápido</span>
+                        </div>
 
-                    <label for="petAge">
-                        Idade
-                    </label>
+                        <div class="pet-form-grid">
+                            <div>
+                                <label for="petName">Nome do pet</label>
+                                <input type="text" id="petName" placeholder="Ex: Thor" required>
+                            </div>
 
-                    <input
-                        type="number"
-                        id="petAge"
-                        placeholder="Ex: 3"
-                    >
+                            <div>
+                                <label for="petSpecies">Espécie</label>
+                                <select id="petSpecies">
+                                    <option value="Cachorro">Cachorro</option>
+                                    <option value="Gato">Gato</option>
+                                    <option value="Ave">Ave</option>
+                                    <option value="Outro">Outro</option>
+                                </select>
+                            </div>
 
-                    <label for="petSpecies">
-                        Espécie
-                    </label>
+                            <div>
+                                <label for="petBreed">Raça</label>
+                                <input type="text" id="petBreed" placeholder="Ex: SRD, Poodle, Persa">
+                            </div>
 
-                    <input
-                        type="text"
-                        id="petSpecies"
-                        placeholder="Ex: Cachorro, Gato, Coelho"
-                    >
+                            <div>
+                                <label for="petAge">Idade</label>
+                                <input type="number" id="petAge" placeholder="Ex: 3">
+                            </div>
 
-                    <label for="petBreed">
-                        Raça
-                    </label>
+                            <div>
+                                <label for="petColor">Cor</label>
+                                <input type="text" id="petColor" placeholder="Ex: Caramelo, preto, cinza">
+                            </div>
 
-                    <input
-                        type="text"
-                        id="petBreed"
-                        placeholder="Ex: SRD, Poodle, Persa"
-                    >
+                            <div>
+                                <label for="petSex">Sexo</label>
+                                <select id="petSex">
+                                    <option value="NAO_INFORMADO">Não informado</option>
+                                    <option value="MACHO">Macho</option>
+                                    <option value="FEMEA">Fêmea</option>
+                                </select>
+                            </div>
+                        </div>
 
-                    <label for="petSex">
-                        Sexo
-                    </label>
+                        <label for="petLocation">Endereço / local do pet</label>
+                        <input type="text" id="petLocation" placeholder="Rua, bairro ou região onde o pet fica">
 
-                    <select id="petSex">
-                        <option value="NAO_INFORMADO">Não informado</option>
-                        <option value="MACHO">Macho</option>
-                        <option value="FEMEA">Fêmea</option>
-                    </select>
-
-                    <label for="petColor">
-                        Cor principal
-                    </label>
-
-                    <input
-                        type="text"
-                        id="petColor"
-                        placeholder="Ex: Preto, caramelo, cinza"
-                    >
-
-                    <label for="petWeight">
-                        Peso aproximado
-                    </label>
-
-                    <input
-                        type="number"
-                        id="petWeight"
-                        placeholder="Ex: 4.5"
-                        step="0.1"
-                    >
-
-                    <label for="petMissingStatus">
-                        Situação do Pet
-                    </label>
-
-                    <select id="petMissingStatus" onchange="alternarCamposDesaparecido()">
-                        <option value="CADASTRADO">Pet cadastrado normalmente</option>
-                        <option value="DESAPARECIDO">Meu pet está desaparecido</option>
-                    </select>
-
-                    <div id="petMissingFields" class="pet-missing-fields hidden">
-                        <label for="petMissingLocation">
-                            Local onde desapareceu
-                        </label>
-
-                        <input
-                            type="text"
-                            id="petMissingLocation"
-                            placeholder="Rua, bairro, ponto de referência"
-                        >
-
-                        <button
-                            class="btn location-small-btn"
-                            type="button"
-                            onclick="usarMinhaLocalizacaoNoCampo('petMissingLocation')"
-                        >
+                        <button class="btn location-small-btn" type="button" onclick="usarMinhaLocalizacaoNoCampo('petLocation')">
                             Usar minha localização atual 📍
                         </button>
 
-                        <label for="petMissingDetails">
-                            Detalhes do desaparecimento
-                        </label>
+                        <label for="petPhoto">Foto do pet</label>
+                        <input type="file" id="petPhoto" accept="image/*">
 
-                        <textarea
-                            id="petMissingDetails"
-                            placeholder="Ex: fugiu pelo portão, estava usando coleira vermelha, atende pelo nome..."
-                        ></textarea>
+                        <input type="hidden" id="petWeight">
+
+                        <label for="petMissingStatus">Situação</label>
+                        <select id="petMissingStatus" onchange="alternarCamposDesaparecido()">
+                            <option value="CADASTRADO">Apenas cadastrar meu pet</option>
+                            <option value="DESAPARECIDO">Meu pet desapareceu</option>
+                        </select>
+
+                        <div id="petMissingFields" class="pet-missing-fields hidden">
+                            <div class="pet-form-alert">🚨 Informe onde ele foi visto por último.</div>
+
+                            <label for="petMissingLocation">Último local visto</label>
+                            <input type="text" id="petMissingLocation" placeholder="Rua, bairro, ponto de referência">
+
+                            <button class="btn location-small-btn" type="button" onclick="usarMinhaLocalizacaoNoCampo('petMissingLocation')">
+                                Usar minha localização atual 📍
+                            </button>
+
+                            <label for="petMissingDetails">Detalhes importantes</label>
+                            <textarea id="petMissingDetails" placeholder="Ex: estava de coleira vermelha, fugiu pelo portão, atende pelo nome..."></textarea>
+                        </div>
+
+                        <label for="petObservations">Características</label>
+                        <textarea id="petObservations" placeholder="Coleira, temperamento, sinal no corpo ou outra informação útil"></textarea>
+
+                        <button type="submit" class="btn">Salvar Pet 🐾</button>
                     </div>
-
-                    <label for="petObservations">
-                        Observações
-                    </label>
-
-                    <textarea
-                        id="petObservations"
-                        placeholder="Temperamento, saúde, coleira, marcas no corpo ou informações importantes"
-                    ></textarea>
-
-                    <label for="petLocation">
-                        Localização do Pet
-                    </label>
-
-                    <input
-                        type="text"
-                        id="petLocation"
-                        placeholder="Endereço ou região onde o pet vive"
-                    >
-
-                    <button
-                        class="btn location-small-btn"
-                        type="button"
-                        onclick="usarMinhaLocalizacaoNoCampo('petLocation')"
-                    >
-                        Usar minha localização atual 📍
-                    </button>
-
-                    <label for="petPhoto">
-                        Foto do Pet
-                    </label>
-
-                    <input
-                        type="file"
-                        id="petPhoto"
-                        accept="image/*"
-                    >
-
-                    <button
-                        type="submit"
-                        class="btn"
-                    >
-                        Salvar Pet 🐾
-                    </button>
 
                 </form>
 
@@ -1159,11 +1094,7 @@
 
                 </div>
 
-                <div class="occurrence-card">
-
-                    <h4>
-                        🐾 Meus Pets
-                    </h4>
+                <div class="occurrence-card pets-profile-card">
 
                     <div id="myPetsContainer">
                         <p class="empty-message">
@@ -1277,8 +1208,8 @@
                         type="button"
                     >
                         <span>🟢</span>
-                        <strong>Agentes Ativos</strong>
-                        <small>Ver equipes disponíveis próximas.</small>
+                        <strong>Pets Desaparecidos</strong>
+                        <small>Ver alertas com foto dos pets desaparecidos.</small>
                     </button>
 
                     <button
@@ -1620,76 +1551,6 @@
                 </div>
 
                 <section class="admin-tools-grid">
-
-                    <button
-                        class="admin-tool-card"
-                        onclick="abrirGerenciarUsuarios()"
-                        type="button"
-                    >
-                        <span>👥</span>
-                        <strong>Gerenciar Contas</strong>
-                        <small>Ver, bloquear ou reativar usuários.</small>
-                    </button>
-
-                    <button
-                        class="admin-tool-card"
-                        onclick="abrirCadastroEmpresa()"
-                        type="button"
-                    >
-                        <span>🏢</span>
-                        <strong>Cadastrar Empresa</strong>
-                        <small>Adicionar bases, ONGs e clínicas parceiras.</small>
-                    </button>
-
-                    <button
-                        class="admin-tool-card"
-                        onclick="abrirEmpresasAdmin()"
-                        type="button"
-                    >
-                        <span>🏛️</span>
-                        <strong>Empresas</strong>
-                        <small>Gerenciar empresas e bases cadastradas.</small>
-                    </button>
-
-                    <button
-                        class="admin-tool-card"
-                        onclick="abrirCadastroProfissionalAdmin()"
-                        type="button"
-                    >
-                        <span>🧑‍⚕️</span>
-                        <strong>Cadastrar Profissional</strong>
-                        <small>Criar agentes, veterinários e atendentes.</small>
-                    </button>
-
-                    <button
-                        class="admin-tool-card"
-                        onclick="abrirContasSuspeitas()"
-                        type="button"
-                    >
-                        <span>🚩</span>
-                        <strong>Contas Suspeitas</strong>
-                        <small>Analisar perfis com risco.</small>
-                    </button>
-
-                    <button
-                        class="admin-tool-card"
-                        onclick="renderPerfilAdmin()"
-                        type="button"
-                    >
-                        <span>👤</span>
-                        <strong>Meu Perfil</strong>
-                        <small>Editar dados do administrador.</small>
-                    </button>
-
-                    <button
-                        class="admin-tool-card"
-                        onclick="abrirRelatorioAdmin()"
-                        type="button"
-                    >
-                        <span>📊</span>
-                        <strong>Relatório Geral</strong>
-                        <small>Resumo completo do sistema.</small>
-                    </button>
 
                 </section>
 
@@ -2158,11 +2019,11 @@
 
             <header>
                 <h1>
-                    Agentes Ativos
+                    Pets Desaparecidos
                 </h1>
 
                 <p>
-                    Equipes disponíveis próximas das ocorrências
+                    Lista rápida dos pets desaparecidos cadastrados pelos cidadãos
                 </p>
             </header>
 
@@ -2170,12 +2031,11 @@
 
                 <div class="occurrence-card">
                     <h4>
-                        🟢 Equipes em plantão
+                        🚨 Alertas de pets desaparecidos
                     </h4>
 
                     <p>
-                        Esta tela simula os agentes ativos e ajuda o profissional a decidir
-                        quem pode chegar mais rápido em uma ocorrência.
+                        Veja os pets que desapareceram, com foto e informações importantes para ajudar na busca.
                     </p>
                 </div>
 
