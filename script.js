@@ -1,9 +1,4 @@
 
-/* =====================================================
-   CONFIGURAÇÃO DAS OPÇÕES VISUAIS ORIGINAIS
-   Necessário para o cidadão marcar a opção do problema
-===================================================== */
-
 var currentFormConfig = null;
 
 var FORM_CONFIGS = {
@@ -7196,4 +7191,1050 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     document.addEventListener("DOMContentLoaded", inject10Css);
+})();
+
+(function () {
+    const USERS_KEY = "safeLifeUsuarios";
+    const LOGGED_KEY = "safeLifeLoggedUser";
+    const PET_KEY = "safeLifePets";
+    const OCC_KEY = "safeLifeOcorrencias";
+    const HISTORY_KEY = "safeLifeHistoricoOcorrencias";
+    const NOTIF_KEY = "safeLifeNotificacoes";
+    const ADMIN = "45317828791";
+    const DEFAULT_PET_PHOTO = "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=400&q=85";
+    const DEFAULT_USER_PHOTO = "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=400&q=85";
+
+    function get(key, fallback) {
+        try {
+            const raw = localStorage.getItem(key);
+            if (!raw) return fallback;
+            return JSON.parse(raw) ?? fallback;
+        } catch (e) {
+            return fallback;
+        }
+    }
+
+    function set(key, value) {
+        localStorage.setItem(key, JSON.stringify(value));
+    }
+
+    function cpf(value) {
+        return String(value || "").replace(/\D/g, "");
+    }
+
+    function el(id) {
+        return document.getElementById(id);
+    }
+
+    function val(id) {
+        const campo = el(id);
+        return campo ? String(campo.value || "").trim() : "";
+    }
+
+    function esc(value) {
+        return String(value ?? "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+    }
+
+    function toast(message) {
+        if (typeof triggerToast === "function") triggerToast(message);
+        else alert(message);
+    }
+
+    async function fileToBase64(inputId) {
+        const input = el(inputId);
+        const file = input && input.files && input.files[0];
+        if (!file) return "";
+        if (typeof arquivoParaBase64 === "function") return await arquivoParaBase64(file);
+        return await new Promise(resolve => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result || "");
+            reader.onerror = () => resolve("");
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function api(endpoint, options) {
+        if (typeof apiRequest === "function") return await apiRequest(endpoint, options);
+        const response = await fetch(`http://localhost:3000${endpoint}`, {
+            headers: { "Content-Type": "application/json" },
+            ...options
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || "Erro na API");
+        return data;
+    }
+
+    function normalizeUser(user, fallbackType) {
+        const type = user.type || user.tipo || fallbackType || "citizen";
+        const company = user.company || user.empresa || (type === "professional" ? "Safe Life Matriz" : "");
+        const name = user.nome || user.name || "Usuário";
+        const photo = user.foto || user.foto_perfil || user.avatar || DEFAULT_USER_PHOTO;
+        return {
+            ...user,
+            id: user.id || `${type}-${cpf(user.cpf) || Date.now()}`,
+            nome: name,
+            name,
+            cpf: cpf(user.cpf),
+            email: user.email || "",
+            telefone: user.telefone || user.phone || "",
+            phone: user.telefone || user.phone || "",
+            type,
+            tipo: type,
+            company,
+            empresa: company,
+            foto: photo,
+            avatar: photo,
+            ativo: user.ativo !== false,
+            profissional: user.profissional || {
+                cargo: user.cargo || "Agente Operacional",
+                especialidade: user.especialidade || "Resgate e triagem animal",
+                regiao: user.regiaoAtendimento || user.regiao_atendimento || "Região não informada",
+                plantao: user.statusPlantao || user.status_plantao || "Disponível",
+                veiculo: user.veiculo || "Veículo de apoio",
+                equipe: user.equipe || "Equipe Safe Life",
+                registro: user.registroProfissional || user.registro_profissional || "",
+                observacoes: user.bioProfissional || user.bio_profissional || ""
+            }
+        };
+    }
+
+    function users() {
+        return get(USERS_KEY, []);
+    }
+
+    function saveUsers(list) {
+        set(USERS_KEY, list);
+        try { usuarios = list; } catch (e) { window.usuarios = list; }
+    }
+
+    function upsertUser(user) {
+        const normalized = normalizeUser(user);
+        const list = users().filter(item => cpf(item.cpf) !== cpf(normalized.cpf));
+        list.unshift(normalized);
+        saveUsers(list);
+        return normalized;
+    }
+
+    function setCurrent(user) {
+        const normalized = normalizeUser(user);
+        try { usuarioLogado = normalized; } catch (e) { window.usuarioLogado = normalized; }
+        set(LOGGED_KEY, normalized);
+        upsertUser(normalized);
+        return normalized;
+    }
+
+    function currentUser() {
+        try {
+            if (usuarioLogado && usuarioLogado.cpf) return normalizeUser(usuarioLogado);
+        } catch (e) {}
+        const saved = get(LOGGED_KEY, null);
+        if (saved && saved.cpf) return normalizeUser(saved);
+        return null;
+    }
+
+    function uniqueBy(list, keyFn) {
+        const seen = new Set();
+        const out = [];
+        list.forEach(item => {
+            const key = keyFn(item);
+            if (seen.has(key)) return;
+            seen.add(key);
+            out.push(item);
+        });
+        return out;
+    }
+
+    function normalizePet(pet, ownerCpf) {
+        const donoCpf = cpf(pet.donoCpf || pet.ownerCpf || pet.dono_cpf || ownerCpf || "");
+        const desaparecido = Boolean(
+            pet.desaparecido ||
+            String(pet.status_pet || pet.statusPet || pet.status || "").toUpperCase() === "DESAPARECIDO"
+        );
+        return {
+            ...pet,
+            id: pet.id || pet.localId || `${donoCpf}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+            donoCpf,
+            ownerCpf: donoCpf,
+            donoNome: pet.donoNome || pet.dono_nome || pet.ownerName || "",
+            nome: pet.nome || pet.name || "Pet",
+            name: pet.nome || pet.name || "Pet",
+            idade: pet.idade ?? pet.age ?? 0,
+            especie: pet.especie || pet.species || "Animal",
+            raca: pet.raca || pet.breed || "Não informada",
+            sexo: pet.sexo || "NAO_INFORMADO",
+            cor: pet.cor || pet.color || "Não informada",
+            peso: pet.peso || pet.weight || "",
+            local: pet.local || pet.localizacao || pet.location || "Não informado",
+            localizacao: pet.localizacao || pet.local || pet.location || "Não informado",
+            observacoes: pet.observacoes || pet.notes || "",
+            foto: pet.foto || pet.photo || DEFAULT_PET_PHOTO,
+            photo: pet.foto || pet.photo || DEFAULT_PET_PHOTO,
+            desaparecido,
+            statusPet: desaparecido ? "DESAPARECIDO" : "CADASTRADO",
+            status_pet: desaparecido ? "DESAPARECIDO" : "CADASTRADO",
+            localDesaparecimento: pet.localDesaparecimento || pet.local_desaparecimento || "",
+            local_desaparecimento: pet.local_desaparecimento || pet.localDesaparecimento || "",
+            detalhesDesaparecimento: pet.detalhesDesaparecimento || pet.detalhes_desaparecimento || "",
+            detalhes_desaparecimento: pet.detalhes_desaparecimento || pet.detalhesDesaparecimento || "",
+            desaparecidoEm: pet.desaparecidoEm || pet.desaparecido_em || "",
+            desaparecido_em: pet.desaparecido_em || pet.desaparecidoEm || "",
+            ativo: pet.ativo !== false
+        };
+    }
+
+    function petKey(pet) {
+        const normalized = normalizePet(pet);
+        return String(normalized.id || `${normalized.donoCpf}-${normalized.nome}-${normalized.especie}-${normalized.raca}-${normalized.local}`).toLowerCase();
+    }
+
+    function localPets() {
+        return get(PET_KEY, []).map(pet => normalizePet(pet)).filter(pet => pet.ativo !== false);
+    }
+
+    function savePets(list) {
+        const clean = uniqueBy(list.map(pet => normalizePet(pet)), petKey);
+        set(PET_KEY, clean);
+        try { meusPets = clean; } catch (e) { window.meusPets = clean; }
+        return clean;
+    }
+
+    function upsertPet(pet) {
+        const normalized = normalizePet(pet);
+        const list = localPets().filter(item => petKey(item) !== petKey(normalized));
+        list.unshift(normalized);
+        savePets(list);
+        return normalized;
+    }
+
+    async function loadPets(params = {}) {
+        const local = localPets();
+        try {
+            const query = params.donoCpf ? `?donoCpf=${encodeURIComponent(params.donoCpf)}` : "";
+            const remote = await api(`/api/pets${query}`);
+            const merged = uniqueBy([
+                ...(Array.isArray(remote) ? remote.map(p => normalizePet(p, params.donoCpf)) : []),
+                ...local
+            ], petKey);
+            savePets(merged);
+            return params.donoCpf
+                ? merged.filter(p => cpf(p.donoCpf) === cpf(params.donoCpf))
+                : merged;
+        } catch (e) {
+            return params.donoCpf
+                ? local.filter(p => cpf(p.donoCpf) === cpf(params.donoCpf))
+                : local;
+        }
+    }
+
+    function occurrenceKey(item) {
+        return `${item.origem || "local"}-${item.id}`;
+    }
+
+    function normalizeOccurrence(item) {
+        const user = currentUser() || {};
+        return {
+            ...item,
+            id: item.id || Date.now().toString(),
+            origem: item.origem || "local",
+            tipo: item.tipo || item.type || "Ocorrência",
+            assunto: item.assunto || item.opcao_escolhida || item.opcaoEscolhida || "Ocorrência",
+            opcaoEscolhida: item.opcaoEscolhida || item.opcao_escolhida || item.assunto || "Ocorrência",
+            opcao_escolhida: item.opcao_escolhida || item.opcaoEscolhida || item.assunto || "Ocorrência",
+            localizacao: item.localizacao || item.endereco_completo || item.endereco || item.address || "Não informado",
+            detalhes: item.detalhes || item.descricao || item.description || "Sem descrição",
+            foto: item.foto || item.fotoEvidencia || item.occurrencePhoto || "",
+            fotoEvidencia: item.fotoEvidencia || item.foto || "",
+            nome_usuario: item.nome_usuario || item.citizenName || item.reporterName || user.nome || "Cidadão",
+            cpf_usuario: cpf(item.cpf_usuario || item.citizenCpf || item.reporterCpf || user.cpf || ""),
+            foto_usuario: item.foto_usuario || item.citizenPhoto || item.reporterPhoto || user.foto || "",
+            citizenName: item.citizenName || item.nome_usuario || item.reporterName || user.nome || "Cidadão",
+            citizenCpf: cpf(item.citizenCpf || item.cpf_usuario || item.reporterCpf || user.cpf || ""),
+            citizenPhoto: item.citizenPhoto || item.foto_usuario || item.reporterPhoto || user.foto || "",
+            reporterName: item.reporterName || item.nome_usuario || item.citizenName || user.nome || "Cidadão",
+            reporterCpf: cpf(item.reporterCpf || item.cpf_usuario || item.citizenCpf || user.cpf || ""),
+            reporterPhoto: item.reporterPhoto || item.foto_usuario || item.citizenPhoto || user.foto || "",
+            status: item.status || "PENDENTE",
+            prioridade: item.prioridade || "NORMAL",
+            criado_em: item.criado_em || new Date().toISOString(),
+            timestamp: item.timestamp || new Date().toLocaleString("pt-BR")
+        };
+    }
+
+    function localOccurrences() {
+        return get(OCC_KEY, []).map(normalizeOccurrence);
+    }
+
+    function saveOccurrences(list) {
+        const clean = uniqueBy(list.map(normalizeOccurrence), occurrenceKey);
+        set(OCC_KEY, clean);
+        try { dbOcorrencias = clean; } catch (e) { window.dbOcorrencias = clean; }
+        return clean;
+    }
+
+    async function loadOccurrences() {
+        const local = localOccurrences();
+        try {
+            const remote = await api("/api/pro/ocorrencias");
+            const merged = uniqueBy([
+                ...(Array.isArray(remote) ? remote.map(normalizeOccurrence) : []),
+                ...local
+            ], occurrenceKey);
+            saveOccurrences(merged);
+            return merged;
+        } catch (e) {
+            return local;
+        }
+    }
+
+    function isPending(item) {
+        const status = String(item.status || "PENDENTE").toLowerCase();
+        return !status.includes("conclu") && !status.includes("atendida") && !status.includes("cancel");
+    }
+
+    function getGps() {
+        if (typeof obterLocalizacaoAtualObjeto === "function") return obterLocalizacaoAtualObjeto();
+        return {
+            latitude: val("userLatitude"),
+            longitude: val("userLongitude"),
+            enderecoCompleto: val("userFullAddress"),
+            bairro: val("userNeighborhood"),
+            cidade: val("userCity"),
+            estado: val("userState")
+        };
+    }
+
+    function selectedOption() {
+        const hidden = el("selectedQuickOption");
+        if (hidden && hidden.value) return hidden.value;
+        const selected = document.querySelector("#quickOptionsGrid .quick-option-card.selected");
+        if (!selected) return "";
+        const title = selected.querySelector(".quick-option-title");
+        return title ? title.textContent.trim() : selected.textContent.trim();
+    }
+
+    function selectedAnonOption() {
+        const hidden = el("selectedAnonOption");
+        if (hidden && hidden.value) return hidden.value;
+        const selected = document.querySelector("#anonOptionsGrid .quick-option-card.selected");
+        if (!selected) return "";
+        const title = selected.querySelector(".quick-option-title");
+        return title ? title.textContent.trim() : selected.textContent.trim();
+    }
+
+    window.efetuarCadastro = async function efetuarCadastroAtualizado() {
+        const nome = val("regName");
+        const userCpf = cpf(val("regCpf"));
+        const email = val("regEmail");
+        const telefone = val("regPhone");
+        const type = val("regType") || "citizen";
+        const company = val("regCompany") || "Safe Life Matriz";
+
+        if (!nome || !userCpf || !email || !telefone) {
+            alert("Preencha nome, CPF, e-mail e telefone.");
+            return;
+        }
+
+        if (userCpf.length !== 11) {
+            alert("Digite um CPF válido com 11 números.");
+            return;
+        }
+
+        if (userCpf === ADMIN) {
+            alert("Este CPF é reservado para o administrador.");
+            return;
+        }
+
+        if (typeof validarEmail === "function" && !validarEmail(email)) {
+            alert("Digite um e-mail válido.");
+            return;
+        }
+
+        if (users().some(user => cpf(user.cpf) === userCpf)) {
+            alert("Este CPF já está cadastrado.");
+            return;
+        }
+
+        const payload = {
+            nome,
+            cpf: userCpf,
+            email,
+            telefone,
+            type,
+            company: type === "professional" ? company : null,
+            foto: fotoCadastroBase64 || DEFAULT_USER_PHOTO
+        };
+
+        let user = payload;
+        try {
+            const response = await api("/api/auth/register", {
+                method: "POST",
+                body: JSON.stringify(payload)
+            });
+            user = response.user || payload;
+        } catch (e) {}
+
+        const logged = setCurrent(normalizeUser(user, type));
+
+        if (typeof limparFormularioCadastro === "function") limparFormularioCadastro();
+        toast("✅ Cadastro criado com sucesso!");
+
+        if (logged.type === "professional") {
+            inicializarPainelPro();
+        } else {
+            nextScreen("menuScreen");
+        }
+    };
+
+    window.autenticar = async function autenticarAtualizado() {
+        const loginCpf = cpf(val("cpfInput"));
+        const role = val("loginRole") || "citizen";
+        const company = val("loginCompany") || "Safe Life Matriz";
+
+        if (!loginCpf) {
+            alert("Digite o CPF.");
+            return;
+        }
+
+        let user = null;
+        try {
+            const response = await api("/api/auth/login", {
+                method: "POST",
+                body: JSON.stringify({ cpf: loginCpf, role, company })
+            });
+            user = response.user;
+        } catch (e) {
+            user = users().find(item => cpf(item.cpf) === loginCpf && (role === "admin" ? cpf(item.cpf) === ADMIN : (item.type || item.tipo) === role));
+        }
+
+        if (!user) {
+            alert("Conta não encontrada, tipo de acesso incorreto ou conta bloqueada.");
+            return;
+        }
+
+        const logged = setCurrent(normalizeUser(user, role));
+        toast("🚀 Login realizado com sucesso!");
+
+        if (logged.type === "admin" || cpf(logged.cpf) === ADMIN) {
+            inicializarPainelAdmin();
+        } else if (logged.type === "professional") {
+            inicializarPainelPro();
+        } else {
+            nextScreen("menuScreen");
+        }
+    };
+
+    window.registrarAcao = async function registrarAcaoAtualizada(event) {
+        if (event && event.preventDefault) event.preventDefault();
+        const user = currentUser();
+        if (!user) {
+            alert("Você precisa estar logado.");
+            return;
+        }
+
+        const option = selectedOption();
+        const formKey = val("formKey") || "report";
+        const localizacao = val("formLocation");
+        const detalhes = val("formDetails");
+        const foto = await fileToBase64("formFile");
+        const config = typeof currentFormConfig !== "undefined" && currentFormConfig ? currentFormConfig : { title: "Chamado", priority: "NORMAL" };
+
+        if (!option) {
+            alert("Escolha uma opção do problema.");
+            return;
+        }
+
+        if (!localizacao || !detalhes) {
+            alert("Preencha localização e descrição.");
+            return;
+        }
+
+        let occurrence = normalizeOccurrence({
+            id: Date.now().toString(),
+            origem: "local",
+            tipo: config.title || "Chamado",
+            categoria: formKey,
+            assunto: option,
+            opcaoEscolhida: option,
+            opcao_escolhida: option,
+            localizacao,
+            endereco_completo: localizacao,
+            detalhes,
+            foto,
+            fotoEvidencia: foto,
+            nome_usuario: user.nome,
+            cpf_usuario: user.cpf,
+            foto_usuario: user.foto,
+            citizenName: user.nome,
+            citizenCpf: user.cpf,
+            citizenPhoto: user.foto,
+            reporterName: user.nome,
+            reporterCpf: user.cpf,
+            reporterPhoto: user.foto,
+            anonima: false,
+            prioridade: config.priority || "NORMAL",
+            status: "PENDENTE",
+            gps: getGps()
+        });
+
+        try {
+            const response = await api("/api/ocorrencias", {
+                method: "POST",
+                body: JSON.stringify({
+                    usuarioCpf: user.cpf,
+                    tipo: occurrence.tipo,
+                    categoria: formKey,
+                    assunto: option,
+                    opcaoEscolhida: option,
+                    localizacao,
+                    detalhes,
+                    foto,
+                    gps: getGps(),
+                    prioridade: occurrence.prioridade
+                })
+            });
+            if (response && response.data && response.data.id) {
+                occurrence.id = response.data.id;
+                occurrence.origem = "ocorrencia";
+            }
+        } catch (e) {}
+
+        saveOccurrences([occurrence, ...localOccurrences()]);
+        toast("🚀 Chamado enviado com sucesso!");
+        if (el("confirmMsg")) el("confirmMsg").textContent = `Seu chamado "${option}" foi enviado com sucesso.`;
+        if (event && event.target && event.target.reset) event.target.reset();
+        nextScreen("confirmationScreen");
+    };
+
+    window.registrarAcaoAnonima = async function registrarAcaoAnonimaAtualizada(event) {
+        if (event && event.preventDefault) event.preventDefault();
+        const option = selectedAnonOption();
+        const localizacao = val("anonLocation");
+        const detalhes = val("anonDetails");
+        const foto = await fileToBase64("anonFile");
+
+        if (!option) {
+            alert("Escolha uma opção da denúncia.");
+            return;
+        }
+
+        if (!localizacao || !detalhes) {
+            alert("Preencha localização e descrição.");
+            return;
+        }
+
+        let occurrence = normalizeOccurrence({
+            id: Date.now().toString(),
+            origem: "local-anonima",
+            tipo: "Denúncia Anônima",
+            categoria: "anonymous",
+            assunto: option,
+            opcaoEscolhida: option,
+            opcao_escolhida: option,
+            localizacao,
+            endereco_completo: localizacao,
+            detalhes,
+            foto,
+            fotoEvidencia: foto,
+            nome_usuario: "Anônimo",
+            cpf_usuario: "",
+            citizenName: "Anônimo",
+            citizenCpf: "",
+            reporterName: "Anônimo",
+            reporterCpf: "",
+            anonima: true,
+            prioridade: "ALTA",
+            status: "PENDENTE",
+            gps: getGps()
+        });
+
+        try {
+            const response = await api("/api/ocorrencias/anonima", {
+                method: "POST",
+                body: JSON.stringify({
+                    tipo: "Denúncia Anônima",
+                    categoria: "anonymous",
+                    assunto: option,
+                    opcaoEscolhida: option,
+                    localizacao,
+                    detalhes,
+                    foto,
+                    gps: getGps(),
+                    prioridade: "ALTA"
+                })
+            });
+            if (response && response.data && response.data.id) {
+                occurrence.id = response.data.id;
+                occurrence.origem = "anonima";
+            }
+        } catch (e) {}
+
+        saveOccurrences([occurrence, ...localOccurrences()]);
+        toast("🛡️ Denúncia enviada com sucesso!");
+        if (el("confirmMsg")) el("confirmMsg").textContent = "Sua denúncia anônima foi enviada com sucesso.";
+        if (event && event.target && event.target.reset) event.target.reset();
+        nextScreen("confirmationScreen");
+    };
+
+    function ensurePetFields() {
+        const form = el("petForm");
+        if (!form || el("petSex")) return;
+        const locationLabel = form.querySelector('label[for="petLocation"]');
+        const wrap = document.createElement("div");
+        wrap.innerHTML = `
+            <label for="petSex">Sexo</label>
+            <select id="petSex">
+                <option value="NAO_INFORMADO">Não informado</option>
+                <option value="MACHO">Macho</option>
+                <option value="FEMEA">Fêmea</option>
+            </select>
+            <label for="petColor">Cor principal</label>
+            <input type="text" id="petColor" placeholder="Ex: preto, caramelo, cinza">
+            <label for="petWeight">Peso aproximado</label>
+            <input type="number" id="petWeight" step="0.1" placeholder="Ex: 4.5">
+            <label for="petMissingStatus">Situação do Pet</label>
+            <select id="petMissingStatus" onchange="alternarCamposDesaparecido()">
+                <option value="CADASTRADO">Pet cadastrado normalmente</option>
+                <option value="DESAPARECIDO">Meu pet está desaparecido</option>
+            </select>
+            <div id="petMissingFields" class="pet-missing-fields hidden">
+                <label for="petMissingLocation">Local onde desapareceu</label>
+                <input type="text" id="petMissingLocation" placeholder="Rua, bairro ou ponto de referência">
+                <button class="btn location-small-btn" type="button" onclick="usarMinhaLocalizacaoNoCampo('petMissingLocation')">Usar minha localização atual 📍</button>
+                <label for="petMissingDetails">Detalhes do desaparecimento</label>
+                <textarea id="petMissingDetails" placeholder="Coleira, comportamento, última vez visto..."></textarea>
+            </div>
+            <label for="petObservations">Observações</label>
+            <textarea id="petObservations" placeholder="Temperamento, saúde, marcas, coleira..."></textarea>
+        `;
+        if (locationLabel) form.insertBefore(wrap, locationLabel);
+    }
+
+    window.alternarCamposDesaparecido = function alternarCamposDesaparecido() {
+        const box = el("petMissingFields");
+        const status = val("petMissingStatus");
+        if (box) box.classList.toggle("hidden", status !== "DESAPARECIDO");
+    };
+
+    window.openPetForm = function openPetFormAtualizado() {
+        ensurePetFields();
+        const form = el("petForm");
+        if (form) form.reset();
+        const localizacao = typeof obterTextoLocalizacaoAtual === "function" ? obterTextoLocalizacaoAtual() : val("userFullAddress");
+        if (localizacao && el("petLocation")) el("petLocation").value = localizacao;
+        if (el("petMissingStatus")) el("petMissingStatus").value = "CADASTRADO";
+        alternarCamposDesaparecido();
+        nextScreen("scrPetForm");
+    };
+
+    window.abrirPetDesaparecido = function abrirPetDesaparecido() {
+        openPetForm();
+        if (el("petMissingStatus")) el("petMissingStatus").value = "DESAPARECIDO";
+        const localizacao = typeof obterTextoLocalizacaoAtual === "function" ? obterTextoLocalizacaoAtual() : val("userFullAddress");
+        if (localizacao && el("petMissingLocation")) el("petMissingLocation").value = localizacao;
+        alternarCamposDesaparecido();
+        toast("Preencha os dados do pet desaparecido.");
+    };
+
+    window.registrarPet = async function registrarPetAtualizado(event) {
+        if (event && event.preventDefault) event.preventDefault();
+        ensurePetFields();
+        const user = currentUser();
+        if (!user) {
+            alert("Você precisa estar logado.");
+            return;
+        }
+
+        const nome = val("petName");
+        if (!nome) {
+            alert("Informe o nome do pet.");
+            return;
+        }
+
+        const desaparecido = val("petMissingStatus") === "DESAPARECIDO";
+        const foto = await fileToBase64("petPhoto") || DEFAULT_PET_PHOTO;
+        const pet = normalizePet({
+            id: Date.now().toString(),
+            donoCpf: user.cpf,
+            donoNome: user.nome,
+            nome,
+            idade: Number(val("petAge") || 0),
+            especie: val("petSpecies") || "Animal",
+            raca: val("petBreed") || "Não informada",
+            sexo: val("petSex") || "NAO_INFORMADO",
+            cor: val("petColor") || "Não informada",
+            peso: val("petWeight") || null,
+            local: val("petLocation") || "Não informado",
+            observacoes: val("petObservations"),
+            foto,
+            desaparecido,
+            statusPet: desaparecido ? "DESAPARECIDO" : "CADASTRADO",
+            localDesaparecimento: val("petMissingLocation"),
+            detalhesDesaparecimento: val("petMissingDetails"),
+            desaparecidoEm: desaparecido ? new Date().toISOString() : ""
+        }, user.cpf);
+
+        try {
+            const response = await api("/api/pets", {
+                method: "POST",
+                body: JSON.stringify({
+                    donoCpf: user.cpf,
+                    nome: pet.nome,
+                    idade: pet.idade,
+                    especie: pet.especie,
+                    raca: pet.raca,
+                    sexo: pet.sexo,
+                    cor: pet.cor,
+                    peso: pet.peso,
+                    local: pet.local,
+                    observacoes: pet.observacoes,
+                    foto: pet.foto,
+                    desaparecido: pet.desaparecido,
+                    statusPet: pet.statusPet,
+                    localDesaparecimento: pet.localDesaparecimento,
+                    detalhesDesaparecimento: pet.detalhesDesaparecimento
+                })
+            });
+            if (response && response.pet && response.pet.id) {
+                pet.id = response.pet.id;
+            }
+        } catch (e) {}
+
+        upsertPet(pet);
+        toast(pet.desaparecido ? "🚨 Pet desaparecido cadastrado e enviado aos profissionais." : "🐾 Pet cadastrado com sucesso!");
+        if (el("confirmMsg")) el("confirmMsg").textContent = pet.desaparecido ? `O desaparecimento de "${pet.nome}" foi registrado.` : `O pet "${pet.nome}" foi cadastrado com sucesso.`;
+        if (event && event.target && event.target.reset) event.target.reset();
+        nextScreen("confirmationScreen");
+    };
+
+    function petCard(pet, mode) {
+        const p = normalizePet(pet);
+        const missing = p.desaparecido;
+        const owner = p.donoNome || users().find(u => cpf(u.cpf) === cpf(p.donoCpf))?.nome || "Dono não informado";
+        return `
+            <div class="safe-life-pet-card ${missing ? "missing" : ""}">
+                <div class="safe-life-pet-top">
+                    <img class="safe-life-pet-photo" src="${esc(p.foto)}" alt="Foto do pet">
+                    <div class="safe-life-pet-info">
+                        <h4>${missing ? "🚨" : "🐾"} ${esc(p.nome)}</h4>
+                        <small>${esc(p.especie)} • ${esc(p.raca)}</small><br>
+                        <span class="${missing ? "safe-life-alert-badge" : "safe-life-normal-badge"}">${missing ? "DESAPARECIDO" : "CADASTRADO"}</span>
+                    </div>
+                </div>
+                <div class="safe-life-pet-lines">
+                    <div class="safe-life-pet-line"><strong>Idade:</strong> ${esc(p.idade || "Não informada")} anos</div>
+                    <div class="safe-life-pet-line"><strong>Sexo:</strong> ${esc(p.sexo || "Não informado")}</div>
+                    <div class="safe-life-pet-line"><strong>Cor:</strong> ${esc(p.cor || "Não informada")}</div>
+                    <div class="safe-life-pet-line"><strong>Endereço:</strong> ${esc(p.local || p.localizacao || "Não informado")}</div>
+                    ${mode === "professional" ? `<div class="safe-life-pet-line"><strong>Dono:</strong> ${esc(owner)} ${p.donoCpf ? `• CPF: ${esc(p.donoCpf)}` : ""}</div>` : ""}
+                    ${p.observacoes ? `<div class="safe-life-pet-line"><strong>Observações:</strong> ${esc(p.observacoes)}</div>` : ""}
+                    ${missing ? `<div class="safe-life-pet-line"><strong>Último local visto:</strong> ${esc(p.localDesaparecimento || p.local_desaparecimento || p.local || "Não informado")}</div>` : ""}
+                    ${missing && (p.detalhesDesaparecimento || p.detalhes_desaparecimento) ? `<div class="safe-life-pet-line"><strong>Detalhes:</strong> ${esc(p.detalhesDesaparecimento || p.detalhes_desaparecimento)}</div>` : ""}
+                </div>
+                ${mode === "citizen" ? `
+                    <div class="safe-life-pet-actions">
+                        <button class="btn ${missing ? "secondary-btn" : ""}" type="button" onclick="marcarPetDesaparecidoDireto('${esc(String(p.id))}')">${missing ? "Marcar encontrado" : "Pet desapareceu"}</button>
+                        <button class="btn secondary-btn" type="button" onclick="renderPerfilCidadao()">Atualizar</button>
+                    </div>
+                ` : ""}
+            </div>
+        `;
+    }
+
+    window.marcarPetDesaparecidoDireto = async function marcarPetDesaparecidoDireto(id) {
+        const list = localPets();
+        const index = list.findIndex(pet => String(pet.id) === String(id));
+        if (index === -1) return;
+        const pet = list[index];
+        const next = !pet.desaparecido;
+        pet.desaparecido = next;
+        pet.statusPet = next ? "DESAPARECIDO" : "CADASTRADO";
+        pet.status_pet = pet.statusPet;
+        if (next) {
+            pet.localDesaparecimento = prompt("Onde o pet desapareceu?", pet.local || "") || pet.local || "Não informado";
+            pet.detalhesDesaparecimento = prompt("Algum detalhe importante?", pet.detalhesDesaparecimento || "") || "";
+            pet.desaparecidoEm = new Date().toISOString();
+        } else {
+            pet.encontradoEm = new Date().toISOString();
+        }
+        savePets(list);
+        try {
+            await api(`/api/pets/${pet.id}/desaparecido`, {
+                method: "PATCH",
+                body: JSON.stringify({
+                    desaparecido: pet.desaparecido,
+                    localDesaparecimento: pet.localDesaparecimento,
+                    detalhesDesaparecimento: pet.detalhesDesaparecimento
+                })
+            });
+        } catch (e) {}
+        toast(next ? "🚨 Pet marcado como desaparecido." : "✅ Pet marcado como encontrado.");
+        renderPerfilCidadao();
+    };
+
+    window.renderPerfilCidadao = async function renderPerfilCidadaoAtualizado() {
+        const user = currentUser();
+        if (!user) {
+            nextScreen("loginScreen");
+            return;
+        }
+        if (el("profileAvatar")) el("profileAvatar").src = user.foto || DEFAULT_USER_PHOTO;
+        if (el("citizenProfileName")) el("citizenProfileName").textContent = user.nome || "Cidadão";
+        if (el("citizenProfileType")) el("citizenProfileType").textContent = "Cidadão";
+        if (el("citizenProfileContact")) {
+            el("citizenProfileContact").innerHTML = `CPF: ${esc(user.cpf)}<br>E-mail: ${esc(user.email || "Não informado")}<br>Telefone: ${esc(user.telefone || "Não informado")}`;
+        }
+        if (el("editName")) el("editName").value = user.nome || "";
+        if (el("editEmail")) el("editEmail").value = user.email || "";
+        if (el("editPhone")) el("editPhone").value = user.telefone || "";
+
+        const pets = await loadPets({ donoCpf: user.cpf });
+        const notifications = get(NOTIF_KEY, []).filter(item => !item.citizenCpf || cpf(item.citizenCpf) === cpf(user.cpf));
+        const history = get(HISTORY_KEY, []).filter(item => !item.citizenCpf || cpf(item.citizenCpf || item.cpf_usuario || item.reporterCpf) === cpf(user.cpf));
+        const container = el("myPetsContainer");
+        if (container) {
+            container.innerHTML = `
+                <div class="safe-life-profile-block">
+                    <h4>🔔 Notificações</h4>
+                    ${notifications.length ? notifications.map(n => `<div class="safe-notification-card"><div class="safe-notification-icon">🔔</div><div><strong>${esc(n.title || "Atualização")}</strong><p>${esc(n.message || "Sua ocorrência recebeu uma atualização.")}</p><small>${esc(n.createdAt || "")}</small></div></div>`).join("") : `<p class="empty-message">Nenhuma notificação ainda.</p>`}
+                </div>
+                <div class="safe-life-profile-block">
+                    <h4>🐾 Meus Pets</h4>
+                    <div class="safe-life-pet-grid">${pets.length ? pets.map(p => petCard(p, "citizen")).join("") : `<p class="empty-message">Nenhum pet cadastrado ainda.</p>`}</div>
+                </div>
+                <div class="safe-life-profile-block">
+                    <h4>✅ Ocorrências realizadas</h4>
+                    ${history.length ? history.map(h => `<div class="occurrence-card"><h4>✅ ${esc(h.opcaoEscolhida || h.assunto || "Ocorrência")}</h4><p><strong>Descrição:</strong> ${esc(h.detalhes || "Sem descrição")}</p><p><strong>Profissional:</strong> ${esc(h.profissionalNome || "Profissional")}</p><small>${esc(h.concluidaEm || h.completedAt || "")}</small></div>`).join("") : `<p class="empty-message">Nenhuma ocorrência concluída ainda.</p>`}
+                </div>
+            `;
+        }
+        nextScreen("citizenProfile");
+    };
+
+    window.inicializarPainelPro = async function inicializarPainelProAtualizado() {
+        const user = currentUser();
+        if (!user) {
+            nextScreen("loginScreen");
+            return;
+        }
+        if (el("proWelcomeName")) el("proWelcomeName").textContent = user.nome || "Profissional";
+        if (el("proCompanyName")) el("proCompanyName").textContent = `🏢 ${user.company || "Safe Life Matriz"}`;
+        if (el("proAvatar")) el("proAvatar").src = user.foto || DEFAULT_USER_PHOTO;
+        const list = (await loadOccurrences()).filter(isPending);
+        if (el("statTotal")) el("statTotal").textContent = list.length;
+        if (el("statAnon")) el("statAnon").textContent = list.filter(o => o.anonima || o.origem === "anonima").length;
+        if (el("statEmergency")) el("statEmergency").textContent = list.filter(o => String(o.prioridade || "").toUpperCase() === "ALTA" || String(o.prioridade || "").toUpperCase() === "CRITICA").length;
+        nextScreen("proDashboard");
+    };
+
+    window.renderPerfilProfissional = function renderPerfilProfissionalAtualizado() {
+        const user = currentUser();
+        if (!user) return;
+        if (el("professionalProfileAvatar")) el("professionalProfileAvatar").src = user.foto || DEFAULT_USER_PHOTO;
+        if (el("professionalProfileName")) el("professionalProfileName").textContent = user.nome || "Profissional";
+        if (el("professionalProfileCompany")) el("professionalProfileCompany").textContent = user.company || "Safe Life Matriz";
+        if (el("editProName")) el("editProName").value = user.nome || "";
+        if (el("editProCpf")) el("editProCpf").value = user.cpf || "";
+        if (el("editProEmail")) el("editProEmail").value = user.email || "";
+        if (el("editProPhone")) el("editProPhone").value = user.telefone || "";
+        if (el("editProCompany")) el("editProCompany").value = user.company || "Safe Life Matriz";
+        nextScreen("professionalProfile");
+    };
+
+    function occurrenceCard(item) {
+        const o = normalizeOccurrence(item);
+        const photo = o.foto || o.fotoEvidencia;
+        const reporter = o.anonima || o.origem === "anonima" ? "Denúncia Anônima" : o.nome_usuario;
+        return `
+            <article class="prof-occurrence-card ${o.anonima || o.origem === "anonima" ? "anon" : ""}">
+                <div class="prof-occurrence-top">
+                    ${o.anonima || o.origem === "anonima" ? `<div class="anon-avatar">🕶️</div>` : `<img class="reporter-avatar" src="${esc(o.foto_usuario || DEFAULT_USER_PHOTO)}" alt="Foto do cidadão">`}
+                    <div class="prof-occurrence-meta">
+                        <h4>${esc(o.opcaoEscolhida || o.assunto)}</h4>
+                        <p><strong>Nome:</strong> ${esc(reporter)}</p>
+                        <small>${esc(o.tipo)} • ${esc(o.status)}</small>
+                    </div>
+                </div>
+                <div class="prof-occurrence-body">
+                    <div class="prof-line"><strong>Endereço atual:</strong><br>${esc(o.localizacao)}</div>
+                    <div class="prof-line"><strong>Descrição:</strong><br>${esc(o.detalhes)}</div>
+                    ${photo ? `<img class="evidence-image" src="${esc(photo)}" alt="Foto enviada">` : `<div class="evidence-empty">Nenhuma foto enviada.</div>`}
+                    <div class="prof-actions-inline">
+                        <button class="btn secondary-btn" type="button" onclick="marcarEmAtendimentoAtualizado('${esc(String(o.origem))}', '${esc(String(o.id))}')">Em atendimento</button>
+                        <button class="btn" type="button" onclick="concluirOcorrenciaProfissional('${esc(String(o.origem))}', '${esc(String(o.id))}')">Concluir</button>
+                    </div>
+                </div>
+            </article>
+        `;
+    }
+
+    window.abrirOcorrenciasPro = async function abrirOcorrenciasProAtualizado() {
+        const container = el("listaIntegradaPro");
+        const list = (await loadOccurrences()).filter(isPending);
+        if (container) {
+            container.innerHTML = list.length ? list.map(occurrenceCard).join("") : `<div class="occurrence-card"><h4>Nenhum chamado pendente</h4><p>Quando um cidadão enviar uma ocorrência, ela aparece aqui.</p></div>`;
+        }
+        nextScreen("proListScreen");
+    };
+
+    window.marcarEmAtendimentoAtualizado = async function marcarEmAtendimentoAtualizado(origem, id) {
+        const list = localOccurrences();
+        const item = list.find(o => String(o.id) === String(id) && String(o.origem) === String(origem));
+        if (item) item.status = "EM_ATENDIMENTO";
+        saveOccurrences(list);
+        try {
+            if (origem === "ocorrencia" || origem === "anonima") {
+                await api(`/api/chamados/${origem}/${id}/status`, { method: "PATCH", body: JSON.stringify({ status: "EM_ATENDIMENTO", funcionarioCpf: currentUser()?.cpf || null }) });
+            }
+        } catch (e) {}
+        toast("🚑 Chamado marcado como em atendimento.");
+        abrirOcorrenciasPro();
+    };
+
+    window.concluirOcorrenciaProfissional = async function concluirOcorrenciaProfissionalAtualizada(origem, id) {
+        const user = currentUser() || { nome: "Profissional", cpf: "", company: "Safe Life Matriz" };
+        const list = localOccurrences();
+        const index = list.findIndex(o => String(o.id) === String(id) && String(o.origem) === String(origem));
+        if (index === -1) {
+            toast("Ocorrência não encontrada.");
+            return;
+        }
+        const item = normalizeOccurrence(list[index]);
+        const completed = {
+            ...item,
+            status: "CONCLUIDA",
+            profissionalNome: user.nome,
+            profissionalCpf: user.cpf,
+            empresaProfissional: user.company || "Safe Life Matriz",
+            concluidaEm: new Date().toLocaleString("pt-BR"),
+            completedAt: new Date().toLocaleString("pt-BR")
+        };
+        list.splice(index, 1);
+        saveOccurrences(list);
+        const hist = get(HISTORY_KEY, []);
+        hist.unshift(completed);
+        set(HISTORY_KEY, hist);
+        const notifs = get(NOTIF_KEY, []);
+        if (completed.citizenCpf || completed.cpf_usuario) {
+            notifs.unshift({
+                id: Date.now().toString(),
+                citizenCpf: completed.citizenCpf || completed.cpf_usuario,
+                title: "Ocorrência concluída",
+                message: `O profissional ${user.nome} concluiu o atendimento de ${completed.opcaoEscolhida || completed.assunto}.`,
+                occurrenceId: completed.id,
+                createdAt: new Date().toLocaleString("pt-BR")
+            });
+            set(NOTIF_KEY, notifs);
+        }
+        try {
+            if (origem === "ocorrencia" || origem === "anonima") {
+                await api(`/api/chamados/${origem}/${id}/status`, { method: "PATCH", body: JSON.stringify({ status: "CONCLUIDA", funcionarioCpf: user.cpf }) });
+            }
+        } catch (e) {}
+        toast("✅ Atendimento concluído. O cidadão recebeu a notificação.");
+        abrirOcorrenciasPro();
+    };
+
+    window.abrirPetsCadastradosPro = async function abrirPetsCadastradosPro() {
+        const title = document.querySelector("#shiftReportScreen header h1");
+        const subtitle = document.querySelector("#shiftReportScreen header p");
+        const container = el("shiftReportBox");
+        const pets = await loadPets();
+        const sorted = pets.slice().sort((a, b) => Number(normalizePet(b).desaparecido) - Number(normalizePet(a).desaparecido));
+        if (title) title.textContent = "Pets Cadastrados";
+        if (subtitle) subtitle.textContent = "Pets dos cidadãos e alertas de desaparecimento";
+        if (container) {
+            container.innerHTML = `
+                <div class="occurrence-card">
+                    <h4>🐾 Pets cadastrados no Safe Life</h4>
+                    <p><strong>Total:</strong> ${sorted.length}</p>
+                    <p><strong>Desaparecidos:</strong> ${sorted.filter(p => normalizePet(p).desaparecido).length}</p>
+                </div>
+                <div class="safe-life-pet-grid">${sorted.length ? sorted.map(p => petCard(p, "professional")).join("") : `<p class="empty-message">Nenhum pet cadastrado ainda.</p>`}</div>
+            `;
+        }
+        nextScreen("shiftReportScreen");
+    };
+
+    window.abrirRelatorioPlantao = window.abrirPetsCadastradosPro;
+
+    window.abrirAgentesAtivos = async function abrirAgentesAtivosAtualizado() {
+        const container = el("activeAgentsList");
+        const pro = currentUser() || { nome: "Profissional", company: "Safe Life Matriz", foto: "" };
+        const chamados = (await loadOccurrences()).filter(isPending);
+        if (container) {
+            container.innerHTML = `
+                <div class="agent-card active"><div class="agent-top"><img class="agent-avatar" src="${esc(pro.foto || DEFAULT_USER_PHOTO)}" alt="Agente"><div class="agent-info"><h4>${esc(pro.nome)}</h4><p>${esc(pro.company || "Safe Life Matriz")}</p><small>Chamados pendentes: ${chamados.length}</small></div></div><div class="agent-status-row"><span class="agent-chip green">Disponível</span><span class="agent-chip">10 min</span></div></div>
+                <div class="agent-card active"><div class="agent-top"><div class="nearest-icon">🚑</div><div class="agent-info"><h4>Equipe de Apoio</h4><p>Base parceira</p><small>Disponível para reforço</small></div></div><div class="agent-status-row"><span class="agent-chip green">Ativo</span><span class="agent-chip">15 min</span></div></div>
+            `;
+        }
+        nextScreen("activeAgentsScreen");
+    };
+
+    window.abrirOcorrenciaMaisProxima = async function abrirOcorrenciaMaisProximaAtualizada() {
+        const container = el("nearestOccurrenceBox");
+        const list = (await loadOccurrences()).filter(isPending);
+        if (container) container.innerHTML = list.length ? occurrenceCard(list[0]) : `<div class="occurrence-card"><h4>Nenhuma ocorrência próxima</h4><p>A fila está vazia.</p></div>`;
+        nextScreen("nearestOccurrenceScreen");
+    };
+
+    window.abrirFilaPrioridade = async function abrirFilaPrioridadeAtualizada() {
+        const container = el("priorityQueueList");
+        const weight = { CRITICA: 1, ALTA: 2, NORMAL: 3, BAIXA: 4 };
+        const list = (await loadOccurrences()).filter(isPending).sort((a, b) => (weight[String(a.prioridade || "NORMAL").toUpperCase()] || 3) - (weight[String(b.prioridade || "NORMAL").toUpperCase()] || 3));
+        if (container) container.innerHTML = list.length ? list.map(occurrenceCard).join("") : `<div class="occurrence-card"><h4>Fila vazia</h4><p>Nenhum chamado pendente.</p></div>`;
+        nextScreen("priorityQueueScreen");
+    };
+
+    window.inicializarPainelAdmin = function inicializarPainelAdminAtualizado() {
+        let admin = users().find(user => cpf(user.cpf) === ADMIN);
+        if (!admin) {
+            admin = upsertUser({ nome: "Gustavo Siri", cpf: ADMIN, email: "gustavo.siriguejo@safelife.com", type: "admin", company: "Safe Life Matriz", foto: "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=300&q=80" });
+        }
+        setCurrent(admin);
+        if (el("adminAvatar")) el("adminAvatar").src = admin.foto || DEFAULT_USER_PHOTO;
+        if (el("adminWelcomeName")) el("adminWelcomeName").textContent = admin.nome || "Gustavo Siri";
+        if (el("adminCpfText")) el("adminCpfText").textContent = `CPF: ${ADMIN}`;
+        if (el("adminStatUsers")) el("adminStatUsers").textContent = users().length;
+        if (el("adminStatProfessionals")) el("adminStatProfessionals").textContent = users().filter(u => (u.type || u.tipo) === "professional").length;
+        if (el("adminStatReports")) el("adminStatReports").textContent = localOccurrences().length + get(HISTORY_KEY, []).length;
+        if (el("adminStatSuspicious")) el("adminStatSuspicious").textContent = users().filter(u => u.ativo === false || !u.email).length;
+        document.querySelectorAll(".admin-tool-card").forEach(card => {
+            const text = card.textContent || "";
+            if (text.includes("Painel Profissional") || text.includes("Auditoria")) card.remove();
+        });
+        nextScreen("adminDashboard");
+    };
+
+    function boot() {
+        ensurePetFields();
+        document.querySelectorAll(".admin-tool-card").forEach(card => {
+            const text = card.textContent || "";
+            if (text.includes("Painel Profissional") || text.includes("Auditoria")) card.remove();
+        });
+        const proButtons = document.querySelectorAll(".professional-tool-card");
+        proButtons.forEach(button => {
+            if ((button.textContent || "").includes("Relatório")) {
+                button.setAttribute("onclick", "abrirPetsCadastradosPro()");
+                const span = button.querySelector("span");
+                const strong = button.querySelector("strong");
+                const small = button.querySelector("small");
+                if (span) span.textContent = "🐾";
+                if (strong) strong.textContent = "Ver Pets Cadastrados";
+                if (small) small.textContent = "Ver pets dos cidadãos e desaparecidos.";
+            }
+        });
+        const petForm = el("petForm");
+        if (petForm) petForm.onsubmit = window.registrarPet;
+        const citizenForm = el("citizenForm");
+        if (citizenForm) citizenForm.onsubmit = window.registrarAcao;
+        const anonForm = el("anonForm");
+        if (anonForm) anonForm.onsubmit = window.registrarAcaoAnonima;
+    }
+
+    document.addEventListener("DOMContentLoaded", boot);
 })();
