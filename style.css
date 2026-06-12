@@ -3830,3 +3830,75 @@ html {
         padding: 20px;
     }
 }
+
+
+
+
+/* AJUSTE FINAL TCC - MENU, PERFIL E DESEMPENHO */
+#menuScreen .citizen-menu-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    justify-items: stretch;
+}
+
+#menuScreen .citizen-menu-grid .emergency {
+    grid-column: 1 / -1;
+}
+
+#menuScreen .citizen-menu-grid .rescue-card {
+    grid-column: 1 / -1 !important;
+    width: 220px !important;
+    max-width: 220px !important;
+    justify-self: center !important;
+    place-self: center !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    text-align: center !important;
+    align-items: center !important;
+}
+
+#menuScreen .citizen-menu-grid .rescue-card .action-icon {
+    align-self: center;
+}
+
+.pets-profile-card > h4,
+#myPetsContainer > h4:first-child {
+    display: none !important;
+}
+
+#myPetsContainer {
+    display: grid;
+    gap: 16px;
+}
+
+.safe-life-profile-block {
+    margin-top: 0 !important;
+}
+
+.safe-life-profile-block h4 {
+    margin-bottom: 12px;
+}
+
+.screen,
+.btn,
+.action-card,
+.professional-tool-card,
+.occurrence-card,
+.safe-life-pet-card,
+.bottom-nav,
+.bottom-nav button {
+    transition: none !important;
+    animation: none !important;
+}
+
+html {
+    scroll-behavior: auto !important;
+}
+
+@media (max-width: 720px) {
+    #menuScreen .citizen-menu-grid .rescue-card {
+        width: 220px !important;
+        max-width: 220px !important;
+    }
+}
