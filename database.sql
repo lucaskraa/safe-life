@@ -248,6 +248,18 @@ CREATE TABLE pets (
 
     foto TEXT,
 
+    desaparecido BOOLEAN DEFAULT FALSE,
+
+    status_pet VARCHAR(50) DEFAULT 'CADASTRADO',
+
+    local_desaparecimento TEXT,
+
+    detalhes_desaparecimento TEXT,
+
+    desaparecido_em TIMESTAMP,
+
+    encontrado_em TIMESTAMP,
+
     ativo BOOLEAN DEFAULT TRUE,
 
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -442,6 +454,9 @@ ON funcionarios(empresa);
 
 CREATE INDEX idx_pets_usuario_id
 ON pets(usuario_id);
+
+CREATE INDEX idx_pets_desaparecido
+ON pets(desaparecido);
 
 CREATE INDEX idx_ocorrencias_usuario_id
 ON ocorrencias(usuario_id);
