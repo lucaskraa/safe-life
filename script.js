@@ -9389,3 +9389,480 @@ document.addEventListener("DOMContentLoaded", function() {
         finalBootTcc();
     }
 })();
+
+
+(function () {
+    function g(id) {
+        return document.getElementById(id);
+    }
+
+    function escFinal(value) {
+        return String(value || "").replace(/[&<>"']/g, function (char) {
+            return {
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#39;"
+            }[char];
+        });
+    }
+
+    function getJsonFinal(key, fallback) {
+        try {
+            var raw = localStorage.getItem(key);
+            if (!raw) return fallback;
+            return JSON.parse(raw) || fallback;
+        } catch (e) {
+            return fallback;
+        }
+    }
+
+    function saveLoggedFinal(user) {
+        if (!user || !user.cpf) return user;
+
+        try {
+            usuarioLogado = user;
+        } catch (e) {
+            window.usuarioLogado = user;
+        }
+
+        try {
+            localStorage.setItem("safeLifeLoggedUser", JSON.stringify(user));
+        } catch (e) {}
+
+        return user;
+    }
+
+    function getLoggedFinal() {
+        try {
+            if (typeof usuarioLogado !== "undefined" && usuarioLogado && usuarioLogado.cpf) {
+                return saveLoggedFinal(usuarioLogado);
+            }
+        } catch (e) {}
+
+        try {
+            if (window.usuarioLogado && window.usuarioLogado.cpf) {
+                return saveLoggedFinal(window.usuarioLogado);
+            }
+        } catch (e) {}
+
+        var saved = getJsonFinal("safeLifeLoggedUser", null);
+        if (saved && saved.cpf) return saveLoggedFinal(saved);
+
+        var users = getJsonFinal("safeLifeUsuarios", []);
+        var lastCpf = localStorage.getItem("safeLifeLastCpf");
+        if (lastCpf) {
+            var found = users.find(function (user) {
+                return String(user.cpf || "").replace(/\D/g, "") === String(lastCpf).replace(/\D/g, "");
+            });
+            if (found) return saveLoggedFinal(found);
+        }
+
+        return null;
+    }
+
+    function fastScreenFinal(screenId) {
+        document.querySelectorAll(".screen").forEach(function (screen) {
+            screen.classList.remove("active");
+            screen.style.display = "none";
+        });
+
+        var target = g(screenId);
+        if (!target) return;
+
+        target.style.display = "block";
+        target.classList.add("active");
+
+        try {
+            window.scrollTo(0, 0);
+        } catch (e) {}
+    }
+
+    window.nextScreen = fastScreenFinal;
+
+    function centerRescueFinal() {
+        var rescue = document.querySelector("#menuScreen .action-card[onclick*=\"rescue\"]");
+        if (!rescue) return;
+
+        rescue.classList.add("rescue-card");
+        rescue.style.gridColumn = "1 / -1";
+        rescue.style.width = "220px";
+        rescue.style.maxWidth = "220px";
+        rescue.style.justifySelf = "center";
+        rescue.style.alignSelf = "center";
+        rescue.style.marginLeft = "auto";
+        rescue.style.marginRight = "auto";
+        rescue.style.textAlign = "center";
+        rescue.style.alignItems = "center";
+    }
+
+    function cleanPetsTitleFinal() {
+        var oldTitle = document.querySelector(".pets-profile-card > h4");
+        if (oldTitle) oldTitle.remove();
+
+        var container = g("myPetsContainer");
+        if (!container) return;
+
+        var directTitle = container.querySelector(":scope > h4:first-child");
+        if (directTitle) directTitle.remove();
+    }
+
+    function simplePetCardFinal(pet) {
+        var p = pet;
+
+        try {
+            if (typeof normalizePet === "function") p = normalizePet(pet);
+        } catch (e) {}
+
+        var missing = !!p.desaparecido;
+
+        return `
+            <div class="safe-life-pet-card ${missing ? "missing" : ""}">
+                <div class="safe-life-pet-top">
+                    <img class="safe-life-pet-photo" src="${escFinal(p.foto || p.photo || "")}" alt="Foto do pet">
+                    <div class="safe-life-pet-info">
+                        <h4>${missing ? "🚨" : "🐾"} ${escFinal(p.nome || "Pet")}</h4>
+                        <small>${escFinal(p.especie || "Animal")} • ${escFinal(p.raca || "Raça não informada")}</small><br>
+                        <span class="${missing ? "safe-life-alert-badge" : "safe-life-normal-badge"}">${missing ? "DESAPARECIDO" : "CADASTRADO"}</span>
+                    </div>
+                </div>
+                <div class="safe-life-pet-lines">
+                    <div class="safe-life-pet-line"><strong>Idade:</strong> ${escFinal(p.idade || "Não informada")} anos</div>
+                    <div class="safe-life-pet-line"><strong>Endereço:</strong> ${escFinal(p.local || p.localizacao || "Não informado")}</div>
+                    ${p.cor ? `<div class="safe-life-pet-line"><strong>Cor:</strong> ${escFinal(p.cor)}</div>` : ""}
+                </div>
+            </div>
+        `;
+    }
+
+    window.renderPerfilCidadao = async function () {
+        var user = getLoggedFinal();
+
+        if (!user) {
+            alert("Sessão não encontrada. Entre novamente.");
+            fastScreenFinal("loginScreen");
+            return;
+        }
+
+        saveLoggedFinal(user);
+
+        if (g("profileAvatar")) g("profileAvatar").src = user.foto || user.avatar || "";
+        if (g("citizenProfileName")) g("citizenProfileName").textContent = user.nome || user.name || "Cidadão";
+        if (g("citizenProfileType")) g("citizenProfileType").textContent = "Cidadão";
+
+        if (g("citizenProfileContact")) {
+            g("citizenProfileContact").innerHTML =
+                "CPF: " + escFinal(user.cpf) +
+                "<br>E-mail: " + escFinal(user.email || "Não informado") +
+                "<br>Telefone: " + escFinal(user.telefone || user.phone || "Não informado");
+        }
+
+        if (g("editName")) g("editName").value = user.nome || user.name || "";
+        if (g("editEmail")) g("editEmail").value = user.email || "";
+        if (g("editPhone")) g("editPhone").value = user.telefone || user.phone || "";
+
+        var pets = [];
+
+        try {
+            if (typeof loadPets === "function") {
+                pets = await loadPets({ donoCpf: user.cpf });
+            }
+        } catch (e) {
+            pets = [];
+        }
+
+        if (!pets || !pets.length) {
+            try {
+                var localPets = getJsonFinal("safeLifePets", []);
+                pets = localPets.filter(function (pet) {
+                    var petCpf = String(pet.donoCpf || pet.ownerCpf || pet.dono_cpf || "").replace(/\D/g, "");
+                    var userCpf = String(user.cpf || "").replace(/\D/g, "");
+                    return petCpf === userCpf;
+                });
+            } catch (e) {
+                pets = [];
+            }
+        }
+
+        var notifications = [];
+        try {
+            notifications = getJsonFinal("safeLifeNotificacoes", []).filter(function (item) {
+                var itemCpf = String(item.citizenCpf || "").replace(/\D/g, "");
+                var userCpf = String(user.cpf || "").replace(/\D/g, "");
+                return !itemCpf || itemCpf === userCpf;
+            });
+        } catch (e) {}
+
+        var history = [];
+        try {
+            history = getJsonFinal("safeLifeHistoricoOcorrencias", []).filter(function (item) {
+                var itemCpf = String(item.citizenCpf || item.cpf_usuario || item.reporterCpf || "").replace(/\D/g, "");
+                var userCpf = String(user.cpf || "").replace(/\D/g, "");
+                return !itemCpf || itemCpf === userCpf;
+            });
+        } catch (e) {}
+
+        var container = g("myPetsContainer");
+
+        if (container) {
+            container.innerHTML = `
+                <div class="safe-life-profile-block">
+                    <h4>🔔 Notificações</h4>
+                    ${notifications.length
+                        ? notifications.map(function (n) {
+                            return `<div class="safe-notification-card"><div class="safe-notification-icon">🔔</div><div><strong>${escFinal(n.title || "Atualização")}</strong><p>${escFinal(n.message || "Sua ocorrência recebeu uma atualização.")}</p><small>${escFinal(n.createdAt || "")}</small></div></div>`;
+                        }).join("")
+                        : `<p class="empty-message">Nenhuma notificação ainda.</p>`
+                    }
+                </div>
+
+                <div class="safe-life-profile-block">
+                    <h4>🐾 Meus Pets</h4>
+                    <div class="safe-life-pet-grid">
+                        ${pets.length
+                            ? pets.map(simplePetCardFinal).join("")
+                            : `<p class="empty-message">Nenhum pet cadastrado ainda.</p>`
+                        }
+                    </div>
+                </div>
+
+                <div class="safe-life-profile-block">
+                    <h4>✅ Ocorrências realizadas</h4>
+                    ${history.length
+                        ? history.map(function (h) {
+                            return `<div class="occurrence-card"><h4>✅ ${escFinal(h.opcaoEscolhida || h.assunto || "Ocorrência")}</h4><p><strong>Descrição:</strong> ${escFinal(h.detalhes || "Sem descrição")}</p><p><strong>Profissional:</strong> ${escFinal(h.profissionalNome || "Profissional")}</p><small>${escFinal(h.concluidaEm || h.completedAt || "")}</small></div>`;
+                        }).join("")
+                        : `<p class="empty-message">Nenhuma ocorrência concluída ainda.</p>`
+                    }
+                </div>
+            `;
+        }
+
+        cleanPetsTitleFinal();
+        fastScreenFinal("citizenProfile");
+    };
+
+    var originalAutenticarFinal = window.autenticar;
+
+    if (typeof originalAutenticarFinal === "function") {
+        window.autenticar = async function () {
+            await originalAutenticarFinal();
+
+            try {
+                if (typeof usuarioLogado !== "undefined" && usuarioLogado && usuarioLogado.cpf) {
+                    localStorage.setItem("safeLifeLoggedUser", JSON.stringify(usuarioLogado));
+                    localStorage.setItem("safeLifeLastCpf", usuarioLogado.cpf);
+                }
+            } catch (e) {}
+        };
+    }
+
+    function bootFinalV10() {
+        centerRescueFinal();
+        cleanPetsTitleFinal();
+
+        document.querySelectorAll(".screen, .btn, .action-card, .professional-tool-card, .occurrence-card").forEach(function (item) {
+            item.style.transition = "none";
+            item.style.animation = "none";
+        });
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", bootFinalV10);
+    } else {
+        bootFinalV10();
+    }
+})();
+
+
+
+
+(function () {
+    function g(id) {
+        return document.getElementById(id);
+    }
+
+    function fastScreen(screenId) {
+        document.querySelectorAll(".screen").forEach(function (screen) {
+            screen.classList.remove("active");
+            screen.style.display = "none";
+        });
+
+        var target = g(screenId);
+        if (!target) return;
+
+        target.style.display = "block";
+        target.classList.add("active");
+
+        try {
+            window.scrollTo(0, 0);
+        } catch (e) {}
+    }
+
+    window.nextScreen = fastScreen;
+
+    function centerRescueCard() {
+        var rescue = document.querySelector("#menuScreen .rescue-card");
+        if (!rescue) return;
+
+        rescue.style.gridColumn = "1 / -1";
+        rescue.style.width = "220px";
+        rescue.style.maxWidth = "220px";
+        rescue.style.justifySelf = "center";
+        rescue.style.placeSelf = "center";
+        rescue.style.marginLeft = "auto";
+        rescue.style.marginRight = "auto";
+        rescue.style.textAlign = "center";
+        rescue.style.alignItems = "center";
+    }
+
+    function cleanDuplicatedPetsTitle() {
+        var title = document.querySelector(".pets-profile-card > h4");
+        if (title) title.remove();
+
+        var container = g("myPetsContainer");
+        if (!container) return;
+
+        var directTitle = container.querySelector(":scope > h4:first-child");
+        if (directTitle) directTitle.remove();
+    }
+
+    function safeEsc(value) {
+        return String(value || "").replace(/[&<>"']/g, function (char) {
+            return {
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#39;"
+            }[char];
+        });
+    }
+
+    function simplePetCard(pet) {
+        var p = typeof normalizePet === "function" ? normalizePet(pet) : pet;
+        var missing = !!p.desaparecido;
+
+        return `
+            <div class="safe-life-pet-card ${missing ? "missing" : ""}">
+                <div class="safe-life-pet-top">
+                    <img class="safe-life-pet-photo" src="${safeEsc(p.foto || p.photo || "")}" alt="Foto do pet">
+                    <div class="safe-life-pet-info">
+                        <h4>${missing ? "🚨" : "🐾"} ${safeEsc(p.nome || "Pet")}</h4>
+                        <small>${safeEsc(p.especie || "Animal")} • ${safeEsc(p.raca || "Raça não informada")}</small><br>
+                        <span class="${missing ? "safe-life-alert-badge" : "safe-life-normal-badge"}">${missing ? "DESAPARECIDO" : "CADASTRADO"}</span>
+                    </div>
+                </div>
+                <div class="safe-life-pet-lines">
+                    <div class="safe-life-pet-line"><strong>Idade:</strong> ${safeEsc(p.idade || "Não informada")} anos</div>
+                    <div class="safe-life-pet-line"><strong>Endereço:</strong> ${safeEsc(p.local || p.localizacao || "Não informado")}</div>
+                    ${p.cor ? `<div class="safe-life-pet-line"><strong>Cor:</strong> ${safeEsc(p.cor)}</div>` : ""}
+                    ${p.observacoes ? `<div class="safe-life-pet-line"><strong>Características:</strong> ${safeEsc(p.observacoes)}</div>` : ""}
+                </div>
+            </div>
+        `;
+    }
+
+    window.renderPerfilCidadao = async function () {
+        var user = typeof currentUser === "function" ? currentUser() : null;
+
+        if (!user) {
+            fastScreen("loginScreen");
+            return;
+        }
+
+        if (g("profileAvatar")) g("profileAvatar").src = user.foto || (typeof DEFAULT_USER_PHOTO !== "undefined" ? DEFAULT_USER_PHOTO : "");
+        if (g("citizenProfileName")) g("citizenProfileName").textContent = user.nome || "Cidadão";
+        if (g("citizenProfileType")) g("citizenProfileType").textContent = "Cidadão";
+
+        if (g("citizenProfileContact")) {
+            g("citizenProfileContact").innerHTML =
+                "CPF: " + safeEsc(user.cpf) +
+                "<br>E-mail: " + safeEsc(user.email || "Não informado") +
+                "<br>Telefone: " + safeEsc(user.telefone || "Não informado");
+        }
+
+        if (g("editName")) g("editName").value = user.nome || "";
+        if (g("editEmail")) g("editEmail").value = user.email || "";
+        if (g("editPhone")) g("editPhone").value = user.telefone || "";
+
+        var pets = [];
+        try {
+            if (typeof loadPets === "function") {
+                pets = await loadPets({ donoCpf: user.cpf });
+            }
+        } catch (e) {
+            pets = [];
+        }
+
+        var notifications = [];
+        try {
+            notifications = get(NOTIF_KEY, []).filter(function (item) {
+                return !item.citizenCpf || cpf(item.citizenCpf) === cpf(user.cpf);
+            });
+        } catch (e) {}
+
+        var history = [];
+        try {
+            history = get(HISTORY_KEY, []).filter(function (item) {
+                return !item.citizenCpf || cpf(item.citizenCpf || item.cpf_usuario || item.reporterCpf) === cpf(user.cpf);
+            });
+        } catch (e) {}
+
+        var container = g("myPetsContainer");
+
+        if (container) {
+            container.innerHTML = `
+                <div class="safe-life-profile-block">
+                    <h4>🔔 Notificações</h4>
+                    ${notifications.length
+                        ? notifications.map(function (n) {
+                            return `<div class="safe-notification-card"><div class="safe-notification-icon">🔔</div><div><strong>${safeEsc(n.title || "Atualização")}</strong><p>${safeEsc(n.message || "Sua ocorrência recebeu uma atualização.")}</p><small>${safeEsc(n.createdAt || "")}</small></div></div>`;
+                        }).join("")
+                        : `<p class="empty-message">Nenhuma notificação ainda.</p>`
+                    }
+                </div>
+
+                <div class="safe-life-profile-block">
+                    <h4>🐾 Meus Pets</h4>
+                    <div class="safe-life-pet-grid">
+                        ${pets.length
+                            ? pets.map(simplePetCard).join("")
+                            : `<p class="empty-message">Nenhum pet cadastrado ainda.</p>`
+                        }
+                    </div>
+                </div>
+
+                <div class="safe-life-profile-block">
+                    <h4>✅ Ocorrências realizadas</h4>
+                    ${history.length
+                        ? history.map(function (h) {
+                            return `<div class="occurrence-card"><h4>✅ ${safeEsc(h.opcaoEscolhida || h.assunto || "Ocorrência")}</h4><p><strong>Descrição:</strong> ${safeEsc(h.detalhes || "Sem descrição")}</p><p><strong>Profissional:</strong> ${safeEsc(h.profissionalNome || "Profissional")}</p><small>${safeEsc(h.concluidaEm || h.completedAt || "")}</small></div>`;
+                        }).join("")
+                        : `<p class="empty-message">Nenhuma ocorrência concluída ainda.</p>`
+                    }
+                </div>
+            `;
+        }
+
+        cleanDuplicatedPetsTitle();
+        fastScreen("citizenProfile");
+    };
+
+    function finalBootTcc() {
+        centerRescueCard();
+        cleanDuplicatedPetsTitle();
+
+        document.querySelectorAll(".screen, .btn, .action-card, .professional-tool-card, .occurrence-card").forEach(function (el) {
+            el.style.transition = "none";
+            el.style.animation = "none";
+        });
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", finalBootTcc);
+    } else {
+        finalBootTcc();
+    }
+})();
