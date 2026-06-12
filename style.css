@@ -3960,3 +3960,110 @@ html {
 html {
     scroll-behavior: auto !important;
 }
+
+
+/* FINAL V11 - RESGATE FUNCIONANDO/CENTRALIZADO E PERFIL SEM SAIR */
+#menuScreen .citizen-menu-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 16px !important;
+    justify-items: stretch !important;
+}
+
+#menuScreen .citizen-menu-grid .emergency {
+    grid-column: 1 / -1 !important;
+}
+
+#menuScreen .citizen-menu-grid .rescue-card,
+#menuScreen .citizen-menu-grid button[onclick*="rescue"] {
+    grid-column: 1 / -1 !important;
+    width: 220px !important;
+    max-width: 220px !important;
+    justify-self: center !important;
+    place-self: center !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    text-align: center !important;
+    align-items: center !important;
+}
+
+#menuScreen .citizen-menu-grid .rescue-card .action-icon,
+#menuScreen .citizen-menu-grid button[onclick*="rescue"] .action-icon {
+    align-self: center !important;
+}
+
+.pets-profile-card > h4,
+#myPetsContainer > h4:first-child {
+    display: none !important;
+}
+
+.screen,
+.btn,
+.action-card,
+.professional-tool-card,
+.occurrence-card,
+.safe-life-pet-card,
+.bottom-nav button {
+    transition: none !important;
+    animation: none !important;
+}
+
+html {
+    scroll-behavior: auto !important;
+}
+
+
+/* SAFE LIFE V13 - correção pontual sem reduzir código */
+#menuScreen .citizen-menu-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 16px !important;
+    justify-items: stretch !important;
+}
+
+#menuScreen .citizen-menu-grid .emergency {
+    grid-column: 1 / -1 !important;
+}
+
+#menuScreen .citizen-menu-grid .rescue-card,
+#menuScreen .citizen-menu-grid button[onclick*="rescue"] {
+    grid-column: 1 / -1 !important;
+    width: 220px !important;
+    max-width: 220px !important;
+    justify-self: center !important;
+    place-self: center !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    text-align: center !important;
+    align-items: center !important;
+}
+
+#menuScreen .citizen-menu-grid .rescue-card .action-icon,
+#menuScreen .citizen-menu-grid button[onclick*="rescue"] .action-icon {
+    align-self: center !important;
+}
+
+.pets-profile-card > h4,
+#myPetsContainer > h4:first-child {
+    display: none !important;
+}
+
+#myPetsContainer {
+    display: grid !important;
+    gap: 16px !important;
+}
+
+.screen,
+.btn,
+.action-card,
+.professional-tool-card,
+.occurrence-card,
+.safe-life-pet-card,
+.bottom-nav button {
+    transition-duration: 0.04s !important;
+    animation-duration: 0.04s !important;
+}
+
+html {
+    scroll-behavior: auto !important;
+}
