@@ -10353,3 +10353,396 @@ document.addEventListener("DOMContentLoaded", function() {
         boot();
     }
 })();
+
+
+/* SAFE LIFE V13 - patch pontual sem remover funções antigas */
+(function () {
+    function byId(id) {
+        return document.getElementById(id);
+    }
+
+    function cleanCpf(value) {
+        return String(value || "").replace(/\D/g, "");
+    }
+
+    function getJson(key, fallback) {
+        try {
+            const raw = localStorage.getItem(key);
+            if (!raw) return fallback;
+            return JSON.parse(raw) ?? fallback;
+        } catch (e) {
+            return fallback;
+        }
+    }
+
+    function setJson(key, value) {
+        try {
+            localStorage.setItem(key, JSON.stringify(value));
+        } catch (e) {}
+    }
+
+    function escapeHtml(value) {
+        return String(value || "").replace(/[&<>"']/g, function (char) {
+            return {
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#39;"
+            }[char];
+        });
+    }
+
+    function saveLoggedV13(user) {
+        if (!user || !user.cpf) return null;
+
+        try {
+            usuarioLogado = user;
+        } catch (e) {
+            window.usuarioLogado = user;
+        }
+
+        try {
+            window.usuarioLogado = user;
+        } catch (e) {}
+
+        setJson("safeLifeLoggedUser", user);
+
+        try {
+            localStorage.setItem("safeLifeLastCpf", user.cpf);
+        } catch (e) {}
+
+        return user;
+    }
+
+    function getLoggedV13() {
+        try {
+            if (typeof usuarioLogado !== "undefined" && usuarioLogado && usuarioLogado.cpf) {
+                return saveLoggedV13(usuarioLogado);
+            }
+        } catch (e) {}
+
+        try {
+            if (window.usuarioLogado && window.usuarioLogado.cpf) {
+                return saveLoggedV13(window.usuarioLogado);
+            }
+        } catch (e) {}
+
+        const saved = getJson("safeLifeLoggedUser", null);
+        if (saved && saved.cpf) return saveLoggedV13(saved);
+
+        const users = getJson("safeLifeUsuarios", []);
+        const lastCpf = localStorage.getItem("safeLifeLastCpf") || "";
+
+        if (lastCpf) {
+            const found = users.find(user => cleanCpf(user.cpf) === cleanCpf(lastCpf));
+            if (found) return saveLoggedV13(found);
+        }
+
+        const cpfInput = byId("cpfInput");
+        if (cpfInput && cpfInput.value) {
+            const foundByInput = users.find(user => cleanCpf(user.cpf) === cleanCpf(cpfInput.value));
+            if (foundByInput) return saveLoggedV13(foundByInput);
+        }
+
+        return null;
+    }
+
+    function fastScreenV13(screenId) {
+        document.querySelectorAll(".screen").forEach(function (screen) {
+            screen.classList.remove("active");
+            screen.style.display = "";
+        });
+
+        const target = byId(screenId);
+
+        if (!target) return;
+
+        target.classList.add("active");
+
+        try {
+            window.scrollTo(0, 0);
+        } catch (e) {}
+    }
+
+    window.nextScreen = fastScreenV13;
+
+    function centerRescueV13() {
+        let rescue = document.querySelector("#menuScreen .rescue-card");
+
+        if (!rescue) {
+            rescue = document.querySelector("#menuScreen button[onclick*='rescue']");
+        }
+
+        if (!rescue) {
+            rescue = Array.from(document.querySelectorAll("#menuScreen .action-card")).find(function (card) {
+                return (card.textContent || "").includes("Solicitar Resgate");
+            });
+        }
+
+        if (!rescue) return;
+
+        rescue.classList.add("rescue-card");
+        rescue.setAttribute("onclick", "openCitizenForm('rescue')");
+
+        rescue.style.gridColumn = "1 / -1";
+        rescue.style.width = "220px";
+        rescue.style.maxWidth = "220px";
+        rescue.style.justifySelf = "center";
+        rescue.style.placeSelf = "center";
+        rescue.style.marginLeft = "auto";
+        rescue.style.marginRight = "auto";
+        rescue.style.textAlign = "center";
+        rescue.style.alignItems = "center";
+    }
+
+    function cleanPetsTitleV13() {
+        const outsideTitle = document.querySelector(".pets-profile-card > h4");
+        if (outsideTitle) outsideTitle.remove();
+
+        const container = byId("myPetsContainer");
+        if (!container) return;
+
+        const directTitle = container.querySelector(":scope > h4:first-child");
+        if (directTitle) directTitle.remove();
+    }
+
+    function optionsRenderV13(containerId, options, hiddenId) {
+        const container = byId(containerId);
+        if (!container) return;
+
+        container.innerHTML = "";
+
+        (options || []).forEach(function (option) {
+            const card = document.createElement("button");
+            card.type = "button";
+            card.className = "quick-option-card";
+            card.innerHTML = `
+                <div class="quick-option-icon">${escapeHtml(option.icon || "🐾")}</div>
+                <div class="quick-option-title">${escapeHtml(option.title || "Opção")}</div>
+                <div class="quick-option-desc">${escapeHtml(option.desc || "")}</div>
+            `;
+
+            card.onclick = function () {
+                container.querySelectorAll(".quick-option-card").forEach(function (item) {
+                    item.classList.remove("selected", "active");
+                });
+
+                card.classList.add("selected", "active");
+
+                const hidden = byId(hiddenId);
+                if (hidden) hidden.value = option.title || "";
+            };
+
+            container.appendChild(card);
+        });
+    }
+
+    window.openCitizenForm = function (typeKey) {
+        let configs = null;
+
+        try {
+            configs = FORM_CONFIGS;
+        } catch (e) {
+            configs = window.FORM_CONFIGS || null;
+        }
+
+        if (!configs || !configs[typeKey]) {
+            alert("Tipo de chamado não encontrado.");
+            return;
+        }
+
+        try {
+            currentFormConfig = configs[typeKey];
+        } catch (e) {
+            window.currentFormConfig = configs[typeKey];
+        }
+
+        const form = byId("citizenForm");
+        if (form) form.reset();
+
+        const title = byId("formTitle");
+        const subtitle = byId("formSubtitle");
+        const key = byId("formKey");
+        const hidden = byId("selectedQuickOption");
+
+        if (key) key.value = typeKey;
+        if (title) title.textContent = configs[typeKey].title || "Abrir Chamado";
+        if (subtitle) subtitle.textContent = configs[typeKey].subtitle || "Preencha os dados do chamado.";
+        if (hidden) hidden.value = "";
+
+        try {
+            if (typeof renderOptions === "function") {
+                renderOptions("quickOptionsGrid", configs[typeKey].options, "selectedQuickOption");
+            } else {
+                optionsRenderV13("quickOptionsGrid", configs[typeKey].options, "selectedQuickOption");
+            }
+        } catch (e) {
+            optionsRenderV13("quickOptionsGrid", configs[typeKey].options, "selectedQuickOption");
+        }
+
+        try {
+            if (typeof obterTextoLocalizacaoAtual === "function") {
+                const location = obterTextoLocalizacaoAtual();
+                if (location && byId("formLocation")) byId("formLocation").value = location;
+            }
+        } catch (e) {}
+
+        fastScreenV13("scrForm");
+    };
+
+    function petCardV13(pet) {
+        let p = pet;
+
+        try {
+            if (typeof normalizePet === "function") p = normalizePet(pet);
+        } catch (e) {}
+
+        const missing = Boolean(p.desaparecido);
+
+        return `
+            <div class="safe-life-pet-card ${missing ? "missing" : ""}">
+                <div class="safe-life-pet-top">
+                    <img class="safe-life-pet-photo" src="${escapeHtml(p.foto || p.photo || "")}" alt="Foto do pet">
+                    <div class="safe-life-pet-info">
+                        <h4>${missing ? "🚨" : "🐾"} ${escapeHtml(p.nome || "Pet")}</h4>
+                        <small>${escapeHtml(p.especie || "Animal")} • ${escapeHtml(p.raca || "Raça não informada")}</small><br>
+                        <span class="${missing ? "safe-life-alert-badge" : "safe-life-normal-badge"}">${missing ? "DESAPARECIDO" : "CADASTRADO"}</span>
+                    </div>
+                </div>
+                <div class="safe-life-pet-lines">
+                    <div class="safe-life-pet-line"><strong>Endereço:</strong> ${escapeHtml(p.local || p.localizacao || "Não informado")}</div>
+                    ${p.cor ? `<div class="safe-life-pet-line"><strong>Cor:</strong> ${escapeHtml(p.cor)}</div>` : ""}
+                </div>
+            </div>
+        `;
+    }
+
+    window.renderPerfilCidadao = async function () {
+        const user = getLoggedV13();
+
+        if (!user) {
+            alert("Sessão não encontrada. Entre novamente.");
+            fastScreenV13("loginScreen");
+            return;
+        }
+
+        saveLoggedV13(user);
+
+        const avatar = byId("profileAvatar");
+        if (avatar) avatar.src = user.foto || user.avatar || "";
+
+        const name = byId("citizenProfileName");
+        if (name) name.textContent = user.nome || user.name || "Cidadão";
+
+        const type = byId("citizenProfileType");
+        if (type) type.textContent = "Cidadão";
+
+        const contact = byId("citizenProfileContact");
+        if (contact) {
+            contact.innerHTML =
+                "CPF: " + escapeHtml(user.cpf) +
+                "<br>E-mail: " + escapeHtml(user.email || "Não informado") +
+                "<br>Telefone: " + escapeHtml(user.telefone || user.phone || "Não informado");
+        }
+
+        const editName = byId("editName");
+        const editEmail = byId("editEmail");
+        const editPhone = byId("editPhone");
+
+        if (editName) editName.value = user.nome || user.name || "";
+        if (editEmail) editEmail.value = user.email || "";
+        if (editPhone) editPhone.value = user.telefone || user.phone || "";
+
+        let pets = [];
+
+        try {
+            if (typeof loadPets === "function") {
+                pets = await loadPets({ donoCpf: user.cpf });
+            }
+        } catch (e) {
+            pets = [];
+        }
+
+        if (!pets || !pets.length) {
+            pets = getJson("safeLifePets", []).filter(function (pet) {
+                return cleanCpf(pet.donoCpf || pet.ownerCpf || pet.dono_cpf) === cleanCpf(user.cpf);
+            });
+        }
+
+        const notifications = getJson("safeLifeNotificacoes", []).filter(function (item) {
+            return !item.citizenCpf || cleanCpf(item.citizenCpf) === cleanCpf(user.cpf);
+        });
+
+        const history = getJson("safeLifeHistoricoOcorrencias", []).filter(function (item) {
+            return !item.citizenCpf || cleanCpf(item.citizenCpf || item.cpf_usuario || item.reporterCpf) === cleanCpf(user.cpf);
+        });
+
+        const container = byId("myPetsContainer");
+
+        if (container) {
+            container.innerHTML = `
+                <div class="safe-life-profile-block">
+                    <h4>🔔 Notificações</h4>
+                    ${notifications.length ? notifications.map(function (n) {
+                        return `<div class="safe-notification-card"><div class="safe-notification-icon">🔔</div><div><strong>${escapeHtml(n.title || "Atualização")}</strong><p>${escapeHtml(n.message || "Sua ocorrência recebeu uma atualização.")}</p><small>${escapeHtml(n.createdAt || "")}</small></div></div>`;
+                    }).join("") : `<p class="empty-message">Nenhuma notificação ainda.</p>`}
+                </div>
+
+                <div class="safe-life-profile-block">
+                    <h4>🐾 Meus Pets</h4>
+                    <div class="safe-life-pet-grid">
+                        ${pets.length ? pets.map(petCardV13).join("") : `<p class="empty-message">Nenhum pet cadastrado ainda.</p>`}
+                    </div>
+                </div>
+
+                <div class="safe-life-profile-block">
+                    <h4>✅ Ocorrências realizadas</h4>
+                    ${history.length ? history.map(function (h) {
+                        return `<div class="occurrence-card"><h4>✅ ${escapeHtml(h.opcaoEscolhida || h.assunto || "Ocorrência")}</h4><p>${escapeHtml(h.detalhes || "Sem descrição")}</p></div>`;
+                    }).join("") : `<p class="empty-message">Nenhuma ocorrência concluída ainda.</p>`}
+                </div>
+            `;
+        }
+
+        cleanPetsTitleV13();
+        fastScreenV13("citizenProfile");
+    };
+
+    const oldLogin = window.autenticar;
+
+    if (typeof oldLogin === "function") {
+        window.autenticar = async function () {
+            await oldLogin();
+
+            try {
+                if (typeof usuarioLogado !== "undefined" && usuarioLogado && usuarioLogado.cpf) {
+                    saveLoggedV13(usuarioLogado);
+                }
+            } catch (e) {}
+        };
+    }
+
+    function bootV13() {
+        centerRescueV13();
+        cleanPetsTitleV13();
+
+        const profileButtons = Array.from(document.querySelectorAll("button")).filter(function (button) {
+            return (button.textContent || "").includes("Perfil");
+        });
+
+        profileButtons.forEach(function (button) {
+            if (button.closest("#menuScreen") || button.closest("#citizenProfile")) {
+                button.onclick = function () {
+                    window.renderPerfilCidadao();
+                };
+            }
+        });
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", bootV13);
+    } else {
+        bootV13();
+    }
+})();
