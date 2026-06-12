@@ -9866,3 +9866,490 @@ document.addEventListener("DOMContentLoaded", function() {
         finalBootTcc();
     }
 })();
+
+
+(function () {
+    function q(id) {
+        return document.getElementById(id);
+    }
+
+    function safeText(value) {
+        return String(value || "").replace(/[&<>"']/g, function (char) {
+            return {
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#39;"
+            }[char];
+        });
+    }
+
+    function onlyCpf(value) {
+        return String(value || "").replace(/\D/g, "");
+    }
+
+    function getJson(key, fallback) {
+        try {
+            var raw = localStorage.getItem(key);
+            if (!raw) return fallback;
+            return JSON.parse(raw) || fallback;
+        } catch (e) {
+            return fallback;
+        }
+    }
+
+    function setJson(key, value) {
+        try {
+            localStorage.setItem(key, JSON.stringify(value));
+        } catch (e) {}
+    }
+
+    function saveLogged(user) {
+        if (!user || !user.cpf) return user;
+
+        try {
+            usuarioLogado = user;
+        } catch (e) {
+            window.usuarioLogado = user;
+        }
+
+        try {
+            window.usuarioLogado = user;
+        } catch (e) {}
+
+        setJson("safeLifeLoggedUser", user);
+        try {
+            localStorage.setItem("safeLifeLastCpf", user.cpf);
+        } catch (e) {}
+
+        return user;
+    }
+
+    function getLogged() {
+        try {
+            if (typeof usuarioLogado !== "undefined" && usuarioLogado && usuarioLogado.cpf) {
+                return saveLogged(usuarioLogado);
+            }
+        } catch (e) {}
+
+        try {
+            if (window.usuarioLogado && window.usuarioLogado.cpf) {
+                return saveLogged(window.usuarioLogado);
+            }
+        } catch (e) {}
+
+        var saved = getJson("safeLifeLoggedUser", null);
+        if (saved && saved.cpf) return saveLogged(saved);
+
+        var users = getJson("safeLifeUsuarios", []);
+        var lastCpf = "";
+        try {
+            lastCpf = localStorage.getItem("safeLifeLastCpf") || "";
+        } catch (e) {}
+
+        if (lastCpf) {
+            var found = users.find(function (user) {
+                return onlyCpf(user.cpf) === onlyCpf(lastCpf);
+            });
+
+            if (found) return saveLogged(found);
+        }
+
+        var cpfInput = q("cpfInput");
+        if (cpfInput && cpfInput.value) {
+            var fromInput = users.find(function (user) {
+                return onlyCpf(user.cpf) === onlyCpf(cpfInput.value);
+            });
+
+            if (fromInput) return saveLogged(fromInput);
+        }
+
+        var citizen = users.find(function (user) {
+            return (user.type || user.tipo || user.role) === "citizen";
+        });
+
+        if (citizen) return saveLogged(citizen);
+
+        return null;
+    }
+
+    function showScreen(screenId) {
+        document.querySelectorAll(".screen").forEach(function (screen) {
+            screen.classList.remove("active");
+            screen.style.display = "none";
+        });
+
+        var target = q(screenId);
+        if (!target) return;
+
+        target.style.display = "block";
+        target.classList.add("active");
+
+        try {
+            window.scrollTo(0, 0);
+        } catch (e) {}
+    }
+
+    window.nextScreen = showScreen;
+
+    function selectedOptionText() {
+        var hidden = q("selectedQuickOption");
+        if (hidden && hidden.value) return hidden.value;
+
+        var selected = document.querySelector("#quickOptionsGrid .selected, #quickOptionsGrid .active");
+        if (selected) {
+            var title = selected.querySelector(".quick-option-title");
+            return (title ? title.textContent : selected.textContent || "").trim();
+        }
+
+        return "";
+    }
+
+    function renderOptionsSimple(containerId, options, hiddenId) {
+        var container = q(containerId);
+        if (!container) return;
+
+        container.innerHTML = "";
+
+        (options || []).forEach(function (option) {
+            var card = document.createElement("button");
+            card.type = "button";
+            card.className = "quick-option-card";
+            card.innerHTML =
+                '<div class="quick-option-icon">' + safeText(option.icon || "🐾") + "</div>" +
+                '<div class="quick-option-title">' + safeText(option.title || "Opção") + "</div>" +
+                '<div class="quick-option-desc">' + safeText(option.desc || "") + "</div>";
+
+            card.onclick = function () {
+                container.querySelectorAll(".quick-option-card").forEach(function (item) {
+                    item.classList.remove("selected", "active");
+                });
+
+                card.classList.add("selected", "active");
+
+                var hidden = q(hiddenId);
+                if (hidden) hidden.value = option.title || "";
+            };
+
+            container.appendChild(card);
+        });
+    }
+
+    window.openCitizenForm = function (typeKey) {
+        var configs = null;
+
+        try {
+            configs = FORM_CONFIGS;
+        } catch (e) {
+            configs = window.FORM_CONFIGS || null;
+        }
+
+        if (!configs || !configs[typeKey]) {
+            alert("Tipo de chamado não encontrado.");
+            return;
+        }
+
+        try {
+            currentFormConfig = configs[typeKey];
+            window.currentFormConfig = configs[typeKey];
+        } catch (e) {
+            window.currentFormConfig = configs[typeKey];
+        }
+
+        var form = q("citizenForm");
+        if (form) form.reset();
+
+        if (q("formKey")) q("formKey").value = typeKey;
+        if (q("formTitle")) q("formTitle").textContent = configs[typeKey].title || "Abrir Chamado";
+        if (q("formSubtitle")) q("formSubtitle").textContent = configs[typeKey].subtitle || "Preencha os dados do chamado.";
+        if (q("selectedQuickOption")) q("selectedQuickOption").value = "";
+
+        try {
+            if (typeof renderOptions === "function") {
+                renderOptions("quickOptionsGrid", configs[typeKey].options, "selectedQuickOption");
+            } else {
+                renderOptionsSimple("quickOptionsGrid", configs[typeKey].options, "selectedQuickOption");
+            }
+        } catch (e) {
+            renderOptionsSimple("quickOptionsGrid", configs[typeKey].options, "selectedQuickOption");
+        }
+
+        var locationText = "";
+        try {
+            if (typeof obterTextoLocalizacaoAtual === "function") locationText = obterTextoLocalizacaoAtual();
+        } catch (e) {}
+
+        if (locationText && q("formLocation")) q("formLocation").value = locationText;
+
+        showScreen("scrForm");
+    };
+
+    window.registrarAcao = async function (event) {
+        if (event && event.preventDefault) event.preventDefault();
+
+        var user = getLogged();
+        var typeKey = q("formKey") ? q("formKey").value : "report";
+        var configs = null;
+
+        try {
+            configs = FORM_CONFIGS;
+        } catch (e) {
+            configs = window.FORM_CONFIGS || {};
+        }
+
+        var config = configs && configs[typeKey] ? configs[typeKey] : { title: "Chamado", priority: "NORMAL" };
+        var option = selectedOptionText() || "Chamado geral";
+        var location = q("formLocation") ? q("formLocation").value.trim() : "";
+        var details = q("formDetails") ? q("formDetails").value.trim() : "";
+
+        if (!location) {
+            alert("Informe a localização.");
+            return;
+        }
+
+        if (!details) {
+            alert("Informe a descrição.");
+            return;
+        }
+
+        var photo = "";
+        try {
+            if (typeof fileToBase64 === "function") photo = await fileToBase64("formFile");
+        } catch (e) {}
+
+        var item = {
+            id: Date.now().toString(),
+            origem: "local",
+            tipo: config.title || "Chamado",
+            categoria: typeKey,
+            assunto: option,
+            opcaoEscolhida: option,
+            opcao_escolhida: option,
+            localizacao: location,
+            detalhes: details,
+            foto: photo,
+            status: "PENDENTE",
+            prioridade: config.priority || "NORMAL",
+            anonima: false,
+            citizenName: user ? (user.nome || user.name || "Cidadão") : "Cidadão",
+            citizenCpf: user ? user.cpf : "",
+            citizenPhoto: user ? (user.foto || user.avatar || "") : "",
+            reporterName: user ? (user.nome || user.name || "Cidadão") : "Cidadão",
+            reporterCpf: user ? user.cpf : "",
+            timestamp: new Date().toLocaleString("pt-BR"),
+            criado_em: new Date().toISOString()
+        };
+
+        try {
+            var list = getJson("safeLifeOcorrencias", []);
+            list.unshift(item);
+            setJson("safeLifeOcorrencias", list);
+
+            try {
+                dbOcorrencias = list;
+            } catch (e) {}
+        } catch (e) {}
+
+        try {
+            if (typeof api === "function") {
+                await api("/api/ocorrencias", {
+                    method: "POST",
+                    body: JSON.stringify(item)
+                });
+            }
+        } catch (e) {}
+
+        if (q("confirmMsg")) {
+            q("confirmMsg").textContent = "Chamado enviado com sucesso.";
+        }
+
+        try {
+            if (typeof toast === "function") toast("✅ Chamado enviado.");
+            else if (typeof triggerToast === "function") triggerToast("✅ Chamado enviado.");
+        } catch (e) {}
+
+        showScreen("confirmationScreen");
+    };
+
+    function centerRescue() {
+        var rescue = document.querySelector("#menuScreen .action-card[onclick*='rescue'], #menuScreen .rescue-card");
+
+        if (!rescue) {
+            var cards = Array.from(document.querySelectorAll("#menuScreen .action-card"));
+            rescue = cards.find(function (card) {
+                return (card.textContent || "").includes("Solicitar Resgate");
+            });
+        }
+
+        if (!rescue) return;
+
+        rescue.classList.add("rescue-card");
+        rescue.onclick = function () {
+            window.openCitizenForm("rescue");
+        };
+
+        rescue.style.gridColumn = "1 / -1";
+        rescue.style.width = "220px";
+        rescue.style.maxWidth = "220px";
+        rescue.style.justifySelf = "center";
+        rescue.style.placeSelf = "center";
+        rescue.style.marginLeft = "auto";
+        rescue.style.marginRight = "auto";
+        rescue.style.textAlign = "center";
+        rescue.style.alignItems = "center";
+    }
+
+    function cleanPetsTitle() {
+        var title = document.querySelector(".pets-profile-card > h4");
+        if (title) title.remove();
+
+        var container = q("myPetsContainer");
+        if (!container) return;
+
+        var direct = container.querySelector(":scope > h4:first-child");
+        if (direct) direct.remove();
+    }
+
+    function petCard(pet) {
+        var p = pet;
+
+        try {
+            if (typeof normalizePet === "function") p = normalizePet(pet);
+        } catch (e) {}
+
+        var missing = !!p.desaparecido;
+
+        return `
+            <div class="safe-life-pet-card ${missing ? "missing" : ""}">
+                <div class="safe-life-pet-top">
+                    <img class="safe-life-pet-photo" src="${safeText(p.foto || p.photo || "")}" alt="Foto do pet">
+                    <div class="safe-life-pet-info">
+                        <h4>${missing ? "🚨" : "🐾"} ${safeText(p.nome || "Pet")}</h4>
+                        <small>${safeText(p.especie || "Animal")} • ${safeText(p.raca || "Raça não informada")}</small>
+                    </div>
+                </div>
+                <div class="safe-life-pet-lines">
+                    <div class="safe-life-pet-line"><strong>Endereço:</strong> ${safeText(p.local || p.localizacao || "Não informado")}</div>
+                    ${p.cor ? `<div class="safe-life-pet-line"><strong>Cor:</strong> ${safeText(p.cor)}</div>` : ""}
+                </div>
+            </div>
+        `;
+    }
+
+    window.renderPerfilCidadao = async function () {
+        var user = getLogged();
+
+        if (!user) {
+            alert("Entre na conta novamente.");
+            showScreen("loginScreen");
+            return;
+        }
+
+        saveLogged(user);
+
+        if (q("profileAvatar")) q("profileAvatar").src = user.foto || user.avatar || "";
+        if (q("citizenProfileName")) q("citizenProfileName").textContent = user.nome || user.name || "Cidadão";
+        if (q("citizenProfileType")) q("citizenProfileType").textContent = "Cidadão";
+        if (q("citizenProfileContact")) {
+            q("citizenProfileContact").innerHTML =
+                "CPF: " + safeText(user.cpf) +
+                "<br>E-mail: " + safeText(user.email || "Não informado") +
+                "<br>Telefone: " + safeText(user.telefone || user.phone || "Não informado");
+        }
+
+        if (q("editName")) q("editName").value = user.nome || user.name || "";
+        if (q("editEmail")) q("editEmail").value = user.email || "";
+        if (q("editPhone")) q("editPhone").value = user.telefone || user.phone || "";
+
+        var pets = [];
+        try {
+            if (typeof loadPets === "function") pets = await loadPets({ donoCpf: user.cpf });
+        } catch (e) {}
+
+        if (!pets.length) {
+            pets = getJson("safeLifePets", []).filter(function (pet) {
+                return onlyCpf(pet.donoCpf || pet.ownerCpf || pet.dono_cpf) === onlyCpf(user.cpf);
+            });
+        }
+
+        var notifications = getJson("safeLifeNotificacoes", []).filter(function (item) {
+            return !item.citizenCpf || onlyCpf(item.citizenCpf) === onlyCpf(user.cpf);
+        });
+
+        var history = getJson("safeLifeHistoricoOcorrencias", []).filter(function (item) {
+            return !item.citizenCpf || onlyCpf(item.citizenCpf || item.cpf_usuario || item.reporterCpf) === onlyCpf(user.cpf);
+        });
+
+        var container = q("myPetsContainer");
+        if (container) {
+            container.innerHTML = `
+                <div class="safe-life-profile-block">
+                    <h4>🔔 Notificações</h4>
+                    ${notifications.length ? notifications.map(function (n) {
+                        return `<div class="safe-notification-card"><div class="safe-notification-icon">🔔</div><div><strong>${safeText(n.title || "Atualização")}</strong><p>${safeText(n.message || "Sua ocorrência recebeu uma atualização.")}</p><small>${safeText(n.createdAt || "")}</small></div></div>`;
+                    }).join("") : `<p class="empty-message">Nenhuma notificação ainda.</p>`}
+                </div>
+
+                <div class="safe-life-profile-block">
+                    <h4>🐾 Meus Pets</h4>
+                    <div class="safe-life-pet-grid">
+                        ${pets.length ? pets.map(petCard).join("") : `<p class="empty-message">Nenhum pet cadastrado ainda.</p>`}
+                    </div>
+                </div>
+
+                <div class="safe-life-profile-block">
+                    <h4>✅ Ocorrências realizadas</h4>
+                    ${history.length ? history.map(function (h) {
+                        return `<div class="occurrence-card"><h4>✅ ${safeText(h.opcaoEscolhida || h.assunto || "Ocorrência")}</h4><p>${safeText(h.detalhes || "Sem descrição")}</p></div>`;
+                    }).join("") : `<p class="empty-message">Nenhuma ocorrência concluída ainda.</p>`}
+                </div>
+            `;
+        }
+
+        cleanPetsTitle();
+        showScreen("citizenProfile");
+    };
+
+    var originalLogin = window.autenticar;
+
+    if (typeof originalLogin === "function") {
+        window.autenticar = async function () {
+            await originalLogin();
+
+            try {
+                if (typeof usuarioLogado !== "undefined" && usuarioLogado && usuarioLogado.cpf) {
+                    saveLogged(usuarioLogado);
+                }
+            } catch (e) {}
+        };
+    }
+
+    function boot() {
+        centerRescue();
+        cleanPetsTitle();
+
+        var profileButtons = Array.from(document.querySelectorAll("button")).filter(function (button) {
+            return (button.textContent || "").includes("Perfil");
+        });
+
+        profileButtons.forEach(function (button) {
+            if (button.closest("#menuScreen") || button.closest("#citizenProfile")) {
+                button.onclick = function () {
+                    window.renderPerfilCidadao();
+                };
+            }
+        });
+
+        document.querySelectorAll(".screen, .btn, .action-card, .professional-tool-card, .occurrence-card").forEach(function (item) {
+            item.style.transition = "none";
+            item.style.animation = "none";
+        });
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", boot);
+    } else {
+        boot();
+    }
+})();
