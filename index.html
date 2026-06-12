@@ -587,7 +587,7 @@
                     </span>
 
                     <span>
-                        Meu Pet Desapareceu
+                        Pet Desaparecido
                     </span>
                 </button>
 
@@ -781,7 +781,7 @@
                 </h1>
 
                 <p>
-                    Registre seu animal no Safe Life
+                    Cadastre o seu animal de forma rápida e bonita
                 </p>
             </header>
 
@@ -792,78 +792,73 @@
                     onsubmit="registrarPet(event)"
                 >
 
-                    <div class="pet-form-shell">
+                    <div class="pet-form-shell premium-pet-shell">
 
-                        <div class="pet-form-top">
+                        <div class="pet-form-hero">
+                            <div class="pet-form-hero-icon">🐾</div>
                             <div>
-                                <h3>Cadastro rápido do pet</h3>
-                                <p>Preencha só o essencial para localizar e identificar seu animal.</p>
-                            </div>
-                            <span class="pet-form-badge">🐾 Fácil e rápido</span>
-                        </div>
-
-                        <div class="pet-form-grid">
-                            <div>
-                                <label for="petName">Nome do pet</label>
-                                <input type="text" id="petName" placeholder="Ex: Thor" required>
-                            </div>
-
-                            <div>
-                                <label for="petSpecies">Espécie</label>
-                                <select id="petSpecies">
-                                    <option value="Cachorro">Cachorro</option>
-                                    <option value="Gato">Gato</option>
-                                    <option value="Ave">Ave</option>
-                                    <option value="Outro">Outro</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label for="petBreed">Raça</label>
-                                <input type="text" id="petBreed" placeholder="Ex: SRD, Poodle, Persa">
-                            </div>
-
-                            <div>
-                                <label for="petAge">Idade</label>
-                                <input type="number" id="petAge" placeholder="Ex: 3">
-                            </div>
-
-                            <div>
-                                <label for="petColor">Cor</label>
-                                <input type="text" id="petColor" placeholder="Ex: Caramelo, preto, cinza">
-                            </div>
-
-                            <div>
-                                <label for="petSex">Sexo</label>
-                                <select id="petSex">
-                                    <option value="NAO_INFORMADO">Não informado</option>
-                                    <option value="MACHO">Macho</option>
-                                    <option value="FEMEA">Fêmea</option>
-                                </select>
+                                <h3 id="petFormHeroTitle">Cadastro do Pet</h3>
+                                <p id="petFormHeroText">Preencha os dados principais para deixar o cadastro bonito e completo.</p>
                             </div>
                         </div>
 
-                        <label for="petLocation">Endereço / local do pet</label>
-                        <input type="text" id="petLocation" placeholder="Rua, bairro ou região onde o pet fica">
+                        <div class="pet-form-card">
+                            <h4>Informações do pet</h4>
+                            <div class="pet-form-grid">
+                                <div>
+                                    <label for="petName">Nome do pet</label>
+                                    <input type="text" id="petName" placeholder="Ex: Thor" required>
+                                </div>
+                                <div>
+                                    <label for="petSpecies">Espécie</label>
+                                    <select id="petSpecies">
+                                        <option value="Cachorro">Cachorro</option>
+                                        <option value="Gato">Gato</option>
+                                        <option value="Ave">Ave</option>
+                                        <option value="Outro">Outro</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="petBreed">Raça</label>
+                                    <input type="text" id="petBreed" placeholder="Ex: SRD, Poodle, Persa">
+                                </div>
+                                <div>
+                                    <label for="petAge">Idade</label>
+                                    <input type="number" id="petAge" placeholder="Ex: 3">
+                                </div>
+                                <div>
+                                    <label for="petColor">Cor</label>
+                                    <input type="text" id="petColor" placeholder="Ex: Caramelo, preto, cinza">
+                                </div>
+                                <div>
+                                    <label for="petSex">Sexo</label>
+                                    <select id="petSex">
+                                        <option value="NAO_INFORMADO">Não informado</option>
+                                        <option value="MACHO">Macho</option>
+                                        <option value="FEMEA">Fêmea</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
 
-                        <button class="btn location-small-btn" type="button" onclick="usarMinhaLocalizacaoNoCampo('petLocation')">
-                            Usar minha localização atual 📍
-                        </button>
+                        <div class="pet-form-card">
+                            <h4>Local e foto</h4>
+                            <label for="petLocation">Endereço / local do pet</label>
+                            <input type="text" id="petLocation" placeholder="Rua, bairro ou região onde o pet fica">
 
-                        <label for="petPhoto">Foto do pet</label>
-                        <input type="file" id="petPhoto" accept="image/*">
+                            <button class="btn location-small-btn" type="button" onclick="usarMinhaLocalizacaoNoCampo('petLocation')">
+                                Usar minha localização atual 📍
+                            </button>
 
-                        <input type="hidden" id="petWeight">
+                            <label for="petPhoto">Foto do pet</label>
+                            <input type="file" id="petPhoto" accept="image/*">
 
-                        <label for="petMissingStatus">Situação</label>
-                        <select id="petMissingStatus" onchange="alternarCamposDesaparecido()">
-                            <option value="CADASTRADO">Apenas cadastrar meu pet</option>
-                            <option value="DESAPARECIDO">Meu pet desapareceu</option>
-                        </select>
+                            <label for="petObservations">Características</label>
+                            <textarea id="petObservations" placeholder="Coleira, temperamento, marca no corpo ou outra informação útil"></textarea>
+                        </div>
 
                         <div id="petMissingFields" class="pet-missing-fields hidden">
-                            <div class="pet-form-alert">🚨 Informe onde ele foi visto por último.</div>
-
+                            <div class="pet-form-alert">🚨 Área exclusiva para pet desaparecido</div>
                             <label for="petMissingLocation">Último local visto</label>
                             <input type="text" id="petMissingLocation" placeholder="Rua, bairro, ponto de referência">
 
@@ -872,13 +867,12 @@
                             </button>
 
                             <label for="petMissingDetails">Detalhes importantes</label>
-                            <textarea id="petMissingDetails" placeholder="Ex: estava de coleira vermelha, fugiu pelo portão, atende pelo nome..."></textarea>
+                            <textarea id="petMissingDetails" placeholder="Ex: estava com coleira vermelha, fugiu pelo portão, atende pelo nome..."></textarea>
                         </div>
 
-                        <label for="petObservations">Características</label>
-                        <textarea id="petObservations" placeholder="Coleira, temperamento, sinal no corpo ou outra informação útil"></textarea>
+                        <input type="hidden" id="petWeight">
 
-                        <button type="submit" class="btn">Salvar Pet 🐾</button>
+                        <button type="submit" class="btn" id="petSubmitButton">Salvar Pet 🐾</button>
                     </div>
 
                 </form>
@@ -1209,7 +1203,7 @@
                     >
                         <span>🟢</span>
                         <strong>Pets Desaparecidos</strong>
-                        <small>Ver alertas com foto dos pets desaparecidos.</small>
+                        <small>Ver alertas com foto e informações dos pets desaparecidos.</small>
                     </button>
 
                     <button
