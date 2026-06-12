@@ -1,4 +1,9 @@
 
+/* =====================================================
+   CONFIGURAÇÃO DAS OPÇÕES VISUAIS ORIGINAIS
+   Necessário para o cidadão marcar a opção do problema
+===================================================== */
+
 var currentFormConfig = null;
 
 var FORM_CONFIGS = {
