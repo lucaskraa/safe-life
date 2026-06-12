@@ -8976,3 +8976,224 @@ document.addEventListener("DOMContentLoaded", function() {
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootFinalFixes);
     else bootFinalFixes();
 })();
+
+
+(function () {
+  function byId(id){ return document.getElementById(id); }
+  function cleanText(v){ return String(v || '').replace(/\s+/g, ' ').trim(); }
+  function goodAddress(v){
+    var txt = cleanText(v);
+    if(!txt) return '';
+    var bad = ['---','não informado','nao informado','localização não informada','localizacao nao informada','indefinido'];
+    return bad.includes(txt.toLowerCase()) ? '' : txt;
+  }
+  function fastTop(){ try { window.scrollTo(0,0); } catch(e){} }
+  function fastShow(screenId){
+    document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); s.style.display='none'; });
+    var target = byId(screenId); if(!target) return; target.style.display='block'; target.classList.add('active'); fastTop();
+  }
+  window.nextScreen = fastShow;
+
+  function currentAddress(){
+    try {
+      if (typeof localizacaoUsuario !== 'undefined' && localizacaoUsuario && goodAddress(localizacaoUsuario.enderecoCompleto)) return goodAddress(localizacaoUsuario.enderecoCompleto);
+    } catch(e) {}
+    var ids = ['userFullAddress','userAddress','realAddressText'];
+    for (var i=0;i<ids.length;i++){
+      var node = byId(ids[i]); if(!node) continue;
+      var raw = 'value' in node ? node.value : node.textContent;
+      raw = goodAddress(raw); if(raw) return raw;
+    }
+    var parts = ['realStreet','userStreet','realNeighborhood','userNeighborhood','realCity','userCity','realState','userState'].map(function(id){ var n=byId(id); return n ? goodAddress('value' in n ? n.value : n.textContent) : ''; }).filter(Boolean);
+    return parts.join(', ');
+  }
+
+  window.obterTextoLocalizacaoAtual = function(){ return currentAddress(); };
+  window.obterLocalizacaoAtualObjeto = function(){ return { enderecoCompleto: currentAddress() }; };
+
+  window.usarMinhaLocalizacaoNoCampo = async function(campoId){
+    var campo = byId(campoId); if(!campo) return;
+    var addr = currentAddress();
+    if(!addr && typeof solicitarLocalizacao === 'function'){
+      try { await solicitarLocalizacao({ preencherCampo: campoId }); } catch(e) {}
+      addr = currentAddress();
+    }
+    if(addr){
+      campo.value = addr;
+      if(typeof triggerToast === 'function') triggerToast('📍 Localização preenchida.');
+      else if(typeof toast === 'function') toast('📍 Localização preenchida.');
+      return;
+    }
+    alert('Ative a localização para preencher o endereço.');
+  };
+
+  function markPetCards(){
+    var cards = document.querySelectorAll('#menuScreen .action-card');
+    if(cards[0]) cards[0].classList.add('pet-primary');
+    if(cards[1]) cards[1].classList.add('pet-primary');
+    var rescue = document.querySelector('#menuScreen .rescue-card');
+    if(rescue){ rescue.style.gridColumn='1 / -1'; rescue.style.placeSelf='center'; rescue.style.justifySelf='center'; rescue.style.margin='0 auto'; }
+  }
+
+  function setPetMode(mode){
+    var form = byId('petForm'); if(form) form.dataset.mode = mode;
+    var missing = mode === 'missing';
+    var missingBox = byId('petMissingFields'); if(missingBox) missingBox.classList.toggle('hidden', !missing);
+    var headerTitle = document.querySelector('#scrPetForm header h1');
+    var headerSub = document.querySelector('#scrPetForm header p');
+    var heroTitle = byId('petFormHeroTitle');
+    var heroText = byId('petFormHeroText');
+    var submit = byId('petSubmitButton');
+    var heroIcon = document.querySelector('#scrPetForm .pet-form-hero-icon');
+    if(missing){
+      if(headerTitle) headerTitle.textContent = 'Pet Desaparecido';
+      if(headerSub) headerSub.textContent = 'Envie os dados para ajudar os profissionais na busca';
+      if(heroTitle) heroTitle.textContent = 'Alerta de Pet Desaparecido';
+      if(heroText) heroText.textContent = 'Preencha as informações mais importantes e o último local onde ele foi visto.';
+      if(submit) submit.textContent = 'Enviar Alerta 🚨';
+      if(heroIcon) heroIcon.textContent = '🚨';
+    } else {
+      if(headerTitle) headerTitle.textContent = 'Cadastrar Meu Pet';
+      if(headerSub) headerSub.textContent = 'Registre seu animal no Safe Life';
+      if(heroTitle) heroTitle.textContent = 'Cadastro do Pet';
+      if(heroText) heroText.textContent = 'Preencha os dados principais do seu pet em um cadastro bonito e rápido.';
+      if(submit) submit.textContent = 'Salvar Pet 🐾';
+      if(heroIcon) heroIcon.textContent = '🐾';
+    }
+  }
+
+  window.openPetForm = function(){
+    var form = byId('petForm'); if(form) form.reset();
+    setPetMode('register');
+    var addr = currentAddress(); if(addr && byId('petLocation')) byId('petLocation').value = addr;
+    fastShow('scrPetForm');
+  };
+
+  window.abrirPetDesaparecido = function(){
+    var form = byId('petForm'); if(form) form.reset();
+    setPetMode('missing');
+    var addr = currentAddress();
+    if(addr && byId('petLocation')) byId('petLocation').value = addr;
+    if(addr && byId('petMissingLocation')) byId('petMissingLocation').value = addr;
+    fastShow('scrPetForm');
+  };
+
+  window.openCitizenForm = function(typeKey){
+    if(!window.FORM_CONFIGS || !FORM_CONFIGS[typeKey]){ if(typeof toast==='function') toast('Tipo de formulário não encontrado.'); return; }
+    window.currentFormConfig = FORM_CONFIGS[typeKey];
+    var form = byId('citizenForm'); if(form) form.reset();
+    if(byId('formKey')) byId('formKey').value = typeKey;
+    if(byId('formTitle')) byId('formTitle').textContent = currentFormConfig.title;
+    if(byId('formSubtitle')) byId('formSubtitle').textContent = currentFormConfig.subtitle;
+    if(byId('selectedQuickOption')) byId('selectedQuickOption').value = '';
+    if(typeof renderOptions === 'function') renderOptions('quickOptionsGrid', currentFormConfig.options, 'selectedQuickOption');
+    else if(typeof renderOptionsFixed === 'function') renderOptionsFixed('quickOptionsGrid', currentFormConfig.options, 'selectedQuickOption');
+    var addr = currentAddress(); if(addr && byId('formLocation')) byId('formLocation').value = addr;
+    fastShow('scrForm');
+  };
+
+  window.openAnonForm = function(){
+    var form = byId('anonForm'); if(form) form.reset();
+    if(byId('selectedAnonOption')) byId('selectedAnonOption').value = '';
+    if(window.FORM_CONFIGS && FORM_CONFIGS.anonymous){
+      if(typeof renderOptions === 'function') renderOptions('anonOptionsGrid', FORM_CONFIGS.anonymous.options, 'selectedAnonOption');
+      else if(typeof renderOptionsFixed === 'function') renderOptionsFixed('anonOptionsGrid', FORM_CONFIGS.anonymous.options, 'selectedAnonOption');
+    }
+    var addr = currentAddress(); if(addr && byId('anonLocation')) byId('anonLocation').value = addr;
+    fastShow('scrAnonForm');
+  };
+
+  window.registrarPet = async function(event){
+    if(event && event.preventDefault) event.preventDefault();
+    var user = typeof currentUser === 'function' ? currentUser() : null;
+    if(!user) return alert('Você precisa estar logado.');
+    var form = byId('petForm');
+    var missing = !!(form && form.dataset.mode === 'missing');
+    var nome = cleanText(byId('petName') ? byId('petName').value : '');
+    if(!nome) return alert('Informe o nome do pet.');
+    if(missing && !cleanText(byId('petMissingLocation') && byId('petMissingLocation').value)) return alert('Informe o último local visto do pet.');
+    var foto = typeof fileToBase64 === 'function' ? await fileToBase64('petPhoto') : '';
+    if(!foto && typeof DEFAULT_PET_PHOTO !== 'undefined') foto = DEFAULT_PET_PHOTO;
+    var pet = normalizePet({
+      id: Date.now().toString(),
+      donoCpf: user.cpf,
+      donoNome: user.nome,
+      nome: nome,
+      idade: Number(byId('petAge') && byId('petAge').value ? byId('petAge').value : 0),
+      especie: cleanText(byId('petSpecies') && byId('petSpecies').value) || 'Animal',
+      raca: cleanText(byId('petBreed') && byId('petBreed').value) || 'Não informada',
+      sexo: cleanText(byId('petSex') && byId('petSex').value) || 'NAO_INFORMADO',
+      cor: cleanText(byId('petColor') && byId('petColor').value) || 'Não informada',
+      local: cleanText(byId('petLocation') && byId('petLocation').value) || 'Não informado',
+      observacoes: cleanText(byId('petObservations') && byId('petObservations').value),
+      foto: foto,
+      desaparecido: missing,
+      statusPet: missing ? 'DESAPARECIDO' : 'CADASTRADO',
+      localDesaparecimento: missing ? cleanText(byId('petMissingLocation') && byId('petMissingLocation').value) : '',
+      detalhesDesaparecimento: missing ? cleanText(byId('petMissingDetails') && byId('petMissingDetails').value) : '',
+      desaparecidoEm: missing ? new Date().toISOString() : ''
+    }, user.cpf);
+    try {
+      if(typeof api === 'function'){
+        var res = await api('/api/pets', { method:'POST', body: JSON.stringify({
+          donoCpf: pet.donoCpf, nome: pet.nome, idade: pet.idade, especie: pet.especie, raca: pet.raca, sexo: pet.sexo, cor: pet.cor,
+          local: pet.local, observacoes: pet.observacoes, foto: pet.foto, desaparecido: pet.desaparecido,
+          statusPet: pet.statusPet, localDesaparecimento: pet.localDesaparecimento, detalhesDesaparecimento: pet.detalhesDesaparecimento
+        })});
+        if(res && res.pet && res.pet.id) pet.id = res.pet.id;
+      }
+    } catch(e){}
+    if(typeof upsertPet === 'function') upsertPet(pet);
+    if(typeof toast === 'function') toast(missing ? '🚨 Alerta de pet desaparecido enviado.' : '🐾 Pet cadastrado com sucesso!');
+    if(byId('confirmMsg')) byId('confirmMsg').textContent = missing ? 'O alerta do pet desaparecido foi enviado.' : 'O pet foi cadastrado com sucesso.';
+    fastShow('confirmationScreen');
+  };
+
+  function esc(v){ return String(v||'').replace(/[&<>\"']/g,function(s){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]); }); }
+  function missingCard(p){
+    var owner = p.donoNome || '';
+    return '<div class="missing-pet-card">'
+      + '<div class="missing-pet-head">'
+      + '<img class="missing-pet-photo" src="'+esc(p.foto || (typeof DEFAULT_PET_PHOTO!=='undefined'?DEFAULT_PET_PHOTO:''))+'" alt="Pet">'
+      + '<div class="missing-pet-meta"><h4>🚨 '+esc(p.nome)+'</h4><small>'+esc((p.especie||'Animal')+' • '+(p.raca||'Raça não informada'))+'</small><div class="missing-pet-badge">DESAPARECIDO</div></div>'
+      + '</div>'
+      + '<div class="missing-pet-lines">'
+      + '<div><strong>Dono:</strong> '+esc(owner || 'Não informado')+'</div>'
+      + '<div><strong>Último local:</strong> '+esc(p.localDesaparecimento || p.local_desaparecimento || p.local || 'Não informado')+'</div>'
+      + '<div><strong>Características:</strong> '+esc(p.observacoes || p.detalhesDesaparecimento || p.detalhes_desaparecimento || 'Sem detalhes')+'</div>'
+      + '</div></div>';
+  }
+
+  window.abrirAgentesAtivos = async function(){
+    var pets = [];
+    try { if(typeof loadPets === 'function') pets = await loadPets(); } catch(e){}
+    pets = (pets || []).map(function(p){ return typeof normalizePet==='function' ? normalizePet(p) : p; }).filter(function(p){ return !!p.desaparecido; });
+    var headTitle = document.querySelector('#activeAgentsScreen header h1');
+    var headText = document.querySelector('#activeAgentsScreen header p');
+    var introTitle = document.querySelector('#activeAgentsScreen .occurrence-card h4');
+    var introText = document.querySelector('#activeAgentsScreen .occurrence-card p');
+    var container = byId('activeAgentsList');
+    if(headTitle) headTitle.textContent = 'Pets Desaparecidos';
+    if(headText) headText.textContent = 'Área rápida para visualizar os pets desaparecidos com foto e detalhes';
+    if(introTitle) introTitle.textContent = '🚨 Alertas de pets desaparecidos';
+    if(introText) introText.textContent = 'Veja os pets desaparecidos e as informações principais para ajudar na busca.';
+    if(container){
+      container.innerHTML = pets.length
+        ? '<div class="professional-missing-wrapper"><div class="professional-missing-summary"><div class="professional-summary-card"><strong>'+pets.length+'</strong><span>Pets desaparecidos</span></div><div class="professional-summary-card"><strong>'+new Set(pets.map(function(p){return p.donoCpf || '';}).filter(Boolean)).size+'</strong><span>Tutores aguardando ajuda</span></div></div><div class="missing-pet-grid">'+pets.map(missingCard).join('')+'</div></div>'
+        : '<div class="occurrence-card"><h4>Nenhum pet desaparecido</h4><p>No momento não há alertas ativos.</p></div>';
+    }
+    fastShow('activeAgentsScreen');
+  };
+
+  function finalBoot(){
+    document.querySelectorAll('.screen').forEach(function(s){ s.style.animation='none'; });
+    markPetCards();
+    setPetMode('register');
+    var petForm = byId('petForm'); if(petForm) petForm.onsubmit = window.registrarPet;
+    var proBtn = document.querySelector('.professional-tool-card');
+    if(proBtn){ proBtn.setAttribute('onclick','abrirAgentesAtivos()'); var icon=proBtn.querySelector('span'); var title=proBtn.querySelector('strong'); var txt=proBtn.querySelector('small'); if(icon) icon.textContent='🚨'; if(title) title.textContent='Pets Desaparecidos'; if(txt) txt.textContent='Ver cards com foto e detalhes dos pets desaparecidos.'; }
+  }
+
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', finalBoot);
+  else finalBoot();
+})();
