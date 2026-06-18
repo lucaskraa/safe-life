@@ -567,7 +567,7 @@ VALUES
     '(41) 99999-0000',
     'citizen',
     NULL,
-    'img/vitor-chineque.jpg',
+    'img/pequenochinique.jpeg',
     TRUE
 ),
 (
@@ -578,7 +578,7 @@ VALUES
     '(41) 98888-0000',
     'professional',
     'Safe Life Matriz',
-    'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
+    'img/corredorzeca.jpeg',
     TRUE
 ),
 (
@@ -589,9 +589,21 @@ VALUES
     '(41) 97777-0000',
     'admin',
     'Safe Life Matriz',
-    'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=300&q=80',
+    'img/apenasumsiri.jpeg',
     TRUE
 );
+
+
+
+-- Garante as fotos originais dos três perfis de demonstração.
+UPDATE usuarios
+SET foto_perfil = CASE cpf
+    WHEN '11111111111' THEN 'img/pequenochinique.jpeg'
+    WHEN '99999999999' THEN 'img/corredorzeca.jpeg'
+    WHEN '45317828791' THEN 'img/apenasumsiri.jpeg'
+    ELSE foto_perfil
+END
+WHERE cpf IN ('11111111111', '99999999999', '45317828791');
 
 -- =====================================================
 -- FUNCIONÁRIOS INICIAIS
@@ -695,173 +707,23 @@ FROM usuarios
 WHERE cpf = '11111111111';
 
 -- =====================================================
--- OCORRÊNCIAS DE DEMONSTRAÇÃO
+-- OCORRÊNCIAS INICIAIS
 -- =====================================================
 
-INSERT INTO ocorrencias
-(
-    usuario_id,
-    tipo,
-    categoria,
-    assunto,
-    opcao_escolhida,
-    localizacao,
-    detalhes,
-    foto,
-    latitude,
-    longitude,
-    endereco_completo,
-    bairro,
-    cidade,
-    estado,
-    status,
-    prioridade,
-    anonima
-)
-SELECT
-    id,
-    'Solicitar Resgate',
-    'rescue',
-    'Animal na rua',
-    'Animal na rua',
-    'Rua das Flores - Centro',
-    'Cachorro assustado próximo aos carros, aparentemente perdido e com risco de atropelamento.',
-    'https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=600&q=80',
-    -25.593700,
-    -49.410300,
-    'Rua das Flores - Centro - Araucária - PR',
-    'Centro',
-    'Araucária',
-    'PR',
-    'PENDENTE',
-    'ALTA',
-    FALSE
-FROM usuarios
-WHERE cpf = '11111111111';
-
-INSERT INTO ocorrencias
-(
-    usuario_id,
-    tipo,
-    categoria,
-    assunto,
-    opcao_escolhida,
-    localizacao,
-    detalhes,
-    foto,
-    latitude,
-    longitude,
-    endereco_completo,
-    bairro,
-    cidade,
-    estado,
-    status,
-    prioridade,
-    anonima
-)
-SELECT
-    id,
-    'Emergência Crítica / Código Vermelho',
-    'emergency',
-    'Animal ferido',
-    'Animal ferido',
-    'Avenida Principal - Bairro Novo',
-    'Gato aparentemente ferido, parado na calçada e sem conseguir andar direito.',
-    'https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=600&q=80',
-    -25.595000,
-    -49.412000,
-    'Avenida Principal - Bairro Novo - Araucária - PR',
-    'Bairro Novo',
-    'Araucária',
-    'PR',
-    'PENDENTE',
-    'CRITICA',
-    FALSE
-FROM usuarios
-WHERE cpf = '11111111111';
+-- Nenhuma ocorrência de demonstração é criada.
+-- A fila profissional começa vazia e recebe apenas chamados reais enviados pelo aplicativo.
 
 -- =====================================================
--- DENÚNCIAS ANÔNIMAS DE DEMONSTRAÇÃO
+-- DENÚNCIAS ANÔNIMAS INICIAIS
 -- =====================================================
 
-INSERT INTO denuncias_anonimas
-(
-    tipo,
-    categoria,
-    assunto,
-    opcao_escolhida,
-    localizacao,
-    detalhes,
-    foto,
-    latitude,
-    longitude,
-    endereco_completo,
-    bairro,
-    cidade,
-    estado,
-    status,
-    prioridade
-)
-VALUES
-(
-    'Denúncia Anônima',
-    'anonymous',
-    'Sem água e comida',
-    'Sem água e comida',
-    'Rua Esperança - Jardim América',
-    'Cachorro preso no quintal, aparentemente sem água e sem comida há alguns dias.',
-    'https://images.unsplash.com/photo-1583512603805-3cc6b41f3edb?auto=format&fit=crop&w=600&q=80',
-    -25.596000,
-    -49.414000,
-    'Rua Esperança - Jardim América - Araucária - PR',
-    'Jardim América',
-    'Araucária',
-    'PR',
-    'PENDENTE',
-    'ALTA'
-),
-(
-    'Denúncia Anônima',
-    'anonymous',
-    'Animal acorrentado',
-    'Animal acorrentado',
-    'Travessa das Palmeiras - Vila Verde',
-    'Animal permanece acorrentado o dia inteiro, sem abrigo adequado contra chuva e sol.',
-    'https://images.unsplash.com/photo-1596492784531-6e6eb5ea9993?auto=format&fit=crop&w=600&q=80',
-    -25.598000,
-    -49.416000,
-    'Travessa das Palmeiras - Vila Verde - Araucária - PR',
-    'Vila Verde',
-    'Araucária',
-    'PR',
-    'PENDENTE',
-    'ALTA'
-);
+-- Nenhuma denúncia anônima de demonstração é criada.
 
 -- =====================================================
 -- HISTÓRICO INICIAL
--- Cada ocorrência recebe exatamente um registro de criação.
 -- =====================================================
 
-INSERT INTO historico_ocorrencias
-(
-    ocorrencia_id,
-    funcionario_id,
-    status_anterior,
-    status_novo,
-    acao,
-    observacao
-)
-SELECT
-    o.id,
-    NULL,
-    NULL,
-    'PENDENTE',
-    'Chamado criado',
-    'Ocorrência registrada automaticamente pelo sistema.'
-FROM ocorrencias o;
-
-COMMIT;
+-- O histórico será criado somente quando ocorrências reais forem abertas ou atualizadas.
 
 -- =====================================================
 -- TESTES OPCIONAIS
