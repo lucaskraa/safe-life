@@ -7,7 +7,7 @@ const { Pool } = require("pg");
 
 const app = express();
 
-const SAFE_LIFE_VERSION = "19.0";
+const SAFE_LIFE_VERSION = "20.0";
 const PORT = Number(process.env.PORT) || 3000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 const IS_PRODUCTION = NODE_ENV === "production";
@@ -67,13 +67,20 @@ app.use(cors({
 }));
 
 app.use(express.json({
-    limit: "35mb"
+    limit: "18mb"
 }));
 
 app.use(express.urlencoded({
     extended: true,
-    limit: "35mb"
+    limit: "18mb"
 }));
+
+app.use("/api", (req, res, next) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    next();
+});
 
 
 app.use((req, res, next) => {
@@ -540,11 +547,12 @@ async function inserirNotificacao(client, {
     foto = null,
     dados = {}
 }) {
-    await client.query(
+    const result = await client.query(
         `
         INSERT INTO notificacoes
         (usuario_id, tipo, titulo, mensagem, foto, dados)
         VALUES ($1,$2,$3,$4,$5,$6::jsonb)
+        RETURNING id, usuario_id, tipo, titulo, mensagem, criado_em
         `,
         [
             usuarioId,
@@ -555,6 +563,24 @@ async function inserirNotificacao(client, {
             JSON.stringify(dados || {})
         ]
     );
+
+    const notification = result.rows[0];
+
+    await publishRealtimeEvent({
+        db: client,
+        audience: "USER",
+        audienceId: usuarioId,
+        type: "user_notification",
+        payload: {
+            notificationId: notification.id,
+            title: notification.titulo,
+            message: notification.mensagem,
+            notificationType: notification.tipo,
+            createdAt: notification.criado_em
+        }
+    });
+
+    return notification;
 }
 
 async function verificarAdmin(req, res, next) {
@@ -738,32 +764,190 @@ app.use("/api/auth/login", (req, res, next) => {
 
 
 /* =====================================================
-   TEMPO REAL — EVENTOS PARA O PAINEL PROFISSIONAL
+   TEMPO REAL ONLINE FIRST — SSE + POSTGRES LISTEN/NOTIFY
 ===================================================== */
 
-const professionalRealtimeClients = new Set();
+const realtimeClients = new Map();
+let realtimeListenerClient = null;
+let realtimeListenerRetryTimer = null;
 
-function broadcastProfessionalEvent(type, payload = {}) {
-    const event = {
-        type,
-        payload,
-        sentAt: new Date().toISOString()
-    };
+function normalizeRealtimePayload(payload) {
+    const safe = payload && typeof payload === "object" ? { ...payload } : {};
 
-    const message =
-        `event: ${type}\n` +
-        `data: ${JSON.stringify(event)}\n\n`;
-
-    for (const response of professionalRealtimeClients) {
-        try {
-            response.write(message);
-        } catch (erro) {
-            professionalRealtimeClients.delete(response);
+    for (const key of ["foto", "photo", "fotoEncontrado", "foto_encontrado"]) {
+        if (typeof safe[key] === "string" && safe[key].length > 1000) {
+            safe[key] = null;
         }
+    }
+
+    return safe;
+}
+
+function realtimeClientCanReceive(client, event) {
+    if (event.audience === "ALL") return true;
+    if (event.audience === "PROFESSIONALS") {
+        return client.type === "professional" || client.type === "admin";
+    }
+    if (event.audience === "ADMINS") return client.type === "admin";
+    if (event.audience === "USER") {
+        return Number(event.audienceId) === Number(client.userId);
+    }
+    return false;
+}
+
+function writeRealtimeEvent(client, event) {
+    if (!client || client.closed || !realtimeClientCanReceive(client, event)) return;
+
+    try {
+        if (event.id) client.res.write(`id: ${event.id}\n`);
+        client.res.write(`event: ${event.type}\n`);
+        client.res.write(`data: ${JSON.stringify({
+            id: event.id || null,
+            type: event.type,
+            payload: event.payload || {},
+            sentAt: event.sentAt || new Date().toISOString()
+        })}\n\n`);
+    } catch (_) {
+        client.closed = true;
+        realtimeClients.delete(client.id);
     }
 }
 
-app.get("/api/realtime/professional", (req, res) => {
+function deliverRealtimeEvent(event) {
+    for (const client of realtimeClients.values()) {
+        writeRealtimeEvent(client, event);
+    }
+}
+
+async function publishRealtimeEvent({
+    db = pool,
+    audience = "ALL",
+    audienceId = null,
+    type,
+    payload = {}
+}) {
+    const normalizedPayload = normalizeRealtimePayload(payload);
+
+    try {
+        const result = await db.query(
+            `
+            INSERT INTO eventos_tempo_real
+            (audiencia, usuario_id, tipo_evento, payload)
+            VALUES ($1,$2,$3,$4::jsonb)
+            RETURNING id, audiencia, usuario_id, tipo_evento, payload, criado_em
+            `,
+            [
+                audience,
+                audienceId || null,
+                String(type || "message").slice(0, 80),
+                JSON.stringify(normalizedPayload)
+            ]
+        );
+
+        const row = result.rows[0];
+        const event = {
+            id: Number(row.id),
+            audience: row.audiencia,
+            audienceId: row.usuario_id,
+            type: row.tipo_evento,
+            payload: row.payload || {},
+            sentAt: row.criado_em
+        };
+
+        await db.query(
+            "SELECT pg_notify('safe_life_events', $1)",
+            [JSON.stringify(event)]
+        );
+
+        return event;
+    } catch (error) {
+        console.warn("⚠️ Evento em tempo real não persistido:", error.message);
+        const fallbackEvent = {
+            id: Date.now(),
+            audience,
+            audienceId,
+            type,
+            payload: normalizedPayload,
+            sentAt: new Date().toISOString()
+        };
+        deliverRealtimeEvent(fallbackEvent);
+        return fallbackEvent;
+    }
+}
+
+function broadcastProfessionalEvent(type, payload = {}) {
+    publishRealtimeEvent({
+        audience: "PROFESSIONALS",
+        type,
+        payload
+    }).catch((error) => {
+        console.warn("⚠️ Falha ao publicar evento profissional:", error.message);
+    });
+}
+
+async function connectRealtimeListener() {
+    if (realtimeListenerClient) return;
+
+    try {
+        const client = await pool.connect();
+        realtimeListenerClient = client;
+        await client.query("LISTEN safe_life_events");
+
+        client.on("notification", (message) => {
+            if (message.channel !== "safe_life_events" || !message.payload) return;
+            try {
+                deliverRealtimeEvent(JSON.parse(message.payload));
+            } catch (error) {
+                console.warn("⚠️ Evento PostgreSQL inválido:", error.message);
+            }
+        });
+
+        const reconnect = () => {
+            try { client.release(); } catch (_) {}
+            realtimeListenerClient = null;
+            if (realtimeListenerRetryTimer) clearTimeout(realtimeListenerRetryTimer);
+            realtimeListenerRetryTimer = setTimeout(connectRealtimeListener, 2500);
+        };
+
+        client.on("error", reconnect);
+        client.on("end", reconnect);
+        console.log("📡 Canal PostgreSQL de tempo real conectado.");
+    } catch (error) {
+        realtimeListenerClient = null;
+        console.warn("⚠️ Canal PostgreSQL indisponível:", error.message);
+        realtimeListenerRetryTimer = setTimeout(connectRealtimeListener, 2500);
+    }
+}
+
+async function handleRealtimeStream(req, res) {
+    const token = String(req.query.token || extrairBearerToken(req) || "");
+    const payload = validarTokenSessao(token);
+
+    if (!payload) {
+        return res.status(401).json({
+            error: "Sessão inválida para o canal em tempo real.",
+            code: "REALTIME_AUTH_REQUIRED"
+        });
+    }
+
+    let user = await buscarUsuarioPorCpf(payload.cpf);
+    user = await reativarBloqueioExpirado(user);
+    const accountState = estadoConta(user);
+
+    if (!accountState.ok) {
+        return res.status(accountState.status).json({
+            error: accountState.message,
+            code: accountState.code
+        });
+    }
+
+    if (Number(payload.sv || 1) !== Number(user.session_version || 1)) {
+        return res.status(401).json({
+            error: "Sessão revogada.",
+            code: "SESSION_REVOKED"
+        });
+    }
+
     res.status(200);
     res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
     res.setHeader("Cache-Control", "no-cache, no-transform");
@@ -771,30 +955,84 @@ app.get("/api/realtime/professional", (req, res) => {
     res.setHeader("X-Accel-Buffering", "no");
     res.flushHeaders?.();
 
-    professionalRealtimeClients.add(res);
+    const client = {
+        id: crypto.randomUUID(),
+        res,
+        userId: user.id,
+        type: user.tipo,
+        closed: false
+    };
 
-    res.write("retry: 2000\n");
-    res.write(
-        `event: connected\ndata: ${JSON.stringify({
-            type: "connected",
-            sentAt: new Date().toISOString()
-        })}\n\n`
+    realtimeClients.set(client.id, client);
+    res.write("retry: 1500\n\n");
+
+    const lastEventId = Math.max(
+        0,
+        Number(req.query.lastEventId || req.headers["last-event-id"] || 0) || 0
     );
+
+    try {
+        const replay = await pool.query(
+            `
+            SELECT id, audiencia, usuario_id, tipo_evento, payload, criado_em
+            FROM eventos_tempo_real
+            WHERE id > $1
+              AND (
+                    audiencia = 'ALL'
+                 OR (audiencia = 'PROFESSIONALS' AND $2 IN ('professional', 'admin'))
+                 OR (audiencia = 'ADMINS' AND $2 = 'admin')
+                 OR (audiencia = 'USER' AND usuario_id = $3)
+              )
+            ORDER BY id ASC
+            LIMIT 200
+            `,
+            [lastEventId, user.tipo, user.id]
+        );
+
+        for (const row of replay.rows) {
+            writeRealtimeEvent(client, {
+                id: Number(row.id),
+                audience: row.audiencia,
+                audienceId: row.usuario_id,
+                type: row.tipo_evento,
+                payload: row.payload || {},
+                sentAt: row.criado_em
+            });
+        }
+    } catch (error) {
+        console.warn("⚠️ Replay de eventos indisponível:", error.message);
+    }
+
+    writeRealtimeEvent(client, {
+        audience: "USER",
+        audienceId: user.id,
+        type: "connected",
+        payload: {
+            version: SAFE_LIFE_VERSION,
+            userType: user.tipo
+        },
+        sentAt: new Date().toISOString()
+    });
 
     const heartbeat = setInterval(() => {
         try {
             res.write(`: heartbeat ${Date.now()}\n\n`);
         } catch (_) {
             clearInterval(heartbeat);
-            professionalRealtimeClients.delete(res);
         }
-    }, 20000);
+    }, 15000);
 
     req.on("close", () => {
         clearInterval(heartbeat);
-        professionalRealtimeClients.delete(res);
+        client.closed = true;
+        realtimeClients.delete(client.id);
     });
-});
+}
+
+app.get("/api/realtime/stream", handleRealtimeStream);
+app.get("/api/realtime/professional", handleRealtimeStream);
+
+connectRealtimeListener().catch(() => {});
 
 /* =====================================================
    AUTENTICAÇÃO
@@ -984,6 +1222,17 @@ app.post("/api/auth/register", async (req, res) => {
             novoUsuario;
 
         const token = criarTokenSessao(usuarioCompleto);
+
+        publishRealtimeEvent({
+            audience: "ADMINS",
+            type: "admin_changed",
+            payload: {
+                action: "USER_REGISTERED",
+                userId: usuarioCompleto.id,
+                userType: usuarioCompleto.tipo,
+                name: usuarioCompleto.nome
+            }
+        }).catch(() => {});
 
         return res.status(201).json({
             message: "Conta criada com sucesso.",
@@ -3553,6 +3802,17 @@ app.patch("/api/admin/accounts/:cpf/suspend", verificarAdmin, async (req, res) =
             req
         });
 
+        await publishRealtimeEvent({
+            audience: "USER",
+            audienceId: result.rows[0].id,
+            type: "account_status",
+            payload: {
+                code: "ACCOUNT_SUSPENDED",
+                message: motivo,
+                blockedUntil: result.rows[0].bloqueado_ate
+            }
+        });
+
         return res.status(200).json({
             message: `Conta suspensa por ${dias} dia(s).`,
             user: usuarioSeguro(result.rows[0])
@@ -3600,6 +3860,13 @@ app.patch("/api/admin/accounts/:cpf/reactivate", verificarAdmin, async (req, res
             req
         });
 
+        await publishRealtimeEvent({
+            audience: "USER",
+            audienceId: result.rows[0].id,
+            type: "account_status",
+            payload: { code: "ACCOUNT_REACTIVATED", message: "Conta reativada." }
+        });
+
         return res.status(200).json({ message: "Conta reativada.", user: usuarioSeguro(result.rows[0]) });
     } catch (erro) {
         return res.status(500).json({ error: "Erro ao reativar conta.", details: erro.message });
@@ -3645,6 +3912,13 @@ app.delete("/api/admin/accounts/:cpf/delete", verificarAdmin, async (req, res) =
             acao: "CONTA_EXCLUIDA",
             detalhes: { motivo },
             req
+        });
+
+        await publishRealtimeEvent({
+            audience: "USER",
+            audienceId: result.rows[0].id,
+            type: "account_status",
+            payload: { code: "ACCOUNT_DELETED", message: motivo }
         });
 
         return res.status(200).json({ message: "Conta excluída e sessões revogadas." });
