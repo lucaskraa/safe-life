@@ -4307,3 +4307,48 @@ html {
         padding: 25px 17px 18px;
     }
 }
+/* =====================================================
+   SAFE LIFE V18.1 — CORREÇÃO DO RESGATE DE PET
+   Exibe o botão que abre a tela obrigatória de conclusão.
+===================================================== */
+
+#activeAgentsScreen .safe-life-pet-card .safe-life-pet-actions,
+#activeAgentsScreen .missing-pet-pro-card .safe-life-pet-actions {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+    width: 100% !important;
+    margin-top: 14px !important;
+}
+
+#activeAgentsScreen .missing-pet-pro-card .safe-life-pet-actions .btn {
+    display: flex !important;
+    width: 100% !important;
+    min-height: 52px !important;
+    margin: 0 !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: linear-gradient(135deg, #ef4444, #f97316) !important;
+    color: #ffffff !important;
+    box-shadow: 0 12px 28px rgba(239, 68, 68, 0.22) !important;
+}
+
+#petRescueCompletionScreen .pet-rescue-completion-card {
+    display: block !important;
+}
+
+#petRescueCompletionScreen input[type="file"],
+#petRescueCompletionScreen select,
+#petRescueCompletionScreen textarea,
+#petRescueCompletionScreen input[type="text"] {
+    display: block !important;
+    width: 100% !important;
+}
+
+#petRescueCompletionScreen .rescue-destination-fields.hidden {
+    display: none !important;
+}
+
+#petRescueCompletionScreen .rescue-destination-fields:not(.hidden) {
+    display: block !important;
+}
