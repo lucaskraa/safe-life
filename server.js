@@ -6,6 +6,8 @@ const crypto = require("crypto");
 const { Pool } = require("pg");
 
 const app = express();
+
+const SAFE_LIFE_VERSION = "18.1";
 const PORT = Number(process.env.PORT) || 3000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 const IS_PRODUCTION = NODE_ENV === "production";
@@ -2865,11 +2867,10 @@ app.patch("/api/chamados/:origem/:id/status", async (req, res) => {
         if (origem === "ocorrencia") {
             const anteriorResult = await client.query(
                 `
-                SELECT o.*, u.nome AS nome_cidadao
+                SELECT o.*
                 FROM ocorrencias o
-                LEFT JOIN usuarios u ON u.id = o.usuario_id
                 WHERE o.id = $1
-                FOR UPDATE
+                FOR UPDATE OF o
                 `,
                 [id]
             );
