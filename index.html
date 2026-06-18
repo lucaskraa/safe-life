@@ -67,16 +67,34 @@
                             id="welcomeCarouselImage"
                             src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=1200&q=85"
                             alt="Animal protegido pelo Safe Life"
+                            loading="eager"
+                            decoding="async"
                         >
 
                         <div class="welcome-image-gradient"></div>
 
-                        <div class="carousel-slider">
+                        <div
+                            class="carousel-slider"
+                            id="welcomeCarouselProgress"
+                            role="progressbar"
+                            aria-label="Progresso do carrossel"
+                            aria-valuemin="1"
+                            aria-valuemax="5"
+                            aria-valuenow="1"
+                        >
                             <div
                                 class="carousel-slider-thumb"
                                 id="carouselSliderThumb"
                             ></div>
                         </div>
+
+                        <span
+                            class="carousel-screen-reader"
+                            id="welcomeCarouselStatus"
+                            aria-live="polite"
+                        >
+                            Imagem 1 de 5
+                        </span>
 
                     </div>
 
@@ -266,11 +284,10 @@
                 </button>
 
                 <button
-                    class="btn"
+                    class="btn hidden"
                     id="continuarBtn"
                     onclick="nextScreen('registerScreen')"
                     type="button"
-                    style="display:none;"
                 >
                     Continuar ➜
                 </button>
