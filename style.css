@@ -4143,3 +4143,167 @@ html {
         padding: 18px 14px !important;
     }
 }
+
+/* =====================================================
+   SAFE LIFE V18 — FLUXOS REAIS E MODAIS
+===================================================== */
+
+.missing-pet-form {
+    border: 1px solid rgba(239, 68, 68, 0.15);
+}
+
+.missing-pet-top {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.10), rgba(245, 158, 11, 0.12));
+}
+
+.missing-last-seen-card {
+    border-color: rgba(239, 68, 68, 0.20);
+    background: rgba(255, 247, 247, 0.98);
+}
+
+.missing-submit-btn {
+    background: linear-gradient(135deg, #ef4444, #f97316) !important;
+    box-shadow: 0 12px 28px rgba(239, 68, 68, 0.22) !important;
+}
+
+.missing-pro-info {
+    border-left-color: var(--emergency-color);
+}
+
+.missing-pet-pro-card {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.055), #ffffff);
+    border-left: 6px solid var(--emergency-color);
+}
+
+.missing-pet-pro-card .safe-life-pet-photo {
+    border: 3px solid rgba(239, 68, 68, 0.16);
+}
+
+.pet-rescue-completion-card {
+    background: rgba(255, 255, 255, 0.96);
+    border-radius: 28px;
+    padding: 22px;
+    box-shadow: var(--box-shadow-premium);
+    border: 1px solid rgba(37, 75, 250, 0.10);
+}
+
+.rescue-pet-summary {
+    margin-bottom: 18px;
+}
+
+.rescue-destination-fields {
+    padding: 14px;
+    margin: 10px 0 14px;
+    border-radius: 20px;
+    background: rgba(37, 75, 250, 0.055);
+    border: 1px solid rgba(37, 75, 250, 0.10);
+}
+
+.field-help {
+    display: block;
+    margin: -4px 4px 12px;
+    color: var(--text-light);
+    line-height: 1.45;
+}
+
+.safe-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 5000;
+    display: grid;
+    place-items: center;
+    padding: 22px;
+    background: rgba(15, 23, 42, 0.68);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.safe-modal-card {
+    position: relative;
+    width: min(100%, 440px);
+    max-height: 88vh;
+    overflow-y: auto;
+    background: #ffffff;
+    border-radius: 30px;
+    padding: 28px 22px 22px;
+    box-shadow: 0 30px 80px rgba(15, 23, 42, 0.30);
+}
+
+.safe-modal-card h2 {
+    margin-bottom: 8px;
+    color: var(--text-dark);
+}
+
+.safe-modal-card p {
+    color: var(--text-light);
+    line-height: 1.55;
+    margin-bottom: 14px;
+}
+
+.safe-modal-close {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    width: 38px;
+    height: 38px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(100, 116, 139, 0.12);
+    color: var(--text-dark);
+    font-size: 25px;
+    cursor: pointer;
+}
+
+.account-status-card {
+    text-align: center;
+}
+
+.account-status-icon {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 14px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: rgba(239, 68, 68, 0.12);
+    font-size: 34px;
+}
+
+.admin-user-suspension {
+    margin-top: 12px;
+    padding: 12px;
+    border-radius: 15px;
+    background: rgba(245, 158, 11, 0.12);
+    color: #92400e;
+    font-size: 12px;
+    line-height: 1.5;
+    font-weight: 700;
+}
+
+.notification-photo {
+    width: 100%;
+    max-height: 250px;
+    object-fit: cover;
+    border-radius: 16px;
+    margin-top: 10px;
+}
+
+.notification-location {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(37, 75, 250, 0.06);
+    color: var(--text-dark);
+    line-height: 1.5;
+}
+
+@media (max-width: 420px) {
+    .safe-modal {
+        padding: 12px;
+    }
+
+    .safe-modal-card {
+        border-radius: 24px;
+        padding: 25px 17px 18px;
+    }
+}
