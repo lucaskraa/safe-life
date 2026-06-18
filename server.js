@@ -1,16 +1,68 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
+const fs = require("fs");
+const crypto = require("crypto");
 const { Pool } = require("pg");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-const ADMIN_CPF = "45317828791";
+const PORT = Number(process.env.PORT) || 3000;
+const NODE_ENV = process.env.NODE_ENV || "development";
+const IS_PRODUCTION = NODE_ENV === "production";
+const ADMIN_CPF = String(process.env.ADMIN_CPF || "45317828791").replace(/\D/g, "");
+const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || "123456");
+const ADMIN_TOKEN = String(process.env.ADMIN_TOKEN || "");
+const APP_SECRET = String(
+    process.env.APP_SECRET ||
+    process.env.ADMIN_TOKEN ||
+    "safelife-dev-secret-change-me"
+);
+const REQUIRE_USER_PASSWORD = process.env.REQUIRE_USER_PASSWORD === "true";
+const PUBLIC_DIR = path.join(__dirname, "public");
+const PUBLIC_INDEX = path.join(PUBLIC_DIR, "index.html");
+
+if (IS_PRODUCTION && ADMIN_PASSWORD === "123456") {
+    console.warn("⚠️ Configure ADMIN_PASSWORD no Render. A senha padrão não é segura.");
+}
+
+if (IS_PRODUCTION && APP_SECRET === "safelife-dev-secret-change-me") {
+    console.warn("⚠️ Configure APP_SECRET no Render para proteger os tokens de sessão.");
+}
 
 /* =====================================================
    MIDDLEWARES
 ===================================================== */
 
-app.use(cors());
+app.disable("x-powered-by");
+app.set("trust proxy", 1);
+
+const origensPermitidas = String(process.env.FRONTEND_URL || "")
+    .split(",")
+    .map((origem) => origem.trim().replace(/\/$/, ""))
+    .filter(Boolean);
+
+app.use(cors({
+    origin(origem, callback) {
+        if (!origem || origensPermitidas.length === 0) {
+            return callback(null, true);
+        }
+
+        const origemNormalizada = origem.replace(/\/$/, "");
+
+        if (origensPermitidas.includes(origemNormalizada)) {
+            return callback(null, true);
+        }
+
+        return callback(new Error("Origem não autorizada pelo CORS."));
+    },
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+        "Content-Type",
+        "Authorization",
+        "X-Admin-Token",
+        "X-Requested-With"
+    ]
+}));
 
 app.use(express.json({
     limit: "35mb"
@@ -21,16 +73,45 @@ app.use(express.urlencoded({
     limit: "35mb"
 }));
 
+if (fs.existsSync(PUBLIC_DIR)) {
+    app.use(express.static(PUBLIC_DIR));
+}
+
 /* =====================================================
-   CONEXÃO COM POSTGRESQL
+   CONEXÃO COM POSTGRESQL / SUPABASE
 ===================================================== */
 
-const pool = new Pool({
-    host: process.env.DB_HOST || "localhost",
-    port: process.env.DB_PORT || 5432,
-    database: process.env.DB_NAME || "safelife",
-    user: process.env.DB_USER || "postgres",
-    password: process.env.DB_PASSWORD || "123456"
+const possuiDatabaseUrl = Boolean(process.env.DATABASE_URL);
+
+const configuracaoBanco = possuiDatabaseUrl
+    ? {
+        connectionString: process.env.DATABASE_URL,
+        ssl: process.env.DB_SSL === "false"
+            ? false
+            : { rejectUnauthorized: false },
+        max: Number(process.env.DB_POOL_MAX) || 10,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 15000
+    }
+    : {
+        host: process.env.DB_HOST || "localhost",
+        port: Number(process.env.DB_PORT) || 5432,
+        database: process.env.DB_NAME || "safelife",
+        user: process.env.DB_USER || "postgres",
+        password: process.env.DB_PASSWORD || "",
+        max: Number(process.env.DB_POOL_MAX) || 10,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 15000
+    };
+
+const pool = new Pool(configuracaoBanco);
+
+pool.on("connect", () => {
+    console.log("🐘 Nova conexão aberta com o PostgreSQL.");
+});
+
+pool.on("error", (erro) => {
+    console.error("❌ Erro inesperado no pool do PostgreSQL:", erro.message);
 });
 
 /* =====================================================
@@ -47,6 +128,112 @@ function limparTexto(valor) {
 
 function validarEmail(email) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || ""));
+}
+
+
+function hashSenha(senha) {
+    const senhaTexto = String(senha || "");
+    const salt = crypto.randomBytes(16).toString("hex");
+    const hash = crypto.scryptSync(senhaTexto, salt, 64).toString("hex");
+
+    return `scrypt$${salt}$${hash}`;
+}
+
+function senhaEstaHasheada(senhaHash) {
+    return String(senhaHash || "").startsWith("scrypt$");
+}
+
+function verificarSenha(senha, senhaHash) {
+    const senhaTexto = String(senha || "");
+    const hashSalvo = String(senhaHash || "");
+
+    if (!hashSalvo) return false;
+
+    if (!senhaEstaHasheada(hashSalvo)) {
+        const valorA = Buffer.from(senhaTexto);
+        const valorB = Buffer.from(hashSalvo);
+
+        if (valorA.length !== valorB.length) return false;
+        return crypto.timingSafeEqual(valorA, valorB);
+    }
+
+    const partes = hashSalvo.split("$");
+
+    if (partes.length !== 3) return false;
+
+    const [, salt, hashEsperadoHex] = partes;
+    const hashCalculado = crypto.scryptSync(senhaTexto, salt, 64);
+    const hashEsperado = Buffer.from(hashEsperadoHex, "hex");
+
+    if (hashCalculado.length !== hashEsperado.length) return false;
+    return crypto.timingSafeEqual(hashCalculado, hashEsperado);
+}
+
+function base64UrlEncode(valor) {
+    return Buffer.from(valor).toString("base64url");
+}
+
+function criarTokenSessao(usuario, duracaoHoras = 12) {
+    const agora = Math.floor(Date.now() / 1000);
+    const payload = {
+        sub: usuario.id,
+        cpf: usuario.cpf,
+        tipo: usuario.tipo,
+        iat: agora,
+        exp: agora + (duracaoHoras * 60 * 60)
+    };
+
+    const payloadCodificado = base64UrlEncode(JSON.stringify(payload));
+    const assinatura = crypto
+        .createHmac("sha256", APP_SECRET)
+        .update(payloadCodificado)
+        .digest("base64url");
+
+    return `${payloadCodificado}.${assinatura}`;
+}
+
+function validarTokenSessao(token) {
+    try {
+        const [payloadCodificado, assinaturaRecebida] = String(token || "").split(".");
+
+        if (!payloadCodificado || !assinaturaRecebida) return null;
+
+        const assinaturaEsperada = crypto
+            .createHmac("sha256", APP_SECRET)
+            .update(payloadCodificado)
+            .digest("base64url");
+
+        const bufferRecebido = Buffer.from(assinaturaRecebida);
+        const bufferEsperado = Buffer.from(assinaturaEsperada);
+
+        if (bufferRecebido.length !== bufferEsperado.length) return null;
+
+        if (!crypto.timingSafeEqual(bufferRecebido, bufferEsperado)) {
+            return null;
+        }
+
+        const payload = JSON.parse(
+            Buffer.from(payloadCodificado, "base64url").toString("utf8")
+        );
+
+        if (!payload.exp || payload.exp < Math.floor(Date.now() / 1000)) {
+            return null;
+        }
+
+        return payload;
+    } catch (erro) {
+        return null;
+    }
+}
+
+function extrairBearerToken(req) {
+    const authorization = String(req.headers.authorization || "");
+    const correspondencia = authorization.match(/^Bearer\s+(.+)$/i);
+    return correspondencia ? correspondencia[1].trim() : "";
+}
+
+function detalhesErro(erro) {
+    return IS_PRODUCTION ? undefined : erro.message;
 }
 
 function usuarioSeguro(usuario) {
@@ -128,20 +315,28 @@ async function buscarUsuarioPorCpf(cpf) {
 
 async function garantirAdminNoBanco() {
     const adminExiste = await buscarUsuarioPorCpf(ADMIN_CPF);
+    const senhaAdminHash = hashSenha(ADMIN_PASSWORD);
 
     if (adminExiste) {
-        if (adminExiste.tipo !== "admin" || adminExiste.ativo !== true) {
+        const precisaAtualizar =
+            adminExiste.tipo !== "admin" ||
+            adminExiste.ativo !== true ||
+            !senhaEstaHasheada(adminExiste.senha_hash) ||
+            !verificarSenha(ADMIN_PASSWORD, adminExiste.senha_hash);
+
+        if (precisaAtualizar) {
             const result = await pool.query(
                 `
                 UPDATE usuarios
                 SET
                     tipo = 'admin',
                     empresa = 'Safe Life Matriz',
-                    ativo = TRUE
-                WHERE cpf = $1
+                    ativo = TRUE,
+                    senha_hash = $1
+                WHERE cpf = $2
                 RETURNING *
                 `,
-                [ADMIN_CPF]
+                [senhaAdminHash, ADMIN_CPF]
             );
 
             return result.rows[0];
@@ -169,14 +364,14 @@ async function garantirAdminNoBanco() {
         RETURNING *
         `,
         [
-            "Gustavo Siri",
+            process.env.ADMIN_NAME || "Gustavo Siri",
             ADMIN_CPF,
-            "123456",
-            "gustavo.siriguejo@safelife.com",
-            "11977770000",
+            senhaAdminHash,
+            process.env.ADMIN_EMAIL || "gustavo.siriguejo@safelife.com",
+            process.env.ADMIN_PHONE || "11977770000",
             "admin",
             "Safe Life Matriz",
-            "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=300&q=80"
+            process.env.ADMIN_PHOTO || "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=300&q=80"
         ]
     );
 
@@ -184,53 +379,84 @@ async function garantirAdminNoBanco() {
 }
 
 async function verificarAdmin(req, res, next) {
-    const adminCpf = limparCpf(
-        req.headers["x-admin-cpf"] ||
-        req.body.adminCpf ||
-        req.query.adminCpf ||
-        ADMIN_CPF
-    );
-
-    if (adminCpf !== ADMIN_CPF) {
-        return res.status(403).json({
-            error: "Acesso negado. Apenas o administrador master pode executar esta ação."
-        });
-    }
-
     try {
+        const tokenBearer = extrairBearerToken(req);
+        const tokenEmergencial = String(req.headers["x-admin-token"] || "");
+        const payload = validarTokenSessao(tokenBearer);
+
+        const tokenSessaoValido =
+            payload &&
+            payload.tipo === "admin" &&
+            limparCpf(payload.cpf) === ADMIN_CPF;
+
+        const tokenEmergencialValido =
+            Boolean(ADMIN_TOKEN) &&
+            tokenEmergencial === ADMIN_TOKEN;
+
+        if (!tokenSessaoValido && !tokenEmergencialValido) {
+            return res.status(403).json({
+                error: "Acesso administrativo negado. Faça login como administrador e envie o token Bearer."
+            });
+        }
+
         const admin = await garantirAdminNoBanco();
 
-        if (!admin || admin.cpf !== ADMIN_CPF) {
+        if (!admin || limparCpf(admin.cpf) !== ADMIN_CPF || admin.ativo !== true) {
             return res.status(403).json({
-                error: "Administrador master não encontrado."
+                error: "Administrador master não encontrado ou bloqueado."
             });
         }
 
         req.admin = admin;
-        next();
+        req.auth = payload || {
+            cpf: ADMIN_CPF,
+            tipo: "admin",
+            emergency: true
+        };
+
+        return next();
     } catch (erro) {
         return res.status(500).json({
             error: "Erro ao validar administrador.",
-            details: erro.message
+            details: detalhesErro(erro)
         });
     }
 }
 
 /* =====================================================
-   ROTA INICIAL
+   ROTA INICIAL / SAÚDE DA API
 ===================================================== */
 
-app.get("/", async (req, res) => {
+app.get("/api/status", async (req, res) => {
     try {
-        await pool.query("SELECT NOW()");
-        await garantirAdminNoBanco();
+        const resultado = await pool.query("SELECT NOW() AS horario_banco");
+
+        return res.status(200).json({
+            message: "API Safe Life Online",
+            status: "OK",
+            banco: "PostgreSQL conectado",
+            horarioBanco: resultado.rows[0].horario_banco,
+            ambiente: NODE_ENV
+        });
+    } catch (erro) {
+        return res.status(503).json({
+            message: "API Safe Life iniciada, mas o PostgreSQL não respondeu.",
+            status: "ERRO_BANCO",
+            details: detalhesErro(erro)
+        });
+    }
+});
+
+app.get("/api", async (req, res) => {
+    try {
+        await pool.query("SELECT 1");
 
         return res.status(200).json({
             message: "🚀 API Safe Life Online",
             status: "OK",
             banco: "PostgreSQL conectado",
-            adminCpf: ADMIN_CPF,
             rotas: {
+                status: "GET /api/status",
                 cadastro: "POST /api/auth/register",
                 login: "POST /api/auth/login",
                 usuarios: "GET /api/users",
@@ -249,16 +475,23 @@ app.get("/", async (req, res) => {
                 painelProfissional: "GET /api/pro/ocorrencias",
                 atualizarStatus: "PATCH /api/chamados/:origem/:id/status",
                 deletarChamado: "DELETE /api/chamados/:origem/:id",
-                dashboard: "GET /api/dashboard/resumo",
-                debug: "GET /api/debug/db"
+                dashboard: "GET /api/dashboard/resumo"
             }
         });
     } catch (erro) {
         return res.status(500).json({
             error: "Erro ao conectar no PostgreSQL.",
-            details: erro.message
+            details: detalhesErro(erro)
         });
     }
+});
+
+app.get("/", async (req, res) => {
+    if (fs.existsSync(PUBLIC_INDEX)) {
+        return res.sendFile(PUBLIC_INDEX);
+    }
+
+    return res.redirect("/api");
 });
 
 /* =====================================================
@@ -275,13 +508,20 @@ app.post("/api/auth/register", async (req, res) => {
             email,
             telefone,
             type,
+            role,
             company,
-            foto
+            foto,
+            senha,
+            password
         } = req.body;
 
         const cpfLimpo = limparCpf(cpf);
+        const tipoConta = type || role;
+        const senhaInformada = String(senha || password || "");
+        const senhaTemporaria = !senhaInformada;
+        const senhaFinal = senhaInformada || cpfLimpo;
 
-        if (!nome || !cpfLimpo || !email || !telefone || !type) {
+        if (!nome || !cpfLimpo || !email || !telefone || !tipoConta) {
             return res.status(400).json({
                 error: "Preencha nome, CPF, e-mail, telefone e tipo de conta."
             });
@@ -305,22 +545,28 @@ app.post("/api/auth/register", async (req, res) => {
             });
         }
 
-        if (type !== "citizen" && type !== "professional") {
+        if (tipoConta !== "citizen" && tipoConta !== "professional") {
             return res.status(400).json({
                 error: "Tipo de conta inválido."
             });
         }
 
-        if (type === "professional" && !company) {
+        if (tipoConta === "professional" && !company) {
             return res.status(400).json({
                 error: "Funcionário precisa informar a empresa/base."
+            });
+        }
+
+        if (senhaInformada && senhaInformada.length < 6) {
+            return res.status(400).json({
+                error: "A senha precisa ter pelo menos 6 caracteres."
             });
         }
 
         const usuarioExiste = await buscarUsuarioPorCpf(cpfLimpo);
 
         if (usuarioExiste) {
-            return res.status(400).json({
+            return res.status(409).json({
                 error: "Este CPF já está cadastrado."
             });
         }
@@ -328,13 +574,13 @@ app.post("/api/auth/register", async (req, res) => {
         await client.query("BEGIN");
 
         const fotoPadrao = "img/vitor-chineque.jpg";
-
         const usuarioResult = await client.query(
             `
             INSERT INTO usuarios
             (
                 nome,
                 cpf,
+                senha_hash,
                 email,
                 telefone,
                 tipo,
@@ -343,23 +589,24 @@ app.post("/api/auth/register", async (req, res) => {
                 ativo
             )
             VALUES
-            ($1,$2,$3,$4,$5,$6,$7,TRUE)
+            ($1,$2,$3,$4,$5,$6,$7,$8,TRUE)
             RETURNING *
             `,
             [
                 limparTexto(nome),
                 cpfLimpo,
-                limparTexto(email),
+                hashSenha(senhaFinal),
+                limparTexto(email).toLowerCase(),
                 limparTexto(telefone),
-                type,
-                type === "professional" ? limparTexto(company) : null,
+                tipoConta,
+                tipoConta === "professional" ? limparTexto(company) : null,
                 foto || fotoPadrao
             ]
         );
 
         const novoUsuario = usuarioResult.rows[0];
 
-        if (type === "professional") {
+        if (tipoConta === "professional") {
             await client.query(
                 `
                 INSERT INTO funcionarios
@@ -384,17 +631,31 @@ app.post("/api/auth/register", async (req, res) => {
 
         await client.query("COMMIT");
 
+        const usuarioCompleto = await buscarUsuarioPorCpf(cpfLimpo);
+        const token = criarTokenSessao(usuarioCompleto || novoUsuario);
+
         return res.status(201).json({
-            message: "Usuário cadastrado com sucesso!",
-            user: usuarioSeguro(novoUsuario)
+            message: senhaTemporaria
+                ? "Usuário cadastrado. Como nenhuma senha foi enviada, o CPF foi usado como senha temporária."
+                : "Usuário cadastrado com sucesso!",
+            senhaTemporaria,
+            token,
+            user: usuarioSeguro(usuarioCompleto || novoUsuario)
         });
-
     } catch (erro) {
-        await client.query("ROLLBACK");
+        try {
+            await client.query("ROLLBACK");
+        } catch (_) {
+            // A transação pode não ter sido iniciada.
+        }
 
-        return res.status(500).json({
-            error: "Erro ao cadastrar usuário.",
-            details: erro.message
+        const conflito = erro.code === "23505";
+
+        return res.status(conflito ? 409 : 500).json({
+            error: conflito
+                ? "CPF ou e-mail já cadastrado."
+                : "Erro ao cadastrar usuário.",
+            details: detalhesErro(erro)
         });
     } finally {
         client.release();
@@ -403,18 +664,51 @@ app.post("/api/auth/register", async (req, res) => {
 
 app.post("/api/auth/login", async (req, res) => {
     try {
-        const { cpf, role, company } = req.body;
+        const {
+            cpf,
+            role,
+            type,
+            company,
+            senha,
+            password
+        } = req.body;
 
         const cpfLimpo = limparCpf(cpf);
+        const tipoAcesso = role || type;
+        const senhaInformada = String(senha || password || "");
 
-        if (!cpfLimpo || !role) {
+        if (!cpfLimpo || !tipoAcesso) {
             return res.status(400).json({
                 error: "CPF e tipo de acesso são obrigatórios."
             });
         }
 
+        if (!["citizen", "professional", "admin"].includes(tipoAcesso)) {
+            return res.status(400).json({
+                error: "Tipo de acesso inválido."
+            });
+        }
+
         if (cpfLimpo === ADMIN_CPF) {
+            if (tipoAcesso !== "admin") {
+                return res.status(401).json({
+                    error: "Selecione o acesso de administrador."
+                });
+            }
+
+            if (!senhaInformada) {
+                return res.status(400).json({
+                    error: "A senha do administrador é obrigatória."
+                });
+            }
+
             const admin = await garantirAdminNoBanco();
+
+            if (!verificarSenha(senhaInformada, admin.senha_hash)) {
+                return res.status(401).json({
+                    error: "Senha do administrador incorreta."
+                });
+            }
 
             await pool.query(
                 `
@@ -425,41 +719,42 @@ app.post("/api/auth/login", async (req, res) => {
                 [ADMIN_CPF]
             );
 
+            const token = criarTokenSessao(admin, 8);
+
             return res.status(200).json({
                 message: "Administrador autenticado com sucesso!",
+                token,
                 user: usuarioSeguro(admin)
             });
         }
 
-        if (role !== "citizen" && role !== "professional" && role !== "admin") {
-            return res.status(400).json({
-                error: "Tipo de acesso inválido."
-            });
-        }
+        const usuario = await buscarUsuarioPorCpf(cpfLimpo);
 
-        const result = await pool.query(
-            `
-            SELECT *
-            FROM usuarios
-            WHERE cpf = $1
-            AND tipo = $2
-            AND ativo = TRUE
-            LIMIT 1
-            `,
-            [cpfLimpo, role]
-        );
-
-        const usuario = result.rows[0];
-
-        if (!usuario) {
+        if (
+            !usuario ||
+            usuario.tipo !== tipoAcesso ||
+            usuario.ativo !== true
+        ) {
             return res.status(401).json({
                 error: "Credenciais inválidas, perfil incorreto ou conta bloqueada."
             });
         }
 
-        if (role === "professional" && company && usuario.empresa !== company) {
+        if (tipoAcesso === "professional" && company && usuario.empresa !== company) {
             return res.status(401).json({
                 error: "Vínculo corporativo divergente para este funcionário."
+            });
+        }
+
+        if (senhaInformada) {
+            if (!verificarSenha(senhaInformada, usuario.senha_hash)) {
+                return res.status(401).json({
+                    error: "CPF ou senha incorretos."
+                });
+            }
+        } else if (REQUIRE_USER_PASSWORD) {
+            return res.status(400).json({
+                error: "A senha é obrigatória para entrar."
             });
         }
 
@@ -473,16 +768,17 @@ app.post("/api/auth/login", async (req, res) => {
         );
 
         const usuarioCompleto = await buscarUsuarioPorCpf(cpfLimpo);
+        const token = criarTokenSessao(usuarioCompleto || usuario);
 
         return res.status(200).json({
             message: "Autenticação bem-sucedida!",
+            token,
             user: usuarioSeguro(usuarioCompleto || usuario)
         });
-
     } catch (erro) {
         return res.status(500).json({
             error: "Erro ao realizar login.",
-            details: erro.message
+            details: detalhesErro(erro)
         });
     }
 });
@@ -532,7 +828,9 @@ app.get("/api/users/:cpf", async (req, res) => {
             details: erro.message
         });
     }
-});app.put("/api/users/:cpf", async (req, res) => {
+});
+
+app.put("/api/users/:cpf", async (req, res) => {
     const client = await pool.connect();
 
     try {
@@ -754,7 +1052,7 @@ app.get("/api/users/:cpf", async (req, res) => {
     }
 });
 
-app.delete("/api/users/:cpf", async (req, res) => {
+app.delete("/api/users/:cpf", verificarAdmin, async (req, res) => {
     try {
         const cpfLimpo = limparCpf(req.params.cpf);
 
@@ -988,10 +1286,52 @@ app.post("/api/admin/profissionais", verificarAdmin, async (req, res) => {
             telefone,
             company,
             foto,
-            profissional
+            senha,
+            password,
+            profissional = {},
+            cargo,
+            registroProfissional,
+            especialidade,
+            regiaoAtendimento,
+            statusPlantao,
+            veiculo,
+            equipe,
+            bioProfissional
         } = req.body;
 
         const cpfLimpo = limparCpf(cpf);
+        const senhaInformada = String(senha || password || "");
+        const senhaFinal = senhaInformada || cpfLimpo;
+
+        const dadosProfissionais = {
+            cargo: profissional.cargo || cargo || "Agente Operacional",
+            registro:
+                profissional.registro ||
+                profissional.registroProfissional ||
+                registroProfissional ||
+                "",
+            especialidade:
+                profissional.especialidade ||
+                especialidade ||
+                "Resgate e triagem animal",
+            regiao:
+                profissional.regiao ||
+                profissional.regiaoAtendimento ||
+                regiaoAtendimento ||
+                "Região não informada",
+            plantao:
+                profissional.plantao ||
+                profissional.statusPlantao ||
+                statusPlantao ||
+                "Disponível",
+            veiculo: profissional.veiculo || veiculo || "Veículo de apoio",
+            equipe: profissional.equipe || equipe || "Equipe Safe Life",
+            bio:
+                profissional.observacoes ||
+                profissional.bioProfissional ||
+                bioProfissional ||
+                ""
+        };
 
         if (!nome || !cpfLimpo || !email || !telefone || !company) {
             return res.status(400).json({
@@ -1017,10 +1357,16 @@ app.post("/api/admin/profissionais", verificarAdmin, async (req, res) => {
             });
         }
 
+        if (senhaInformada && senhaInformada.length < 6) {
+            return res.status(400).json({
+                error: "A senha precisa ter pelo menos 6 caracteres."
+            });
+        }
+
         const existe = await buscarUsuarioPorCpf(cpfLimpo);
 
         if (existe) {
-            return res.status(400).json({
+            return res.status(409).json({
                 error: "Este CPF já está cadastrado."
             });
         }
@@ -1033,6 +1379,7 @@ app.post("/api/admin/profissionais", verificarAdmin, async (req, res) => {
             (
                 nome,
                 cpf,
+                senha_hash,
                 email,
                 telefone,
                 tipo,
@@ -1041,13 +1388,14 @@ app.post("/api/admin/profissionais", verificarAdmin, async (req, res) => {
                 ativo
             )
             VALUES
-            ($1,$2,$3,$4,'professional',$5,$6,TRUE)
+            ($1,$2,$3,$4,$5,'professional',$6,$7,TRUE)
             RETURNING *
             `,
             [
                 limparTexto(nome),
                 cpfLimpo,
-                limparTexto(email),
+                hashSenha(senhaFinal),
+                limparTexto(email).toLowerCase(),
                 limparTexto(telefone),
                 limparTexto(company),
                 foto || "img/vitor-chineque.jpg"
@@ -1078,16 +1426,16 @@ app.post("/api/admin/profissionais", verificarAdmin, async (req, res) => {
             `,
             [
                 usuario.id,
-                profissional?.cargo || "Agente Operacional",
+                limparTexto(dadosProfissionais.cargo),
                 limparTexto(company),
                 "operador",
-                profissional?.registro || profissional?.registroProfissional || "",
-                profissional?.especialidade || "Resgate e triagem animal",
-                profissional?.regiao || profissional?.regiaoAtendimento || "Região não informada",
-                profissional?.plantao || profissional?.statusPlantao || "Disponível",
-                profissional?.veiculo || "Veículo de apoio",
-                profissional?.equipe || "Equipe Safe Life",
-                profissional?.observacoes || profissional?.bioProfissional || ""
+                limparTexto(dadosProfissionais.registro),
+                limparTexto(dadosProfissionais.especialidade),
+                limparTexto(dadosProfissionais.regiao),
+                limparTexto(dadosProfissionais.plantao),
+                limparTexto(dadosProfissionais.veiculo),
+                limparTexto(dadosProfissionais.equipe),
+                limparTexto(dadosProfissionais.bio)
             ]
         );
 
@@ -1096,16 +1444,22 @@ app.post("/api/admin/profissionais", verificarAdmin, async (req, res) => {
         const usuarioCompleto = await buscarUsuarioPorCpf(cpfLimpo);
 
         return res.status(201).json({
-            message: "Profissional cadastrado pelo administrador com sucesso.",
+            message: senhaInformada
+                ? "Profissional cadastrado pelo administrador com sucesso."
+                : "Profissional cadastrado. O CPF foi definido como senha temporária.",
+            senhaTemporaria: !senhaInformada,
             user: usuarioSeguro(usuarioCompleto || usuario)
         });
-
     } catch (erro) {
-        await client.query("ROLLBACK");
+        try {
+            await client.query("ROLLBACK");
+        } catch (_) {
+            // A transação pode não ter sido iniciada.
+        }
 
         return res.status(500).json({
             error: "Erro ao cadastrar profissional pelo administrador.",
-            details: erro.message
+            details: detalhesErro(erro)
         });
     } finally {
         client.release();
@@ -1264,123 +1618,6 @@ app.delete("/api/admin/empresas/:id", verificarAdmin, async (req, res) => {
             error: "Erro ao excluir empresa/base.",
             details: erro.message
         });
-    }
-});app.post("/api/admin/profissionais", verificarAdmin, async (req, res) => {
-    const client = await pool.connect();
-
-    try {
-        const {
-            nome,
-            cpf,
-            email,
-            telefone,
-            company,
-            cargo,
-            registroProfissional,
-            especialidade,
-            regiaoAtendimento,
-            statusPlantao,
-            veiculo,
-            equipe,
-            bioProfissional
-        } = req.body;
-
-        const cpfLimpo = limparCpf(cpf);
-
-        if (!nome || !cpfLimpo || !email || !telefone || !company) {
-            return res.status(400).json({ error: "Preencha nome, CPF, e-mail, telefone e empresa." });
-        }
-
-        if (cpfLimpo.length !== 11) {
-            return res.status(400).json({ error: "CPF inválido." });
-        }
-
-        if (cpfLimpo === ADMIN_CPF) {
-            return res.status(403).json({ error: "CPF reservado para o administrador." });
-        }
-
-        if (!validarEmail(email)) {
-            return res.status(400).json({ error: "E-mail inválido." });
-        }
-
-        const existe = await buscarUsuarioPorCpf(cpfLimpo);
-
-        if (existe) {
-            return res.status(400).json({ error: "Este CPF já está cadastrado." });
-        }
-
-        await client.query("BEGIN");
-
-        const usuarioResult = await client.query(
-            `
-            INSERT INTO usuarios
-            (nome, cpf, senha_hash, email, telefone, tipo, empresa, foto_perfil, ativo)
-            VALUES ($1,$2,$3,$4,$5,'professional',$6,$7,TRUE)
-            RETURNING *
-            `,
-            [
-                limparTexto(nome),
-                cpfLimpo,
-                "123456",
-                limparTexto(email),
-                limparTexto(telefone),
-                limparTexto(company),
-                "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80"
-            ]
-        );
-
-        const novoUsuario = usuarioResult.rows[0];
-
-        await client.query(
-            `
-            INSERT INTO funcionarios
-            (
-                usuario_id,
-                cargo,
-                empresa,
-                nivel_acesso,
-                registro_profissional,
-                especialidade,
-                regiao_atendimento,
-                status_plantao,
-                veiculo,
-                equipe,
-                bio_profissional,
-                ativo
-            )
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,TRUE)
-            `,
-            [
-                novoUsuario.id,
-                cargo ? limparTexto(cargo) : "Agente Operacional",
-                limparTexto(company),
-                "operador",
-                registroProfissional ? limparTexto(registroProfissional) : null,
-                especialidade ? limparTexto(especialidade) : "Resgate de rua",
-                regiaoAtendimento ? limparTexto(regiaoAtendimento) : null,
-                statusPlantao ? limparTexto(statusPlantao) : "Disponível",
-                veiculo ? limparTexto(veiculo) : "Carro de resgate",
-                equipe ? limparTexto(equipe) : null,
-                bioProfissional ? limparTexto(bioProfissional) : null
-            ]
-        );
-
-        await client.query("COMMIT");
-
-        const usuarioCompleto = await buscarUsuarioPorCpf(cpfLimpo);
-
-        return res.status(201).json({
-            message: "Profissional cadastrado com sucesso.",
-            user: usuarioSeguro(usuarioCompleto || novoUsuario)
-        });
-    } catch (erro) {
-        await client.query("ROLLBACK");
-        return res.status(500).json({
-            error: "Erro ao cadastrar profissional.",
-            details: erro.message
-        });
-    } finally {
-        client.release();
     }
 });
 
@@ -2515,7 +2752,7 @@ app.get("/api/dashboard/resumo", async (req, res) => {
    DEBUG
 ===================================================== */
 
-app.get("/api/debug/db", async (req, res) => {
+app.get("/api/debug/db", verificarAdmin, async (req, res) => {
     try {
         await garantirAdminNoBanco();
 
@@ -2542,7 +2779,7 @@ app.get("/api/debug/db", async (req, res) => {
     }
 });
 
-app.get("/api/debug/views", async (req, res) => {
+app.get("/api/debug/views", verificarAdmin, async (req, res) => {
     try {
         await garantirAdminNoBanco();
 
@@ -2564,21 +2801,94 @@ app.get("/api/debug/views", async (req, res) => {
 });
 
 /* =====================================================
+   FALLBACK DO FRONTEND / ERROS
+===================================================== */
+
+app.use((req, res, next) => {
+    if (
+        req.method === "GET" &&
+        !req.path.startsWith("/api/") &&
+        fs.existsSync(PUBLIC_INDEX)
+    ) {
+        return res.sendFile(PUBLIC_INDEX);
+    }
+
+    return next();
+});
+
+app.use((req, res) => {
+    return res.status(404).json({
+        error: "Rota não encontrada.",
+        metodo: req.method,
+        rota: req.originalUrl
+    });
+});
+
+app.use((erro, req, res, next) => {
+    console.error("❌ Erro não tratado:", erro);
+
+    if (res.headersSent) {
+        return next(erro);
+    }
+
+    const erroCors = erro.message === "Origem não autorizada pelo CORS.";
+
+    return res.status(erroCors ? 403 : 500).json({
+        error: erroCors
+            ? "Origem não autorizada."
+            : "Erro interno do servidor.",
+        details: detalhesErro(erro)
+    });
+});
+
+/* =====================================================
    INICIALIZAÇÃO
 ===================================================== */
 
-app.listen(PORT, async () => {
-    console.log("====================================================");
-    console.log(`🚀 SERVIDOR SAFE LIFE ONLINE EM: http://localhost:${PORT}`);
-    console.log("🐘 PostgreSQL conectado ao Safe Life");
-    console.log(`👑 CPF ADMIN MASTER: ${ADMIN_CPF}`);
-    console.log("🔒 Endpoints da API prontos para receber requisições.");
-    console.log("====================================================");
+async function iniciarServidor() {
+    try {
+        if (!possuiDatabaseUrl && IS_PRODUCTION) {
+            throw new Error(
+                "DATABASE_URL não foi configurada. Copie a Connection String do Supabase para o Render."
+            );
+        }
+
+        const testeBanco = await pool.query("SELECT NOW() AS agora");
+        console.log(`✅ PostgreSQL conectado: ${testeBanco.rows[0].agora}`);
+
+        await garantirAdminNoBanco();
+        console.log("✅ Administrador master verificado no banco.");
+
+        app.listen(PORT, "0.0.0.0", () => {
+            console.log("====================================================");
+            console.log(`🚀 SERVIDOR SAFE LIFE ONLINE NA PORTA ${PORT}`);
+            console.log(`🌎 Ambiente: ${NODE_ENV}`);
+            console.log("🔎 Status: /api/status");
+            console.log("====================================================");
+        });
+    } catch (erro) {
+        console.error("====================================================");
+        console.error("❌ NÃO FOI POSSÍVEL INICIAR O SAFE LIFE");
+        console.error(erro.message);
+        console.error("====================================================");
+        process.exit(1);
+    }
+}
+
+async function encerrarServidor(sinal) {
+    console.log(`\n${sinal} recebido. Encerrando conexões...`);
 
     try {
-        await garantirAdminNoBanco();
-        console.log("✅ Administrador master garantido no banco.");
+        await pool.end();
+        console.log("✅ Pool do PostgreSQL encerrado.");
+        process.exit(0);
     } catch (erro) {
-        console.log("⚠️ Não foi possível criar/verificar o admin:", erro.message);
+        console.error("❌ Erro ao encerrar o pool:", erro.message);
+        process.exit(1);
     }
-});
+}
+
+process.on("SIGTERM", () => encerrarServidor("SIGTERM"));
+process.on("SIGINT", () => encerrarServidor("SIGINT"));
+
+iniciarServidor();
