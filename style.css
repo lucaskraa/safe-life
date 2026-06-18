@@ -4352,3 +4352,157 @@ html {
 #petRescueCompletionScreen .rescue-destination-fields:not(.hidden) {
     display: block !important;
 }
+/* =====================================================
+   SAFE LIFE V18.2 — FORMULÁRIO INLINE DE RESGATE
+===================================================== */
+
+.safe-v182-missing-grid {
+    display: grid;
+    gap: 20px;
+}
+
+.safe-v182-rescue-card {
+    overflow: visible !important;
+}
+
+.safe-v182-rescue-form {
+    display: block !important;
+    margin-top: 18px;
+    padding: 18px;
+    border-radius: 22px;
+    background:
+        linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.98),
+            rgba(255, 247, 237, 0.98)
+        );
+    border: 1px solid rgba(249, 115, 22, 0.22);
+    box-shadow: 0 12px 30px rgba(239, 68, 68, 0.10);
+}
+
+.safe-v182-rescue-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 14px;
+    border-radius: 18px;
+    background: rgba(239, 68, 68, 0.08);
+}
+
+.safe-v182-rescue-title > span {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    display: grid;
+    place-items: center;
+    border-radius: 15px;
+    background: #ef4444;
+    color: #ffffff;
+    font-size: 21px;
+}
+
+.safe-v182-rescue-title strong {
+    display: block;
+    color: var(--text-dark);
+    font-size: 16px;
+    margin-bottom: 4px;
+}
+
+.safe-v182-rescue-title small {
+    display: block;
+    color: var(--text-light);
+    line-height: 1.45;
+}
+
+.safe-v182-rescue-form label {
+    margin-top: 14px;
+}
+
+.safe-v182-rescue-form input,
+.safe-v182-rescue-form select,
+.safe-v182-rescue-form textarea {
+    display: block !important;
+    width: 100% !important;
+}
+
+.safe-v182-rescue-form input[type="file"] {
+    min-height: 58px;
+    background: rgba(255, 255, 255, 0.96);
+    border: 2px dashed rgba(239, 68, 68, 0.30);
+}
+
+.safe-v182-destination-fields {
+    display: block;
+    margin-top: 8px;
+    padding: 14px;
+    border-radius: 18px;
+    background: rgba(37, 75, 250, 0.05);
+}
+
+.safe-v182-hidden {
+    display: none !important;
+}
+
+.safe-v182-complete-button {
+    display: flex !important;
+    width: 100% !important;
+    min-height: 56px;
+    margin: 18px 0 0 !important;
+    align-items: center;
+    justify-content: center;
+    background:
+        linear-gradient(
+            135deg,
+            #ef4444,
+            #f97316
+        ) !important;
+    color: #ffffff !important;
+    box-shadow:
+        0 14px 30px rgba(239, 68, 68, 0.24) !important;
+}
+
+.safe-v182-complete-button:disabled {
+    opacity: 0.68;
+    cursor: wait;
+}
+
+@media (max-width: 420px) {
+    .safe-v182-rescue-form {
+        padding: 15px;
+        border-radius: 19px;
+    }
+
+    .safe-v182-rescue-title {
+        align-items: flex-start;
+    }
+}
+/* =====================================================
+   SAFE LIFE V18.3 — FEEDBACK DE CARREGAMENTO
+===================================================== */
+
+.register-submit-btn[aria-busy="true"],
+.safe-v182-complete-button[aria-busy="true"] {
+    position: relative;
+    cursor: wait !important;
+    opacity: 0.78;
+    pointer-events: none;
+}
+
+.register-submit-btn[aria-busy="true"]::after,
+.safe-v182-complete-button[aria-busy="true"]::after {
+    content: "";
+    width: 18px;
+    height: 18px;
+    margin-left: 10px;
+    border-radius: 50%;
+    border: 3px solid rgba(255, 255, 255, 0.45);
+    border-top-color: #ffffff;
+    animation: safeLifeSpinV183 0.75s linear infinite;
+}
+
+@keyframes safeLifeSpinV183 {
+    to {
+        transform: rotate(360deg);
+    }
+}
