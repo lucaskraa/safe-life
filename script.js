@@ -15421,3 +15421,1410 @@ document.addEventListener("DOMContentLoaded", function() {
         bootV18();
     }
 })();
+/* =====================================================
+   SAFE LIFE V18.2 — RESGATE DE PET DIRETO NO CARD
+   Mostra foto, destino, endereço e instruções sem depender
+   de botão escondido ou de outra tela.
+===================================================== */
+(function () {
+    "use strict";
+
+    const API_V182 = "https://safe-life.onrender.com";
+
+    function safeV182ById(id) {
+        return document.getElementById(id);
+    }
+
+    function safeV182Escape(value) {
+        return String(value ?? "").replace(/[&<>"']/g, function (char) {
+            return {
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#39;"
+            }[char];
+        });
+    }
+
+    function safeV182Cpf(value) {
+        return String(value || "").replace(/\D/g, "");
+    }
+
+    function safeV182Phone(value) {
+        const digits = String(value || "").replace(/\D/g, "").slice(0, 11);
+
+        if (digits.length <= 2) {
+            return digits ? "(" + digits : "";
+        }
+
+        if (digits.length <= 6) {
+            return "(" + digits.slice(0, 2) + ") " + digits.slice(2);
+        }
+
+        if (digits.length <= 10) {
+            return (
+                "(" +
+                digits.slice(0, 2) +
+                ") " +
+                digits.slice(2, 6) +
+                "-" +
+                digits.slice(6)
+            );
+        }
+
+        return (
+            "(" +
+            digits.slice(0, 2) +
+            ") " +
+            digits.slice(2, 7) +
+            "-" +
+            digits.slice(7)
+        );
+    }
+
+    function safeV182User() {
+        try {
+            if (window.usuarioLogado && window.usuarioLogado.cpf) {
+                return window.usuarioLogado;
+            }
+        } catch (error) {}
+
+        try {
+            return JSON.parse(
+                localStorage.getItem("safeLifeLoggedUser") || "null"
+            );
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function safeV182Token() {
+        return String(localStorage.getItem("safeLifeAuthToken") || "");
+    }
+
+    function safeV182ShowScreen(id) {
+        if (typeof window.nextScreen === "function") {
+            window.nextScreen(id);
+            return;
+        }
+
+        document.querySelectorAll(".screen").forEach(function (screen) {
+            screen.classList.remove("active");
+        });
+
+        const target = safeV182ById(id);
+        if (target) target.classList.add("active");
+    }
+
+    function safeV182Toast(message) {
+        if (typeof window.triggerToast === "function") {
+            window.triggerToast(message);
+            return;
+        }
+
+        const toast = safeV182ById("toast");
+
+        if (toast) {
+            toast.textContent = message;
+            toast.classList.add("show");
+
+            setTimeout(function () {
+                toast.classList.remove("show");
+            }, 3000);
+
+            return;
+        }
+
+        alert(message);
+    }
+
+    async function safeV182Api(endpoint, options) {
+        if (typeof window.safeLifeApi === "function") {
+            return window.safeLifeApi(endpoint, options || {});
+        }
+
+        const headers = new Headers((options && options.headers) || {});
+        headers.set("Content-Type", "application/json");
+
+        const token = safeV182Token();
+
+        if (token) {
+            headers.set("Authorization", "Bearer " + token);
+        }
+
+        const response = await fetch(API_V182 + endpoint, {
+            ...(options || {}),
+            headers
+        });
+
+        const data = await response.json().catch(function () {
+            return null;
+        });
+
+        if (!response.ok) {
+            throw new Error(
+                (data && (data.details || data.error || data.message)) ||
+                "Não foi possível concluir a operação."
+            );
+        }
+
+        return data;
+    }
+
+    function safeV182FileToDataUrl(input) {
+        const file = input && input.files ? input.files[0] : null;
+
+        if (!file) {
+            return Promise.resolve("");
+        }
+
+        return new Promise(function (resolve, reject) {
+            const reader = new FileReader();
+
+            reader.onload = function () {
+                resolve(String(reader.result || ""));
+            };
+
+            reader.onerror = function () {
+                reject(new Error("Não foi possível ler a foto enviada."));
+            };
+
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function safeV182PetPhoto(pet) {
+        const source = String(pet.foto || "").trim();
+
+        if (
+            source.startsWith("data:image/") ||
+            source.startsWith("https://") ||
+            source.startsWith("http://")
+        ) {
+            return source;
+        }
+
+        return "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=800&q=80";
+    }
+
+    function safeV182Card(pet) {
+        const id = Number(pet.id);
+        const owner =
+            pet.nome_dono ||
+            pet.dono_nome ||
+            "Não informado";
+
+        const phone = safeV182Phone(
+            pet.telefone_dono ||
+            pet.dono_telefone ||
+            ""
+        );
+
+        return `
+            <article
+                class="safe-life-pet-card missing missing-pet-pro-card safe-v182-rescue-card"
+                data-pet-id="${id}"
+            >
+                <div class="safe-life-pet-top">
+                    <img
+                        class="safe-life-pet-photo"
+                        src="${safeV182Escape(safeV182PetPhoto(pet))}"
+                        alt="Foto de ${safeV182Escape(pet.nome || "pet desaparecido")}"
+                    >
+
+                    <div class="safe-life-pet-info">
+                        <h4>🚨 ${safeV182Escape(pet.nome || "Pet")}</h4>
+                        <small>
+                            ${safeV182Escape(pet.especie || "Animal")}
+                            •
+                            ${safeV182Escape(pet.raca || "SRD")}
+                        </small>
+                        <div class="safe-life-alert-badge">
+                            DESAPARECIDO
+                        </div>
+                    </div>
+                </div>
+
+                <div class="safe-life-pet-lines">
+                    <div class="safe-life-pet-line">
+                        <strong>Dono:</strong>
+                        ${safeV182Escape(owner)}
+                    </div>
+
+                    <div class="safe-life-pet-line">
+                        <strong>Telefone:</strong>
+                        ${safeV182Escape(phone || "Não informado")}
+                    </div>
+
+                    <div class="safe-life-pet-line">
+                        <strong>Último local visto:</strong>
+                        ${safeV182Escape(
+                            pet.local_desaparecimento ||
+                            "Não informado"
+                        )}
+                    </div>
+
+                    <div class="safe-life-pet-line">
+                        <strong>Detalhes:</strong>
+                        ${safeV182Escape(
+                            pet.detalhes_desaparecimento ||
+                            "Sem detalhes"
+                        )}
+                    </div>
+                </div>
+
+                <form
+                    class="safe-v182-rescue-form"
+                    data-pet-id="${id}"
+                    onsubmit="safeLifeV182ConcluirResgate(event, ${id})"
+                >
+                    <div class="safe-v182-rescue-title">
+                        <span>✅</span>
+                        <div>
+                            <strong>Concluir resgate</strong>
+                            <small>
+                                Preencha a comprovação para avisar o tutor.
+                            </small>
+                        </div>
+                    </div>
+
+                    <label for="safeV182Photo-${id}">
+                        Foto atual do animal encontrado
+                    </label>
+
+                    <input
+                        id="safeV182Photo-${id}"
+                        name="foundPhoto"
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        required
+                    >
+
+                    <label for="safeV182Destination-${id}">
+                        Onde o pet ficará aguardando a retirada?
+                    </label>
+
+                    <select
+                        id="safeV182Destination-${id}"
+                        name="destinationType"
+                        required
+                        onchange="safeLifeV182ToggleDestination(${id})"
+                    >
+                        <option value="">Selecione uma opção</option>
+                        <option value="PROFISSIONAL">
+                            No endereço do profissional
+                        </option>
+                        <option value="INSTITUICAO">
+                            Em uma instituição, ONG, abrigo ou clínica
+                        </option>
+                    </select>
+
+                    <div
+                        id="safeV182ProfessionalFields-${id}"
+                        class="safe-v182-destination-fields safe-v182-hidden"
+                    >
+                        <label for="safeV182ProfessionalAddress-${id}">
+                            Endereço onde o animal ficará
+                        </label>
+
+                        <textarea
+                            id="safeV182ProfessionalAddress-${id}"
+                            name="professionalAddress"
+                            placeholder="Rua, número, bairro, cidade e ponto de referência"
+                        ></textarea>
+                    </div>
+
+                    <div
+                        id="safeV182InstitutionFields-${id}"
+                        class="safe-v182-destination-fields safe-v182-hidden"
+                    >
+                        <label for="safeV182InstitutionName-${id}">
+                            Nome da instituição
+                        </label>
+
+                        <input
+                            id="safeV182InstitutionName-${id}"
+                            name="institutionName"
+                            type="text"
+                            placeholder="Nome da ONG, clínica, abrigo ou instituição"
+                        >
+
+                        <label for="safeV182InstitutionAddress-${id}">
+                            Endereço da instituição
+                        </label>
+
+                        <textarea
+                            id="safeV182InstitutionAddress-${id}"
+                            name="institutionAddress"
+                            placeholder="Rua, número, bairro, cidade e ponto de referência"
+                        ></textarea>
+                    </div>
+
+                    <label for="safeV182Instructions-${id}">
+                        Instruções para o tutor retirar o pet
+                    </label>
+
+                    <textarea
+                        id="safeV182Instructions-${id}"
+                        name="pickupInstructions"
+                        placeholder="Informe horário, responsável, telefone e orientações para retirada"
+                        required
+                    ></textarea>
+
+                    <button
+                        class="btn safe-v182-complete-button"
+                        type="submit"
+                    >
+                        Enviar foto e concluir resgate
+                    </button>
+                </form>
+            </article>
+        `;
+    }
+
+    window.safeLifeV182ToggleDestination = function (petId) {
+        const select = safeV182ById(
+            "safeV182Destination-" + petId
+        );
+
+        const professional = safeV182ById(
+            "safeV182ProfessionalFields-" + petId
+        );
+
+        const institution = safeV182ById(
+            "safeV182InstitutionFields-" + petId
+        );
+
+        const type = select ? select.value : "";
+
+        if (professional) {
+            professional.classList.toggle(
+                "safe-v182-hidden",
+                type !== "PROFISSIONAL"
+            );
+        }
+
+        if (institution) {
+            institution.classList.toggle(
+                "safe-v182-hidden",
+                type !== "INSTITUICAO"
+            );
+        }
+    };
+
+    window.safeLifeV182ConcluirResgate = async function (
+        event,
+        petId
+    ) {
+        event.preventDefault();
+
+        const form = event.currentTarget;
+        const button = form.querySelector('button[type="submit"]');
+        const user = safeV182User();
+
+        if (!user || !safeV182Cpf(user.cpf)) {
+            alert(
+                "Sua sessão profissional não foi encontrada. Entre novamente."
+            );
+            return;
+        }
+
+        const destinationType = String(
+            form.elements.destinationType.value || ""
+        ).trim();
+
+        const professionalAddress = String(
+            form.elements.professionalAddress
+                ? form.elements.professionalAddress.value
+                : ""
+        ).trim();
+
+        const institutionName = String(
+            form.elements.institutionName
+                ? form.elements.institutionName.value
+                : ""
+        ).trim();
+
+        const institutionAddress = String(
+            form.elements.institutionAddress
+                ? form.elements.institutionAddress.value
+                : ""
+        ).trim();
+
+        const instructions = String(
+            form.elements.pickupInstructions.value || ""
+        ).trim();
+
+        const destinationAddress =
+            destinationType === "INSTITUICAO"
+                ? institutionAddress
+                : professionalAddress;
+
+        if (!destinationType) {
+            alert("Escolha onde o animal ficará.");
+            return;
+        }
+
+        if (
+            destinationType === "INSTITUICAO" &&
+            !institutionName
+        ) {
+            alert("Informe o nome da instituição.");
+            return;
+        }
+
+        if (!destinationAddress) {
+            alert("Informe o endereço onde o pet ficará.");
+            return;
+        }
+
+        if (!instructions) {
+            alert("Informe as instruções para retirada.");
+            return;
+        }
+
+        try {
+            button.disabled = true;
+            button.dataset.originalText = button.textContent;
+            button.textContent = "Enviando comprovação...";
+
+            const photo = await safeV182FileToDataUrl(
+                form.elements.foundPhoto
+            );
+
+            if (!photo || !photo.startsWith("data:image/")) {
+                throw new Error(
+                    "Envie uma foto atual do pet encontrado."
+                );
+            }
+
+            await safeV182Api(
+                "/api/pro/pets/" +
+                    encodeURIComponent(petId) +
+                    "/concluir-resgate",
+                {
+                    method: "POST",
+                    body: JSON.stringify({
+                        funcionarioCpf: safeV182Cpf(user.cpf),
+                        fotoEncontrado: photo,
+                        destinoTipo: destinationType,
+                        destinoNome:
+                            destinationType === "INSTITUICAO"
+                                ? institutionName
+                                : user.nome || "Profissional Safe Life",
+                        destinoEndereco: destinationAddress,
+                        instrucoesRetirada: instructions
+                    })
+                }
+            );
+
+            safeV182Toast(
+                "✅ Resgate concluído. O tutor recebeu a foto e o endereço para retirada."
+            );
+
+            const card = form.closest(".safe-v182-rescue-card");
+            if (card) card.remove();
+
+            const list = safeV182ById("activeAgentsList");
+
+            if (
+                list &&
+                !list.querySelector(".safe-v182-rescue-card")
+            ) {
+                list.innerHTML = `
+                    <div class="occurrence-card">
+                        <h4>Nenhum pet desaparecido</h4>
+                        <p>
+                            Não existem alertas ativos no momento.
+                        </p>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error(
+                "Erro ao concluir resgate do pet:",
+                error
+            );
+
+            alert(
+                "Não foi possível concluir o resgate:\n\n" +
+                (error.message || "Erro desconhecido.")
+            );
+        } finally {
+            button.disabled = false;
+
+            if (button.dataset.originalText) {
+                button.textContent =
+                    button.dataset.originalText;
+            }
+        }
+    };
+
+    async function safeLifeV182LoadMissingPets() {
+        const container = safeV182ById("activeAgentsList");
+
+        if (!container) return;
+
+        safeV182ShowScreen("activeAgentsScreen");
+
+        container.innerHTML = `
+            <div class="occurrence-card">
+                <p>Carregando pets desaparecidos...</p>
+            </div>
+        `;
+
+        try {
+            const pets = await safeV182Api(
+                "/api/pro/pets/desaparecidos"
+            );
+
+            const activePets = Array.isArray(pets)
+                ? pets.filter(function (pet) {
+                    return (
+                        pet.desaparecido === true &&
+                        String(pet.status_pet || "")
+                            .toUpperCase() === "DESAPARECIDO"
+                    );
+                })
+                : [];
+
+            container.innerHTML = activePets.length
+                ? `
+                    <div class="safe-life-pet-grid safe-v182-missing-grid">
+                        ${activePets.map(safeV182Card).join("")}
+                    </div>
+                `
+                : `
+                    <div class="occurrence-card">
+                        <h4>Nenhum pet desaparecido</h4>
+                        <p>
+                            Não existem alertas ativos no momento.
+                        </p>
+                    </div>
+                `;
+
+            container.querySelectorAll("img").forEach(function (image) {
+                image.addEventListener(
+                    "error",
+                    function () {
+                        image.src =
+                            "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=800&q=80";
+                    },
+                    { once: true }
+                );
+            });
+        } catch (error) {
+            container.innerHTML = `
+                <div class="occurrence-card">
+                    <h4>Erro ao carregar pets</h4>
+                    <p>${safeV182Escape(error.message)}</p>
+                </div>
+            `;
+        }
+    }
+
+    window.abrirPetsDesaparecidosPro =
+        safeLifeV182LoadMissingPets;
+
+    window.abrirAgentesAtivos =
+        safeLifeV182LoadMissingPets;
+})();
+/* =====================================================
+   SAFE LIFE V18.3 — CADASTRO ESTÁVEL E TEMPO REAL
+===================================================== */
+(function () {
+    "use strict";
+
+    const API_V183 = "https://safe-life.onrender.com";
+    const TOKEN_KEY_V183 = "safeLifeAuthToken";
+    const USER_KEY_V183 = "safeLifeLoggedUser";
+
+    let registerRunningV183 = false;
+    let professionalSourceV183 = null;
+    let professionalFallbackTimerV183 = null;
+    let professionalReloadTimerV183 = null;
+    let lastQueueSignatureV183 = "";
+
+    function byIdV183(id) {
+        return document.getElementById(id);
+    }
+
+    function valueV183(id) {
+        const node = byIdV183(id);
+        return node ? String(node.value || "").trim() : "";
+    }
+
+    function cleanCpfV183(value) {
+        return String(value || "").replace(/\D/g, "");
+    }
+
+    function formatPhoneV183(value) {
+        const digits = String(value || "")
+            .replace(/\D/g, "")
+            .slice(0, 11);
+
+        if (!digits) return "";
+        if (digits.length <= 2) return "(" + digits;
+        if (digits.length <= 6) {
+            return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+        }
+        if (digits.length <= 10) {
+            return (
+                `(${digits.slice(0, 2)}) ` +
+                `${digits.slice(2, 6)}-${digits.slice(6)}`
+            );
+        }
+
+        return (
+            `(${digits.slice(0, 2)}) ` +
+            `${digits.slice(2, 7)}-${digits.slice(7)}`
+        );
+    }
+
+    function currentUserV183() {
+        try {
+            if (window.usuarioLogado && window.usuarioLogado.cpf) {
+                return window.usuarioLogado;
+            }
+        } catch (_) {}
+
+        try {
+            return JSON.parse(
+                localStorage.getItem(USER_KEY_V183) || "null"
+            );
+        } catch (_) {
+            return null;
+        }
+    }
+
+    function saveUserV183(user, token) {
+        if (!user) return null;
+
+        const normalized = {
+            ...user,
+            cpf: cleanCpfV183(user.cpf),
+            type: user.type || user.tipo || "citizen",
+            tipo: user.tipo || user.type || "citizen"
+        };
+
+        localStorage.setItem(
+            USER_KEY_V183,
+            JSON.stringify(normalized)
+        );
+
+        if (token) {
+            localStorage.setItem(TOKEN_KEY_V183, token);
+        }
+
+        window.usuarioLogado = normalized;
+        return normalized;
+    }
+
+    function setBusyV183(button, busy, text) {
+        if (!button) return;
+
+        if (busy) {
+            button.dataset.textV183 = button.textContent;
+            button.disabled = true;
+            button.textContent = text || "Aguarde...";
+            button.setAttribute("aria-busy", "true");
+        } else {
+            button.disabled = false;
+            button.removeAttribute("aria-busy");
+
+            if (button.dataset.textV183) {
+                button.textContent = button.dataset.textV183;
+            }
+        }
+    }
+
+    function toastV183(message) {
+        if (typeof window.triggerToast === "function") {
+            window.triggerToast(message);
+            return;
+        }
+
+        const toast = byIdV183("toast");
+
+        if (!toast) {
+            alert(message);
+            return;
+        }
+
+        toast.textContent = message;
+        toast.classList.add("show");
+
+        setTimeout(function () {
+            toast.classList.remove("show");
+        }, 2800);
+    }
+
+    function showScreenV183(id) {
+        if (typeof window.nextScreen === "function") {
+            window.nextScreen(id);
+            return;
+        }
+
+        document.querySelectorAll(".screen").forEach(function (screen) {
+            screen.classList.remove("active");
+        });
+
+        const target = byIdV183(id);
+        if (target) target.classList.add("active");
+    }
+
+    async function requestV183(endpoint, options, timeoutMs = 70000) {
+        const controller = new AbortController();
+        const timer = setTimeout(function () {
+            controller.abort();
+        }, timeoutMs);
+
+        const headers = new Headers(
+            (options && options.headers) || {}
+        );
+
+        if (!headers.has("Content-Type")) {
+            headers.set("Content-Type", "application/json");
+        }
+
+        const token = localStorage.getItem(TOKEN_KEY_V183) || "";
+
+        if (token && !headers.has("Authorization")) {
+            headers.set("Authorization", "Bearer " + token);
+        }
+
+        try {
+            const response = await fetch(API_V183 + endpoint, {
+                ...(options || {}),
+                headers,
+                signal: controller.signal
+            });
+
+            const contentType = String(
+                response.headers.get("content-type") || ""
+            );
+
+            let data = null;
+
+            if (contentType.includes("application/json")) {
+                data = await response.json().catch(function () {
+                    return null;
+                });
+            } else {
+                const text = await response.text().catch(function () {
+                    return "";
+                });
+
+                data = text ? { message: text } : null;
+            }
+
+            if (!response.ok) {
+                throw new Error(
+                    (data &&
+                        (
+                            data.details ||
+                            data.error ||
+                            data.message
+                        )) ||
+                    "Não foi possível concluir a operação."
+                );
+            }
+
+            return data;
+        } catch (error) {
+            if (error.name === "AbortError") {
+                throw new Error(
+                    "O servidor demorou para responder. Aguarde alguns segundos e tente novamente."
+                );
+            }
+
+            throw error;
+        } finally {
+            clearTimeout(timer);
+        }
+    }
+
+    function waitPaintV183() {
+        return new Promise(function (resolve) {
+            requestAnimationFrame(function () {
+                requestAnimationFrame(resolve);
+            });
+        });
+    }
+
+    async function compressImageV183(file, maxSide = 720, quality = 0.78) {
+        if (!file) return "";
+
+        if (!String(file.type || "").startsWith("image/")) {
+            throw new Error("Escolha um arquivo de imagem.");
+        }
+
+        if (file.size > 12 * 1024 * 1024) {
+            throw new Error("A imagem deve ter no máximo 12 MB.");
+        }
+
+        const source = await new Promise(function (resolve, reject) {
+            const reader = new FileReader();
+            reader.onload = function () {
+                resolve(String(reader.result || ""));
+            };
+            reader.onerror = function () {
+                reject(new Error("Não foi possível ler a imagem."));
+            };
+            reader.readAsDataURL(file);
+        });
+
+        const image = await new Promise(function (resolve, reject) {
+            const element = new Image();
+            element.onload = function () {
+                resolve(element);
+            };
+            element.onerror = function () {
+                reject(new Error("Não foi possível processar a imagem."));
+            };
+            element.src = source;
+        });
+
+        const scale = Math.min(
+            1,
+            maxSide / Math.max(image.width, image.height)
+        );
+
+        const width = Math.max(1, Math.round(image.width * scale));
+        const height = Math.max(1, Math.round(image.height * scale));
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+
+        const context = canvas.getContext("2d", {
+            alpha: false
+        });
+
+        context.drawImage(image, 0, 0, width, height);
+
+        return canvas.toDataURL("image/jpeg", quality);
+    }
+
+    function routeRegisteredUserV183(user) {
+        const type = user.type || user.tipo || "citizen";
+
+        if (type === "professional") {
+            if (typeof window.inicializarPainelPro === "function") {
+                window.inicializarPainelPro();
+            } else {
+                showScreenV183("proDashboard");
+            }
+
+            startProfessionalRealtimeV183();
+            return;
+        }
+
+        showScreenV183("menuScreen");
+    }
+
+    window.efetuarCadastro = async function efetuarCadastroV183() {
+        if (registerRunningV183) return;
+
+        const button = document.querySelector(
+            'button[onclick*="efetuarCadastro"]'
+        );
+
+        const nome = valueV183("regName");
+        const cpf = cleanCpfV183(valueV183("regCpf"));
+        const email = valueV183("regEmail").toLowerCase();
+        const telefone = formatPhoneV183(valueV183("regPhone"));
+        const senha = valueV183("regPassword");
+        const confirmacao = valueV183("regPasswordConfirm");
+        const type = valueV183("regType") || "citizen";
+        const company = valueV183("regCompany");
+
+        if (!nome) {
+            alert("Informe o nome completo.");
+            return;
+        }
+
+        if (cpf.length !== 11) {
+            alert("Informe um CPF com 11 números.");
+            return;
+        }
+
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            alert("Informe um e-mail válido.");
+            return;
+        }
+
+        if (telefone.replace(/\D/g, "").length < 10) {
+            alert("Informe um telefone com DDD.");
+            return;
+        }
+
+        if (senha.length < 6) {
+            alert("A senha precisa ter pelo menos 6 caracteres.");
+            return;
+        }
+
+        if (senha !== confirmacao) {
+            alert("As duas senhas precisam ser iguais.");
+            return;
+        }
+
+        if (type === "professional" && !company) {
+            alert("Selecione a empresa/base.");
+            return;
+        }
+
+        registerRunningV183 = true;
+
+        try {
+            setBusyV183(button, true, "Preparando cadastro...");
+            await waitPaintV183();
+
+            const photoInput =
+                byIdV183("regPhoto") ||
+                byIdV183("regAvatarFile");
+
+            let photo = "";
+
+            if (
+                photoInput &&
+                photoInput.files &&
+                photoInput.files[0]
+            ) {
+                button.textContent = "Otimizando foto...";
+                await waitPaintV183();
+                photo = await compressImageV183(
+                    photoInput.files[0],
+                    720,
+                    0.76
+                );
+            }
+
+            button.textContent = "Criando cadastro...";
+            await waitPaintV183();
+
+            const response = await requestV183(
+                "/api/auth/register",
+                {
+                    method: "POST",
+                    body: JSON.stringify({
+                        nome,
+                        cpf,
+                        email,
+                        telefone,
+                        senha,
+                        type,
+                        company:
+                            type === "professional"
+                                ? company
+                                : null,
+                        foto: photo
+                    })
+                },
+                70000
+            );
+
+            const user = saveUserV183(
+                response.user,
+                response.token
+            );
+
+            [
+                "regName",
+                "regCpf",
+                "regEmail",
+                "regPhone",
+                "regPassword",
+                "regPasswordConfirm"
+            ].forEach(function (id) {
+                const field = byIdV183(id);
+                if (field) field.value = "";
+            });
+
+            if (photoInput) photoInput.value = "";
+
+            toastV183("✅ Conta criada com sucesso.");
+            routeRegisteredUserV183(user);
+        } catch (error) {
+            console.error("Erro no cadastro V18.3:", error);
+            alert(
+                "Não foi possível criar a conta:\n\n" +
+                (error.message || "Erro desconhecido.")
+            );
+        } finally {
+            registerRunningV183 = false;
+            setBusyV183(button, false);
+        }
+    };
+
+    function activeProfessionalScreenV183() {
+        return document.querySelector(".screen.active");
+    }
+
+    async function refreshProfessionalScreenV183(showNewToast) {
+        const user = currentUserV183();
+        const type = user && (user.type || user.tipo);
+
+        if (type !== "professional") return;
+
+        const active = activeProfessionalScreenV183();
+
+        if (
+            active &&
+            active.id === "proListScreen" &&
+            typeof window.abrirOcorrenciasPro === "function"
+        ) {
+            await window.abrirOcorrenciasPro();
+        } else if (
+            active &&
+            active.id === "nearestOccurrenceScreen" &&
+            typeof window.abrirOcorrenciaMaisProxima === "function"
+        ) {
+            await window.abrirOcorrenciaMaisProxima();
+        } else if (
+            active &&
+            active.id === "priorityQueueScreen" &&
+            typeof window.abrirFilaPrioridade === "function"
+        ) {
+            await window.abrirFilaPrioridade();
+        } else if (
+            active &&
+            active.id === "activeAgentsScreen" &&
+            typeof window.abrirPetsDesaparecidosPro === "function"
+        ) {
+            await window.abrirPetsDesaparecidosPro();
+        } else {
+            try {
+                const queue = await requestV183(
+                    "/api/pro/ocorrencias",
+                    {},
+                    30000
+                );
+
+                const signature = JSON.stringify(
+                    (Array.isArray(queue) ? queue : []).map(function (item) {
+                        return [
+                            item.origem,
+                            item.id,
+                            item.status
+                        ];
+                    })
+                );
+
+                if (
+                    showNewToast &&
+                    lastQueueSignatureV183 &&
+                    signature !== lastQueueSignatureV183
+                ) {
+                    toastV183("🚨 Novo chamado recebido.");
+                }
+
+                lastQueueSignatureV183 = signature;
+            } catch (_) {}
+        }
+    }
+
+    function scheduleProfessionalRefreshV183(showToast) {
+        clearTimeout(professionalReloadTimerV183);
+
+        professionalReloadTimerV183 = setTimeout(function () {
+            refreshProfessionalScreenV183(showToast);
+        }, 180);
+    }
+
+    function startProfessionalFallbackV183() {
+        if (professionalFallbackTimerV183) return;
+
+        professionalFallbackTimerV183 = setInterval(function () {
+            refreshProfessionalScreenV183(false);
+        }, 3500);
+    }
+
+    function stopProfessionalFallbackV183() {
+        if (!professionalFallbackTimerV183) return;
+
+        clearInterval(professionalFallbackTimerV183);
+        professionalFallbackTimerV183 = null;
+    }
+
+    function startProfessionalRealtimeV183() {
+        const user = currentUserV183();
+        const type = user && (user.type || user.tipo);
+
+        if (type !== "professional") return;
+
+        if (
+            professionalSourceV183 &&
+            professionalSourceV183.readyState !== EventSource.CLOSED
+        ) {
+            return;
+        }
+
+        if (!("EventSource" in window)) {
+            startProfessionalFallbackV183();
+            return;
+        }
+
+        professionalSourceV183 = new EventSource(
+            API_V183 + "/api/realtime/professional"
+        );
+
+        professionalSourceV183.addEventListener(
+            "connected",
+            function () {
+                stopProfessionalFallbackV183();
+                scheduleProfessionalRefreshV183(false);
+            }
+        );
+
+        [
+            "new_occurrence",
+            "queue_changed",
+            "new_missing_pet",
+            "missing_pet_resolved"
+        ].forEach(function (eventName) {
+            professionalSourceV183.addEventListener(
+                eventName,
+                function () {
+                    scheduleProfessionalRefreshV183(
+                        eventName === "new_occurrence" ||
+                        eventName === "new_missing_pet"
+                    );
+                }
+            );
+        });
+
+        professionalSourceV183.onerror = function () {
+            startProfessionalFallbackV183();
+        };
+    }
+
+    function stopProfessionalRealtimeV183() {
+        if (professionalSourceV183) {
+            professionalSourceV183.close();
+            professionalSourceV183 = null;
+        }
+
+        stopProfessionalFallbackV183();
+    }
+
+    window.startProfessionalRealtimeV183 =
+        startProfessionalRealtimeV183;
+
+    const oldInitializeProfessionalV183 =
+        window.inicializarPainelPro;
+
+    window.inicializarPainelPro = async function () {
+        if (
+            typeof oldInitializeProfessionalV183 === "function"
+        ) {
+            await oldInitializeProfessionalV183.apply(
+                this,
+                arguments
+            );
+        }
+
+        startProfessionalRealtimeV183();
+        scheduleProfessionalRefreshV183(false);
+    };
+
+    const oldLogoutV183 = window.logout;
+
+    window.logout = function () {
+        stopProfessionalRealtimeV183();
+
+        if (typeof oldLogoutV183 === "function") {
+            return oldLogoutV183.apply(this, arguments);
+        }
+
+        localStorage.removeItem(TOKEN_KEY_V183);
+        localStorage.removeItem(USER_KEY_V183);
+        window.usuarioLogado = null;
+        showScreenV183("loginScreen");
+    };
+
+    /*
+     * Reforça a conclusão do pet desaparecido com compressão,
+     * timeout e atualização imediata da lista.
+     */
+    window.safeLifeV182ConcluirResgate = async function (
+        event,
+        petId
+    ) {
+        event.preventDefault();
+
+        const form = event.currentTarget;
+        const button = form.querySelector(
+            'button[type="submit"]'
+        );
+
+        const user = currentUserV183();
+
+        if (!user || !cleanCpfV183(user.cpf)) {
+            alert(
+                "Entre novamente na conta profissional antes de concluir."
+            );
+            return;
+        }
+
+        const destinationType = String(
+            form.elements.destinationType.value || ""
+        ).trim();
+
+        const professionalAddress = String(
+            form.elements.professionalAddress
+                ? form.elements.professionalAddress.value
+                : ""
+        ).trim();
+
+        const institutionName = String(
+            form.elements.institutionName
+                ? form.elements.institutionName.value
+                : ""
+        ).trim();
+
+        const institutionAddress = String(
+            form.elements.institutionAddress
+                ? form.elements.institutionAddress.value
+                : ""
+        ).trim();
+
+        const instructions = String(
+            form.elements.pickupInstructions.value || ""
+        ).trim();
+
+        const address =
+            destinationType === "INSTITUICAO"
+                ? institutionAddress
+                : professionalAddress;
+
+        if (!destinationType) {
+            alert("Escolha onde o pet ficará.");
+            return;
+        }
+
+        if (
+            destinationType === "INSTITUICAO" &&
+            !institutionName
+        ) {
+            alert("Informe o nome da instituição.");
+            return;
+        }
+
+        if (!address) {
+            alert("Informe o endereço onde o pet ficará.");
+            return;
+        }
+
+        if (!instructions) {
+            alert("Informe as instruções para retirada.");
+            return;
+        }
+
+        const photoFile =
+            form.elements.foundPhoto &&
+            form.elements.foundPhoto.files
+                ? form.elements.foundPhoto.files[0]
+                : null;
+
+        if (!photoFile) {
+            alert("Envie uma foto atual do pet encontrado.");
+            return;
+        }
+
+        try {
+            setBusyV183(
+                button,
+                true,
+                "Otimizando foto..."
+            );
+
+            await waitPaintV183();
+
+            const photo = await compressImageV183(
+                photoFile,
+                960,
+                0.80
+            );
+
+            button.textContent = "Concluindo resgate...";
+            await waitPaintV183();
+
+            await requestV183(
+                "/api/pro/pets/" +
+                    encodeURIComponent(petId) +
+                    "/concluir-resgate",
+                {
+                    method: "POST",
+                    body: JSON.stringify({
+                        funcionarioCpf: cleanCpfV183(user.cpf),
+                        fotoEncontrado: photo,
+                        destinoTipo: destinationType,
+                        destinoNome:
+                            destinationType === "INSTITUICAO"
+                                ? institutionName
+                                : user.nome ||
+                                  "Profissional Safe Life",
+                        destinoEndereco: address,
+                        instrucoesRetirada: instructions
+                    })
+                },
+                70000
+            );
+
+            toastV183(
+                "✅ Resgate concluído. O tutor recebeu a foto e o endereço."
+            );
+
+            const card = form.closest(
+                ".safe-v182-rescue-card"
+            );
+
+            if (card) card.remove();
+
+            scheduleProfessionalRefreshV183(false);
+        } catch (error) {
+            console.error(
+                "Erro no resgate V18.3:",
+                error
+            );
+
+            alert(
+                "Não foi possível concluir o resgate:\n\n" +
+                (error.message || "Erro desconhecido.")
+            );
+        } finally {
+            setBusyV183(button, false);
+        }
+    };
+
+    function bootV183() {
+        const phone = byIdV183("regPhone");
+
+        if (phone && phone.dataset.maskV183 !== "true") {
+            phone.dataset.maskV183 = "true";
+
+            phone.addEventListener("input", function () {
+                phone.value = formatPhoneV183(phone.value);
+            });
+        }
+
+        const user = currentUserV183();
+        const type = user && (user.type || user.tipo);
+
+        if (type === "professional") {
+            startProfessionalRealtimeV183();
+        }
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener(
+            "DOMContentLoaded",
+            bootV183
+        );
+    } else {
+        bootV183();
+    }
+})();
