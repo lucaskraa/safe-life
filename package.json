@@ -1,14 +1,18 @@
 {
   "name": "safe-life",
-  "version": "1.0.0",
-  "description": "Safe Life - app de proteção animal com perfis de cidadão, profissional e administrador.",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Safe Life - plataforma de proteção animal com perfis de cidadão, profissional e administrador.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "check": "node --check server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "dependencies": {
-    "body-parser": "^1.20.3",
     "cors": "^2.8.5",
     "express": "^4.19.2",
     "pg": "^8.12.0"
@@ -19,7 +23,10 @@
     "tcc",
     "javascript",
     "node",
-    "postgresql"
+    "express",
+    "postgresql",
+    "supabase",
+    "render"
   ],
   "author": "Safe Life",
   "license": "MIT"
