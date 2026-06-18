@@ -2348,6 +2348,110 @@ app.get("/api/denuncias-anonimas", async (req, res) => {
     }
 });
 
+
+/* =====================================================
+   NOTIFICAÇÕES REAIS DO CIDADÃO
+   Derivadas do status salvo no PostgreSQL.
+===================================================== */
+
+app.get("/api/users/:cpf/notifications", async (req, res) => {
+    try {
+        const cpfLimpo = limparCpf(req.params.cpf);
+
+        if (cpfLimpo.length !== 11) {
+            return res.status(400).json({
+                error: "CPF inválido."
+            });
+        }
+
+        const result = await pool.query(
+            `
+            SELECT
+                o.id,
+                o.tipo,
+                o.categoria,
+                o.assunto,
+                o.opcao_escolhida,
+                o.localizacao,
+                o.detalhes,
+                o.status,
+                o.prioridade,
+                o.criado_em,
+                o.atualizado_em,
+                o.concluido_em,
+                uf.nome AS nome_profissional,
+                f.empresa AS empresa_profissional
+            FROM ocorrencias o
+            INNER JOIN usuarios u
+                ON u.id = o.usuario_id
+            LEFT JOIN funcionarios f
+                ON f.id = o.atendente_id
+            LEFT JOIN usuarios uf
+                ON uf.id = f.usuario_id
+            WHERE u.cpf = $1
+              AND o.status IN ('EM_ATENDIMENTO', 'CONCLUIDA', 'CANCELADA')
+            ORDER BY
+                COALESCE(o.concluido_em, o.atualizado_em, o.criado_em) DESC,
+                o.id DESC
+            LIMIT 50
+            `,
+            [cpfLimpo]
+        );
+
+        const notifications = result.rows.map((item) => {
+            const tituloOcorrencia =
+                item.opcao_escolhida ||
+                item.assunto ||
+                item.tipo ||
+                "Ocorrência";
+
+            const profissional =
+                item.nome_profissional ||
+                "Equipe Safe Life";
+
+            let title = "Atualização da ocorrência";
+            let message = `Sua ocorrência "${tituloOcorrencia}" recebeu uma atualização.`;
+
+            if (item.status === "EM_ATENDIMENTO") {
+                title = "Profissional em atendimento";
+                message = `${profissional} iniciou o atendimento da ocorrência "${tituloOcorrencia}".`;
+            }
+
+            if (item.status === "CONCLUIDA") {
+                title = "Ocorrência concluída";
+                message = `${profissional} concluiu o atendimento da ocorrência "${tituloOcorrencia}".`;
+            }
+
+            if (item.status === "CANCELADA") {
+                title = "Ocorrência cancelada";
+                message = `A ocorrência "${tituloOcorrencia}" foi cancelada.`;
+            }
+
+            return {
+                id: `${item.id}-${item.status}`,
+                occurrenceId: item.id,
+                status: item.status,
+                title,
+                message,
+                occurrenceTitle: tituloOcorrencia,
+                professionalName: profissional,
+                professionalCompany: item.empresa_profissional || null,
+                createdAt:
+                    item.concluido_em ||
+                    item.atualizado_em ||
+                    item.criado_em
+            };
+        });
+
+        return res.status(200).json(notifications);
+    } catch (erro) {
+        return res.status(500).json({
+            error: "Erro ao carregar notificações do cidadão.",
+            details: erro.message
+        });
+    }
+});
+
 /* =====================================================
    PAINEL PROFISSIONAL
 ===================================================== */
@@ -2579,7 +2683,12 @@ app.patch("/api/chamados/:origem/:id/status", async (req, res) => {
             const result = await client.query(
                 `
                 UPDATE denuncias_anonimas
-                SET status = $1
+                SET
+                    status = $1,
+                    concluido_em = CASE
+                        WHEN $1 = 'CONCLUIDA' THEN CURRENT_TIMESTAMP
+                        ELSE concluido_em
+                    END
                 WHERE id = $2
                 RETURNING *
                 `,
