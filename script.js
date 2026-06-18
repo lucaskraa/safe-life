@@ -1,11 +1,11 @@
 /* =============================================================
-   SAFE LIFE V19 — FRONTEND LIMPO E ESTÁVEL
+   SAFE LIFE V20 — FRONTEND COMPLETO ONLINE FIRST
    Uma única implementação, sem versões antigas empilhadas.
 ============================================================= */
 (function () {
     "use strict";
 
-    const API_BASE = "https://safe-life.onrender.com";
+    const API_BASE = document.querySelector('meta[name="safe-life-api-url"]')?.content || "https://safe-life.onrender.com";
     const STORAGE_USER = "safeLifeLoggedUser";
     const STORAGE_TOKEN = "safeLifeAuthToken";
     const ADMIN_CPF = "45317828791";
@@ -39,6 +39,15 @@
         fallbackTimer: null,
         sessionTimer: null,
         refreshDebounce: null,
+        realtimeReconnectTimer: null,
+        realtimeConnected: false,
+        realtimeLastEventId: Number(localStorage.getItem("safeLifeLastRealtimeEventId") || 0),
+        realtimeNewCount: 0,
+        lastSyncAt: null,
+        soundReady: false,
+        carouselTimer: null,
+        carouselIndex: 0,
+        carouselPaused: false,
         busy: new Set()
     };
 
@@ -221,6 +230,7 @@
             const response = await fetch(API_BASE + path, {
                 ...(options || {}),
                 headers,
+                cache: "no-store",
                 signal: controller.signal
             });
 
@@ -250,6 +260,81 @@
         }
     }
 
+    function updateConnectionState(mode, message) {
+        const bar = byId("safeLifeConnectionBar");
+        const label = byId("safeLifeConnectionText");
+        const lastSync = byId("safeLifeLastSync");
+
+        if (bar) {
+            bar.classList.remove("is-online", "is-offline", "is-connecting");
+            bar.classList.add(mode === "online" ? "is-online" : mode === "offline" ? "is-offline" : "is-connecting");
+        }
+
+        if (label) {
+            label.textContent = message || (mode === "online" ? "Servidor conectado" : mode === "offline" ? "Sem conexão" : "Conectando ao servidor...");
+        }
+
+        if (state.lastSyncAt && lastSync) {
+            lastSync.textContent = `Última sincronização: ${state.lastSyncAt.toLocaleTimeString("pt-BR")}`;
+        } else if (lastSync) {
+            lastSync.textContent = "Ainda não sincronizado";
+        }
+
+        const proStatus = byId("proRealtimeStatus");
+        const proDetail = byId("proRealtimeDetail");
+        if (proStatus) proStatus.textContent = mode === "online" ? "Plantão conectado" : mode === "offline" ? "Plantão sem conexão" : "Conectando plantão";
+        if (proDetail) proDetail.textContent = message || "Aguardando eventos do servidor";
+    }
+
+    function markSynced(message) {
+        state.lastSyncAt = new Date();
+        updateConnectionState("online", message || "Dados sincronizados em tempo real");
+    }
+
+    function prepareRealtimeAlerts() {
+        if (state.soundReady) return;
+        state.soundReady = true;
+
+        if ("Notification" in window && Notification.permission === "default") {
+            Notification.requestPermission().catch(function () {});
+        }
+    }
+
+    function realtimeAlert(title, body) {
+        try {
+            if (navigator.vibrate) navigator.vibrate([100, 55, 140]);
+        } catch (_) {}
+
+        try {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (AudioContextClass) {
+                const context = new AudioContextClass();
+                const oscillator = context.createOscillator();
+                const gain = context.createGain();
+                oscillator.type = "sine";
+                oscillator.frequency.value = 780;
+                gain.gain.setValueAtTime(0.0001, context.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.12, context.currentTime + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.26);
+                oscillator.connect(gain);
+                gain.connect(context.destination);
+                oscillator.start();
+                oscillator.stop(context.currentTime + 0.28);
+                oscillator.onended = function () { context.close().catch(function () {}); };
+            }
+        } catch (_) {}
+
+        if ("Notification" in window && Notification.permission === "granted" && document.hidden) {
+            try {
+                new Notification(title || "Safe Life", {
+                    body: body || "Nova atualização recebida.",
+                    icon: "img/corredorzeca.jpeg",
+                    tag: "safe-life-realtime"
+                });
+            } catch (_) {}
+        }
+    }
+
     function saveSession(user, token) {
         state.user = normalizeUser(user);
         state.token = String(token || "");
@@ -257,6 +342,8 @@
         localStorage.setItem(STORAGE_TOKEN, state.token);
         window.usuarioLogado = state.user;
         startSessionWatcher();
+        startRealtimeConnection();
+        prepareRealtimeAlerts();
     }
 
     function normalizeUser(user) {
@@ -370,7 +457,7 @@
         if (state.sessionTimer) window.clearInterval(state.sessionTimer);
         state.sessionTimer = window.setInterval(function () {
             validateSession(false);
-        }, 45000);
+        }, 15000);
     }
 
     function showAccountStatus(code, message, blockedUntil) {
@@ -955,6 +1042,19 @@
             text("realCountry", address.pais || "Brasil");
             text("gpsStatus", "Localização encontrada com sucesso.");
             if (resultBox) resultBox.classList.remove("hidden");
+
+            const continueButton = byId("continuarBtn");
+            if (continueButton) {
+                continueButton.classList.remove("hidden");
+                continueButton.style.display = "flex";
+                continueButton.disabled = false;
+            }
+
+            const mapLink = byId("openMapLink");
+            if (mapLink) {
+                mapLink.href = `https://www.google.com/maps?q=${latitude},${longitude}`;
+            }
+
             if (targetFieldId) setValue(targetFieldId, address.enderecoCompleto);
             return address.enderecoCompleto;
         } finally {
@@ -1079,7 +1179,7 @@
 
     async function fetchProfessionalQueue(force) {
         const now = Date.now();
-        if (!force && state.queue.length && now - state.queueLoadedAt < 2500) return state.queue;
+        if (!force && state.queue.length && now - state.queueLoadedAt < 700) return state.queue;
         const queue = await api("/api/pro/ocorrencias", {}, 30000);
         state.queue = Array.isArray(queue) ? queue : [];
         state.queueLoadedAt = now;
@@ -1109,62 +1209,231 @@
     }
 
     function startProfessionalRealtime() {
-        stopProfessionalRealtime();
-        if (!state.user || state.user.type !== "professional") return;
-
-        if ("EventSource" in window) {
-            try {
-                state.eventSource = new EventSource(`${API_BASE}/api/realtime/professional`);
-                ["new_occurrence", "queue_changed", "new_missing_pet", "missing_pet_resolved"].forEach(function (eventName) {
-                    state.eventSource.addEventListener(eventName, function () {
-                        scheduleProfessionalRefresh(eventName === "new_occurrence" || eventName === "new_missing_pet");
-                    });
-                });
-                state.eventSource.onerror = function () {
-                    startProfessionalFallback();
-                };
-            } catch (_) {
-                startProfessionalFallback();
-            }
-        } else {
-            startProfessionalFallback();
-        }
-    }
-
-    function startProfessionalFallback() {
-        if (state.fallbackTimer) return;
-        state.fallbackTimer = window.setInterval(function () {
-            scheduleProfessionalRefresh(false);
-        }, 5000);
+        startRealtimeConnection();
     }
 
     function stopProfessionalRealtime() {
+        stopRealtimeConnection();
+    }
+
+    function startRealtimeConnection() {
+        stopRealtimeConnection();
+
+        if (!state.user || !state.token) {
+            updateConnectionState(navigator.onLine ? "connecting" : "offline");
+            return;
+        }
+
+        if (!navigator.onLine) {
+            updateConnectionState("offline", "Sem internet. Tentaremos novamente automaticamente.");
+            startRealtimeFallback();
+            return;
+        }
+
+        updateConnectionState("connecting", "Abrindo canal online com o servidor...");
+
+        if (!("EventSource" in window)) {
+            startRealtimeFallback();
+            return;
+        }
+
+        try {
+            const params = new URLSearchParams({
+                token: state.token,
+                lastEventId: String(state.realtimeLastEventId || 0)
+            });
+
+            state.eventSource = new EventSource(`${API_BASE}/api/realtime/stream?${params.toString()}`);
+
+            state.eventSource.addEventListener("connected", function (event) {
+                state.realtimeConnected = true;
+                stopRealtimeFallback();
+                markSynced("Canal em tempo real conectado");
+                consumeRealtimeEnvelope(event, false);
+            });
+
+            [
+                "snapshot_required",
+                "new_occurrence",
+                "queue_changed",
+                "new_missing_pet",
+                "missing_pet_resolved",
+                "user_notification",
+                "account_status",
+                "admin_changed"
+            ].forEach(function (eventName) {
+                state.eventSource.addEventListener(eventName, function (event) {
+                    consumeRealtimeEnvelope(event, true);
+                });
+            });
+
+            state.eventSource.onopen = function () {
+                state.realtimeConnected = true;
+                stopRealtimeFallback();
+                markSynced("Conectado ao servidor Safe Life");
+            };
+
+            state.eventSource.onerror = function () {
+                state.realtimeConnected = false;
+                updateConnectionState("connecting", "Reconectando ao servidor...");
+                startRealtimeFallback();
+            };
+        } catch (error) {
+            console.warn("Tempo real indisponível:", error);
+            startRealtimeFallback();
+        }
+    }
+
+    function stopRealtimeConnection() {
         if (state.eventSource) {
             state.eventSource.close();
             state.eventSource = null;
         }
+
+        state.realtimeConnected = false;
+
+        if (state.realtimeReconnectTimer) {
+            window.clearTimeout(state.realtimeReconnectTimer);
+            state.realtimeReconnectTimer = null;
+        }
+
+        stopRealtimeFallback();
+    }
+
+    function startRealtimeFallback() {
+        if (state.fallbackTimer || !state.user || !state.token) return;
+
+        state.fallbackTimer = window.setInterval(async function () {
+            if (!navigator.onLine) {
+                updateConnectionState("offline", "Sem internet. Dados serão atualizados quando a conexão voltar.");
+                return;
+            }
+
+            try {
+                if (state.user.type === "professional") {
+                    await scheduleProfessionalRefresh(false, true);
+                } else if (state.user.type === "citizen") {
+                    await loadCitizenNotifications();
+                } else if (state.user.type === "admin") {
+                    await validateSession(false);
+                }
+                markSynced("Sincronização de segurança concluída");
+            } catch (_) {}
+        }, state.user.type === "professional" ? 2500 : 5000);
+    }
+
+    function stopRealtimeFallback() {
         if (state.fallbackTimer) {
             window.clearInterval(state.fallbackTimer);
             state.fallbackTimer = null;
         }
     }
 
-    function scheduleProfessionalRefresh(notify) {
-        window.clearTimeout(state.refreshDebounce);
-        state.refreshDebounce = window.setTimeout(async function () {
-            state.queueLoadedAt = 0;
-            const active = document.querySelector(".screen.active");
-            try {
-                if (active && active.id === "proListScreen") await abrirOcorrenciasPro();
-                else if (active && active.id === "nearestOccurrenceScreen") await abrirOcorrenciaMaisProxima();
-                else if (active && active.id === "priorityQueueScreen") await abrirFilaPrioridade();
-                else if (active && active.id === "activeAgentsScreen") await abrirPetsDesaparecidosPro();
-                else await fetchProfessionalQueue(true);
-                if (notify) toast("Novo chamado recebido.", "warning");
-            } catch (error) {
-                console.warn(error);
+    function parseRealtimeEnvelope(event) {
+        try {
+            const data = JSON.parse(event.data || "{}");
+            const id = Number(event.lastEventId || data.id || 0);
+            if (id > 0) {
+                state.realtimeLastEventId = Math.max(state.realtimeLastEventId || 0, id);
+                localStorage.setItem("safeLifeLastRealtimeEventId", String(state.realtimeLastEventId));
             }
-        }, 220);
+            return data;
+        } catch (_) {
+            return {};
+        }
+    }
+
+    async function consumeRealtimeEnvelope(event, notify) {
+        const envelope = parseRealtimeEnvelope(event);
+        const type = event.type || envelope.type || "message";
+        const payload = envelope.payload || {};
+        markSynced("Atualização recebida agora");
+
+        if (["new_occurrence", "new_missing_pet"].includes(type) && state.user?.type === "professional") {
+            state.realtimeNewCount += 1;
+            text("proNewEventCount", state.realtimeNewCount);
+            realtimeAlert(
+                type === "new_missing_pet" ? "Novo pet desaparecido" : "Novo chamado recebido",
+                payload.title || payload.name || "Abra o painel profissional para atender."
+            );
+            await scheduleProfessionalRefresh(true, true);
+            return;
+        }
+
+        if (["queue_changed", "missing_pet_resolved", "snapshot_required"].includes(type) && state.user?.type === "professional") {
+            await scheduleProfessionalRefresh(false, true);
+            return;
+        }
+
+        if (type === "user_notification" && state.user?.type === "citizen") {
+            realtimeAlert(payload.title || "Atualização do atendimento", payload.message || "Seu chamado recebeu uma atualização.");
+            toast(payload.title || "Seu chamado recebeu uma atualização.", "success");
+            await loadCitizenNotifications();
+            const box = byId("citizenOnlineSummary");
+            if (box) {
+                box.classList.remove("safe-life-realtime-flash");
+                void box.offsetWidth;
+                box.classList.add("safe-life-realtime-flash");
+            }
+            return;
+        }
+
+        if (type === "account_status") {
+            await validateSession(false);
+            return;
+        }
+
+        if (type === "admin_changed" && state.user?.type === "admin") {
+            const active = document.querySelector(".screen.active");
+            if (active?.id === "adminUsersScreen") await abrirGerenciarUsuarios();
+            else if (active?.id === "adminCompaniesScreen") await abrirEmpresasAdmin();
+            else if (active?.id === "adminReportScreen") await abrirRelatorioAdmin();
+            if (notify) toast("Dados administrativos atualizados.", "info");
+        }
+    }
+
+    async function atualizarPainelProfissionalAgora() {
+        const button = document.querySelector(".safe-life-live-refresh");
+        setBusy(button, true, "Atualizando...");
+        try {
+            state.realtimeNewCount = 0;
+            text("proNewEventCount", 0);
+            await scheduleProfessionalRefresh(false, true);
+            toast("Painel sincronizado com o servidor.", "success");
+        } finally {
+            setBusy(button, false);
+        }
+    }
+
+    async function scheduleProfessionalRefresh(notify, immediate) {
+        return new Promise(function (resolve) {
+            window.clearTimeout(state.refreshDebounce);
+            state.refreshDebounce = window.setTimeout(async function () {
+                state.queueLoadedAt = 0;
+                const active = document.querySelector(".screen.active");
+                try {
+                    const queue = await fetchProfessionalQueue(true);
+                    text("statTotal", queue.length);
+                    text("statAnon", queue.filter(function (item) { return item.origem === "anonima" || item.anonima; }).length);
+                    text("statEmergency", queue.filter(function (item) {
+                        const priority = String(item.prioridade || "").toUpperCase();
+                        return priority === "ALTA" || priority === "CRITICA" || priority === "CRÍTICA" || String(item.categoria || "").toLowerCase() === "emergency";
+                    }).length);
+
+                    if (active && active.id === "proListScreen") await abrirOcorrenciasPro();
+                    else if (active && active.id === "nearestOccurrenceScreen") await abrirOcorrenciaMaisProxima();
+                    else if (active && active.id === "priorityQueueScreen") await abrirFilaPrioridade();
+                    else if (active && active.id === "activeAgentsScreen") await abrirPetsDesaparecidosPro();
+
+                    if (notify) toast("Novo alerta recebido em tempo real.", "warning");
+                    markSynced("Fila profissional atualizada");
+                } catch (error) {
+                    console.warn(error);
+                } finally {
+                    resolve();
+                }
+            }, immediate ? 40 : 180);
+        });
     }
 
     function occurrencePhoto(item) {
@@ -1801,28 +2070,201 @@
 
     function setupCarousel() {
         const image = byId("welcomeCarouselImage");
-        if (!image) return;
-        const images = [
-            "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=1200&q=85",
-            "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=1200&q=85",
-            "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=1200&q=85"
+        const thumb = byId("carouselSliderThumb");
+        const progress = byId("welcomeCarouselProgress");
+        const status = byId("welcomeCarouselStatus");
+        const carousel = image ? image.closest(".welcome-carousel-simple") : null;
+
+        if (!image || image.dataset.safeLifeCarouselInstalled === "true") return;
+
+        image.dataset.safeLifeCarouselInstalled = "true";
+
+        const slides = [
+            {
+                src: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=1200&q=85",
+                alt: "Gato protegido pelo Safe Life"
+            },
+            {
+                src: "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=1200&q=85",
+                alt: "Cães acompanhados por uma rede de proteção"
+            },
+            {
+                src: "https://images.unsplash.com/photo-1444464666168-49d633b86797?auto=format&fit=crop&w=1200&q=85",
+                alt: "Ave recebendo cuidado e proteção"
+            },
+            {
+                src: "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=1200&q=85",
+                alt: "Gato em ambiente seguro"
+            },
+            {
+                src: "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=1200&q=85",
+                alt: "Cachorro protegido pelo Safe Life"
+            }
         ];
-        let index = 0;
-        window.setInterval(function () {
-            index = (index + 1) % images.length;
-            image.src = images[index];
-        }, 6000);
+
+        const fallback = FALLBACK_PET_PHOTO;
+        let touchStartX = null;
+
+        slides.forEach(function (slide) {
+            const preload = new Image();
+            preload.src = slide.src;
+        });
+
+        function renderSlide(nextIndex, animate) {
+            const normalized =
+                ((nextIndex % slides.length) + slides.length) % slides.length;
+
+            state.carouselIndex = normalized;
+            const slide = slides[normalized];
+
+            function apply() {
+                image.src = slide.src;
+                image.alt = slide.alt;
+
+                if (thumb) {
+                    const width = 100 / slides.length;
+                    thumb.style.width = `${width}%`;
+                    thumb.style.transform = `translateX(${normalized * 100}%)`;
+                    thumb.style.marginLeft = "0";
+                }
+
+                if (progress) {
+                    progress.setAttribute("aria-valuenow", String(normalized + 1));
+                    progress.setAttribute(
+                        "aria-valuetext",
+                        `Imagem ${normalized + 1} de ${slides.length}`
+                    );
+                }
+
+                if (status) {
+                    status.textContent =
+                        `Imagem ${normalized + 1} de ${slides.length}: ${slide.alt}`;
+                }
+
+                window.requestAnimationFrame(function () {
+                    image.classList.remove("safe-life-carousel-changing");
+                });
+            }
+
+            if (animate) {
+                image.classList.add("safe-life-carousel-changing");
+                window.setTimeout(apply, 170);
+            } else {
+                apply();
+            }
+        }
+
+        function nextSlide() {
+            if (state.carouselPaused || document.hidden) return;
+            renderSlide(state.carouselIndex + 1, true);
+        }
+
+        function restartTimer() {
+            if (state.carouselTimer) {
+                window.clearInterval(state.carouselTimer);
+            }
+
+            state.carouselTimer = window.setInterval(nextSlide, 4200);
+        }
+
+        image.addEventListener("error", function () {
+            if (image.src !== fallback) {
+                image.src = fallback;
+                image.alt = "Animal protegido pelo Safe Life";
+            }
+        });
+
+        if (carousel) {
+            carousel.addEventListener("mouseenter", function () {
+                state.carouselPaused = true;
+            });
+
+            carousel.addEventListener("mouseleave", function () {
+                state.carouselPaused = false;
+            });
+
+            carousel.addEventListener("touchstart", function (event) {
+                touchStartX =
+                    event.changedTouches && event.changedTouches[0]
+                        ? event.changedTouches[0].clientX
+                        : null;
+            }, { passive: true });
+
+            carousel.addEventListener("touchend", function (event) {
+                if (touchStartX == null) return;
+
+                const touchEndX =
+                    event.changedTouches && event.changedTouches[0]
+                        ? event.changedTouches[0].clientX
+                        : touchStartX;
+
+                const distance = touchEndX - touchStartX;
+                touchStartX = null;
+
+                if (Math.abs(distance) < 35) return;
+
+                renderSlide(
+                    state.carouselIndex + (distance < 0 ? 1 : -1),
+                    true
+                );
+                restartTimer();
+            }, { passive: true });
+        }
+
+        if (progress) {
+            progress.addEventListener("click", function (event) {
+                const rect = progress.getBoundingClientRect();
+                const ratio = Math.min(
+                    0.999,
+                    Math.max(0, (event.clientX - rect.left) / rect.width)
+                );
+                const selected = Math.floor(ratio * slides.length);
+                renderSlide(selected, true);
+                restartTimer();
+            });
+        }
+
+        document.addEventListener("visibilitychange", function () {
+            if (!document.hidden) {
+                renderSlide(state.carouselIndex, false);
+            }
+        });
+
+        renderSlide(0, false);
+        restartTimer();
     }
 
     function installLocationButton() {
         const button = byId("btnLocalizacao");
-        if (!button) return;
+        const continueButton = byId("continuarBtn");
+
+        if (continueButton && value("userFullAddress")) {
+            continueButton.classList.remove("hidden");
+            continueButton.style.display = "flex";
+            continueButton.disabled = false;
+        }
+
+        if (!button || button.dataset.safeLifeInstalled === "true") return;
+
+        button.dataset.safeLifeInstalled = "true";
+
         button.addEventListener("click", async function () {
             setBusy(button, true, "Buscando localização...");
+
             try {
                 await updateCurrentLocation("");
-                const continueButton = byId("continuarBtn");
-                if (continueButton) continueButton.disabled = false;
+
+                if (continueButton) {
+                    continueButton.classList.remove("hidden");
+                    continueButton.style.display = "flex";
+                    continueButton.disabled = false;
+                    continueButton.scrollIntoView({
+                        behavior: "smooth",
+                        block: "center"
+                    });
+                }
+
+                toast("Localização atual encontrada. Agora você pode continuar.", "success");
             } catch (error) {
                 showError(error, "Não foi possível obter a localização.");
             } finally {
@@ -1854,7 +2296,34 @@
         const destination = byId("rescueDestinationType");
         if (destination) destination.addEventListener("change", alternarDestinoResgatePet);
 
-        if (state.user && state.token) startSessionWatcher();
+        window.addEventListener("online", function () {
+            updateConnectionState("connecting", "Internet voltou. Reconectando...");
+            startRealtimeConnection();
+            if (state.user?.type === "professional") scheduleProfessionalRefresh(false, true);
+        });
+
+        window.addEventListener("offline", function () {
+            updateConnectionState("offline", "Sem internet. O aplicativo aguardará a conexão voltar.");
+            startRealtimeFallback();
+        });
+
+        document.addEventListener("visibilitychange", function () {
+            if (!document.hidden && state.user && state.token) {
+                validateSession(false);
+                if (!state.realtimeConnected) startRealtimeConnection();
+                if (state.user.type === "professional") scheduleProfessionalRefresh(false, true);
+                if (state.user.type === "citizen") loadCitizenNotifications();
+            }
+        });
+
+        document.addEventListener("pointerdown", prepareRealtimeAlerts, { once: true });
+
+        if (state.user && state.token) {
+            startSessionWatcher();
+            startRealtimeConnection();
+        } else {
+            updateConnectionState(navigator.onLine ? "connecting" : "offline", navigator.onLine ? "Pronto para entrar no Safe Life" : "Sem internet");
+        }
         document.body.classList.add("safe-life-ready");
     }
 
@@ -1911,6 +2380,7 @@
         abrirContasSuspeitas,
         abrirRelatorioAdmin,
         abrirRelatorioPlantao,
+        atualizarPainelProfissionalAgora,
         encerrarSessaoPorStatus
     });
 
