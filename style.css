@@ -4067,3 +4067,79 @@ html {
 html {
     scroll-behavior: auto !important;
 }
+/* =====================================================
+   SAFE LIFE V14 — CORREÇÃO DEFINITIVA DO MENU CIDADÃO
+   O botão "Solicitar Resgate" ocupa toda a linha.
+===================================================== */
+
+#menuScreen .citizen-menu-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 16px !important;
+    width: 100% !important;
+    align-items: stretch !important;
+    justify-items: stretch !important;
+}
+
+#menuScreen .citizen-menu-grid .emergency {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    max-width: none !important;
+    justify-self: stretch !important;
+}
+
+#menuScreen .citizen-menu-grid .rescue-card,
+#menuScreen .citizen-menu-grid button[onclick*="rescue"] {
+    grid-column: 1 / -1 !important;
+    grid-row: auto !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    height: 120px !important;
+    min-height: 120px !important;
+    margin: 0 !important;
+    padding: 22px 18px !important;
+    justify-self: stretch !important;
+    align-self: stretch !important;
+    place-self: stretch !important;
+    text-align: center !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: var(--border-radius-medium) !important;
+    background:
+        radial-gradient(circle at top right, rgba(16, 185, 129, 0.15), transparent 42%),
+        linear-gradient(180deg, #ffffff 0%, #f5fffb 100%) !important;
+    border: 1px solid rgba(16, 185, 129, 0.18) !important;
+    box-shadow: 0 10px 26px rgba(16, 185, 129, 0.12) !important;
+}
+
+#menuScreen .citizen-menu-grid .rescue-card:hover,
+#menuScreen .citizen-menu-grid button[onclick*="rescue"]:hover {
+    background:
+        radial-gradient(circle at top right, rgba(16, 185, 129, 0.20), transparent 42%),
+        linear-gradient(180deg, #ffffff 0%, #ecfdf5 100%) !important;
+    box-shadow: 0 14px 30px rgba(16, 185, 129, 0.17) !important;
+}
+
+#menuScreen .citizen-menu-grid .rescue-card .action-icon,
+#menuScreen .citizen-menu-grid button[onclick*="rescue"] .action-icon {
+    align-self: center !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    margin-bottom: 8px !important;
+}
+
+@media (max-width: 380px) {
+    #menuScreen .citizen-menu-grid {
+        gap: 12px !important;
+    }
+
+    #menuScreen .citizen-menu-grid .rescue-card,
+    #menuScreen .citizen-menu-grid button[onclick*="rescue"] {
+        width: 100% !important;
+        max-width: none !important;
+        height: 112px !important;
+        min-height: 112px !important;
+        padding: 18px 14px !important;
+    }
+}
