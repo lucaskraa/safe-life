@@ -10746,3 +10746,1169 @@ document.addEventListener("DOMContentLoaded", function() {
         bootV13();
     }
 })();
+/* =====================================================
+   SAFE LIFE V14 — INTEGRAÇÃO ONLINE / LOGIN / ADMIN
+   Compatível com:
+   - HTML com campos de senha
+   - Render
+   - Supabase/PostgreSQL
+   - server.js com token Bearer
+   - GitHub Pages
+===================================================== */
+
+(function () {
+    "use strict";
+
+    const API_URL_STORAGE_KEY = "safeLifeApiUrl";
+    const AUTH_TOKEN_STORAGE_KEY = "safeLifeAuthToken";
+    const LOGGED_USER_STORAGE_KEY = "safeLifeLoggedUser";
+    const USERS_STORAGE_KEY = "safeLifeUsuarios";
+    const COMPANIES_STORAGE_KEY = "safeLifeEmpresas";
+    const ADMIN_MASTER_CPF = "45317828791";
+
+    const nativeFetch = window.fetch.bind(window);
+
+    function byId(id) {
+        return document.getElementById(id);
+    }
+
+    function textValue(id) {
+        const element = byId(id);
+        return element ? String(element.value || "").trim() : "";
+    }
+
+    function cleanCpf(value) {
+        return String(value || "").replace(/\D/g, "");
+    }
+
+    function normalizeApiBase(value) {
+        return String(value || "")
+            .trim()
+            .replace(/\/+$/, "")
+            .replace(/\/api$/i, "");
+    }
+
+    function readJson(key, fallback) {
+        try {
+            const raw = localStorage.getItem(key);
+            return raw ? JSON.parse(raw) : fallback;
+        } catch (error) {
+            return fallback;
+        }
+    }
+
+    function writeJson(key, value) {
+        try {
+            localStorage.setItem(key, JSON.stringify(value));
+        } catch (error) {
+            console.warn("Não foi possível salvar no navegador:", key);
+        }
+    }
+
+    function toastV14(message) {
+        if (typeof window.triggerToast === "function") {
+            window.triggerToast(message);
+            return;
+        }
+
+        const toast = byId("toast");
+
+        if (!toast) {
+            console.log(message);
+            return;
+        }
+
+        toast.textContent = message;
+        toast.classList.add("show");
+
+        window.setTimeout(function () {
+            toast.classList.remove("show");
+        }, 2600);
+    }
+
+    function discoverApiBase(interactive) {
+        const fromWindow = normalizeApiBase(window.SAFE_LIFE_API_URL);
+
+        if (fromWindow) {
+            localStorage.setItem(API_URL_STORAGE_KEY, fromWindow);
+            return fromWindow;
+        }
+
+        const meta = document.querySelector('meta[name="safe-life-api-url"]');
+        const fromMeta = normalizeApiBase(meta ? meta.getAttribute("content") : "");
+
+        if (fromMeta) {
+            localStorage.setItem(API_URL_STORAGE_KEY, fromMeta);
+            return fromMeta;
+        }
+
+        const fromStorage = normalizeApiBase(localStorage.getItem(API_URL_STORAGE_KEY));
+
+        if (fromStorage) {
+            return fromStorage;
+        }
+
+        const host = String(window.location.hostname || "").toLowerCase();
+
+        if (
+            host === "localhost" ||
+            host === "127.0.0.1" ||
+            host === "0.0.0.0"
+        ) {
+            return "http://localhost:3000";
+        }
+
+        if (host.endsWith(".onrender.com")) {
+            return normalizeApiBase(window.location.origin);
+        }
+
+        if (interactive && host.endsWith(".github.io")) {
+            const informed = window.prompt(
+                "Cole o endereço do servidor no Render.\n\nExemplo:\nhttps://safe-life-xxxx.onrender.com"
+            );
+
+            const normalized = normalizeApiBase(informed);
+
+            if (normalized) {
+                localStorage.setItem(API_URL_STORAGE_KEY, normalized);
+                window.SAFE_LIFE_API_URL = normalized;
+                return normalized;
+            }
+        }
+
+        return "";
+    }
+
+    window.configurarServidorSafeLife = function configurarServidorSafeLife(url) {
+        const normalized = normalizeApiBase(url);
+
+        if (!normalized || !/^https?:\/\//i.test(normalized)) {
+            throw new Error("Informe uma URL válida começando com http:// ou https://.");
+        }
+
+        localStorage.setItem(API_URL_STORAGE_KEY, normalized);
+        window.SAFE_LIFE_API_URL = normalized;
+        toastV14("✅ Servidor do Safe Life configurado.");
+        return normalized;
+    };
+
+    window.removerServidorSafeLife = function removerServidorSafeLife() {
+        localStorage.removeItem(API_URL_STORAGE_KEY);
+        delete window.SAFE_LIFE_API_URL;
+        toastV14("Configuração do servidor removida.");
+    };
+
+    function isApiUrl(url) {
+        const value = String(url || "");
+
+        return (
+            value.startsWith("/api/") ||
+            value === "/api" ||
+            value.startsWith("http://localhost:3000/api/") ||
+            value.startsWith("https://localhost:3000/api/") ||
+            /\/api(?:\/|$)/i.test(value)
+        );
+    }
+
+    function buildApiUrl(inputUrl, interactive) {
+        let url = String(inputUrl || "");
+
+        if (!isApiUrl(url)) {
+            return url;
+        }
+
+        const apiBase = discoverApiBase(interactive);
+
+        if (!apiBase) {
+            if (url.startsWith("/api")) {
+                return url;
+            }
+
+            return url.replace(/^https?:\/\/localhost:3000/i, "");
+        }
+
+        if (/^https?:\/\/localhost:3000/i.test(url)) {
+            return apiBase + url.replace(/^https?:\/\/localhost:3000/i, "");
+        }
+
+        if (url.startsWith("/api")) {
+            return apiBase + url;
+        }
+
+        try {
+            const parsed = new URL(url);
+            return apiBase + parsed.pathname + parsed.search + parsed.hash;
+        } catch (error) {
+            return url;
+        }
+    }
+
+    function getAuthToken() {
+        return String(localStorage.getItem(AUTH_TOKEN_STORAGE_KEY) || "");
+    }
+
+    function saveAuthToken(token) {
+        if (token) {
+            localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, String(token));
+        } else {
+            localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+        }
+    }
+
+    function withApiHeaders(inputHeaders) {
+        const headers = new Headers(inputHeaders || {});
+
+        if (!headers.has("Content-Type")) {
+            headers.set("Content-Type", "application/json");
+        }
+
+        const token = getAuthToken();
+
+        if (token && !headers.has("Authorization")) {
+            headers.set("Authorization", "Bearer " + token);
+        }
+
+        return headers;
+    }
+
+    window.fetch = async function safeLifeFetch(input, init) {
+        const config = { ...(init || {}) };
+
+        let originalUrl = "";
+
+        if (typeof input === "string") {
+            originalUrl = input;
+        } else if (input && typeof input.url === "string") {
+            originalUrl = input.url;
+        }
+
+        if (!isApiUrl(originalUrl)) {
+            return nativeFetch(input, config);
+        }
+
+        const finalUrl = buildApiUrl(originalUrl, true);
+        config.headers = withApiHeaders(config.headers);
+
+        return nativeFetch(finalUrl, config);
+    };
+
+    async function parseApiResponse(response) {
+        const contentType = String(response.headers.get("content-type") || "");
+        let data = null;
+
+        if (contentType.includes("application/json")) {
+            data = await response.json().catch(function () {
+                return null;
+            });
+        } else {
+            const text = await response.text().catch(function () {
+                return "";
+            });
+
+            data = text ? { message: text } : null;
+        }
+
+        if (!response.ok) {
+            const message =
+                (data && (data.error || data.message || data.details)) ||
+                "Não foi possível concluir a operação.";
+
+            const error = new Error(String(message));
+            error.status = response.status;
+            error.data = data;
+            throw error;
+        }
+
+        return data;
+    }
+
+    async function safeLifeApi(endpoint, options) {
+        const apiBase = discoverApiBase(true);
+
+        if (!apiBase && String(window.location.hostname || "").endsWith(".github.io")) {
+            throw new Error(
+                "O endereço do Render ainda não foi configurado. Recarregue a página e cole a URL do servidor."
+            );
+        }
+
+        const response = await window.fetch(endpoint, {
+            ...(options || {}),
+            headers: withApiHeaders(options && options.headers)
+        });
+
+        return parseApiResponse(response);
+    }
+
+    window.safeLifeApi = safeLifeApi;
+
+    try {
+        apiRequest = safeLifeApi;
+    } catch (error) {}
+
+    window.apiRequest = safeLifeApi;
+
+    function normalizeUser(user, fallbackType) {
+        if (!user) return null;
+
+        const type = user.type || user.tipo || fallbackType || "citizen";
+        const company = user.company || user.empresa || (type === "professional" ? "Safe Life Matriz" : null);
+
+        const professional = {
+            cargo: user.cargo || (user.profissional && user.profissional.cargo) || "Agente Operacional",
+            especialidade:
+                user.especialidade ||
+                (user.profissional && user.profissional.especialidade) ||
+                "Resgate e triagem animal",
+            regiao:
+                user.regiaoAtendimento ||
+                user.regiao_atendimento ||
+                (user.profissional && (user.profissional.regiao || user.profissional.regiaoAtendimento)) ||
+                "",
+            plantao:
+                user.statusPlantao ||
+                user.status_plantao ||
+                (user.profissional && (user.profissional.plantao || user.profissional.statusPlantao)) ||
+                "Disponível",
+            veiculo: user.veiculo || (user.profissional && user.profissional.veiculo) || "",
+            equipe: user.equipe || (user.profissional && user.profissional.equipe) || "",
+            registro:
+                user.registroProfissional ||
+                user.registro_profissional ||
+                (user.profissional && (user.profissional.registro || user.profissional.registroProfissional)) ||
+                "",
+            observacoes:
+                user.bioProfissional ||
+                user.bio_profissional ||
+                (user.profissional && (user.profissional.observacoes || user.profissional.bioProfissional)) ||
+                ""
+        };
+
+        return {
+            ...user,
+            cpf: cleanCpf(user.cpf),
+            type,
+            tipo: type,
+            company,
+            empresa: company,
+            foto: user.foto || user.foto_perfil || user.avatar || "",
+            telefone: user.telefone || user.phone || "",
+            ativo: user.ativo !== false,
+            profissional: type === "professional" || type === "admin"
+                ? professional
+                : user.profissional
+        };
+    }
+
+    function upsertLocalUser(user) {
+        const normalized = normalizeUser(user);
+
+        if (!normalized || !normalized.cpf) return normalized;
+
+        const users = readJson(USERS_STORAGE_KEY, []);
+        const index = users.findIndex(function (item) {
+            return cleanCpf(item.cpf) === normalized.cpf;
+        });
+
+        if (index >= 0) {
+            users[index] = {
+                ...users[index],
+                ...normalized
+            };
+        } else {
+            users.unshift(normalized);
+        }
+
+        writeJson(USERS_STORAGE_KEY, users);
+        return normalized;
+    }
+
+    function saveLoggedUser(user, token) {
+        const normalized = upsertLocalUser(user);
+
+        if (!normalized) return null;
+
+        saveAuthToken(token);
+        writeJson(LOGGED_USER_STORAGE_KEY, normalized);
+        localStorage.setItem("safeLifeLastCpf", normalized.cpf);
+
+        try {
+            usuarioLogado = normalized;
+        } catch (error) {
+            window.usuarioLogado = normalized;
+        }
+
+        window.usuarioLogado = normalized;
+        return normalized;
+    }
+
+    function clearLoggedUser() {
+        saveAuthToken("");
+        localStorage.removeItem(LOGGED_USER_STORAGE_KEY);
+        localStorage.removeItem("safeLifeLastCpf");
+
+        try {
+            usuarioLogado = null;
+        } catch (error) {}
+
+        window.usuarioLogado = null;
+    }
+
+    function setButtonBusy(button, busy, busyText) {
+        if (!button) return;
+
+        if (busy) {
+            button.dataset.originalText = button.textContent;
+            button.disabled = true;
+            button.textContent = busyText || "Aguarde...";
+        } else {
+            button.disabled = false;
+
+            if (button.dataset.originalText) {
+                button.textContent = button.dataset.originalText;
+            }
+        }
+    }
+
+    function findActionButton(onclickPart) {
+        return document.querySelector('button[onclick*="' + onclickPart + '"]');
+    }
+
+    function routeLoggedUser(user) {
+        if (!user) return;
+
+        if (user.type === "admin" || user.cpf === ADMIN_MASTER_CPF) {
+            if (typeof window.inicializarPainelAdmin === "function") {
+                window.inicializarPainelAdmin();
+            } else if (typeof window.nextScreen === "function") {
+                window.nextScreen("adminDashboard");
+            }
+
+            return;
+        }
+
+        if (user.type === "professional") {
+            if (typeof window.inicializarPainelPro === "function") {
+                window.inicializarPainelPro();
+            } else if (typeof window.nextScreen === "function") {
+                window.nextScreen("proDashboard");
+            }
+
+            return;
+        }
+
+        if (typeof window.nextScreen === "function") {
+            window.nextScreen("menuScreen");
+        }
+    }
+
+    window.efetuarCadastro = async function efetuarCadastroV14() {
+        const button = findActionButton("efetuarCadastro");
+
+        const nome = textValue("regName");
+        const userCpf = cleanCpf(textValue("regCpf"));
+        const email = textValue("regEmail");
+        const telefone = textValue("regPhone");
+        const senha = textValue("regPassword");
+        const confirmarSenha = textValue("regPasswordConfirm");
+        const type = textValue("regType") || "citizen";
+        const company = textValue("regCompany");
+
+        if (!nome || !userCpf || !email || !telefone || !senha || !confirmarSenha) {
+            alert("Preencha nome, CPF, e-mail, telefone e senha.");
+            return;
+        }
+
+        if (userCpf.length !== 11) {
+            alert("Digite um CPF válido com 11 números.");
+            return;
+        }
+
+        if (userCpf === ADMIN_MASTER_CPF) {
+            alert("Este CPF é reservado para o administrador.");
+            return;
+        }
+
+        if (senha.length < 6) {
+            alert("A senha precisa ter pelo menos 6 caracteres.");
+            return;
+        }
+
+        if (senha !== confirmarSenha) {
+            alert("As duas senhas precisam ser iguais.");
+            return;
+        }
+
+        if (
+            typeof window.validarEmail === "function" &&
+            !window.validarEmail(email)
+        ) {
+            alert("Digite um e-mail válido.");
+            return;
+        }
+
+        if (type === "professional" && !company) {
+            alert("Selecione a empresa do profissional.");
+            return;
+        }
+
+        const payload = {
+            nome,
+            cpf: userCpf,
+            email,
+            telefone,
+            senha,
+            type,
+            company: type === "professional" ? company : null,
+            foto:
+                typeof fotoCadastroBase64 !== "undefined" && fotoCadastroBase64
+                    ? fotoCadastroBase64
+                    : ""
+        };
+
+        try {
+            setButtonBusy(button, true, "Criando cadastro...");
+
+            const response = await safeLifeApi("/api/auth/register", {
+                method: "POST",
+                body: JSON.stringify(payload)
+            });
+
+            const user = saveLoggedUser(response.user || payload, response.token);
+
+            if (typeof window.limparFormularioCadastro === "function") {
+                window.limparFormularioCadastro();
+            } else {
+                [
+                    "regName",
+                    "regCpf",
+                    "regEmail",
+                    "regPhone",
+                    "regPassword",
+                    "regPasswordConfirm"
+                ].forEach(function (id) {
+                    const field = byId(id);
+                    if (field) field.value = "";
+                });
+            }
+
+            toastV14("✅ Cadastro criado e conectado ao banco!");
+            routeLoggedUser(user);
+        } catch (error) {
+            console.error("Erro no cadastro:", error);
+            alert(error.message || "Não foi possível criar o cadastro.");
+        } finally {
+            setButtonBusy(button, false);
+        }
+    };
+
+    window.autenticar = async function autenticarV14() {
+        const button = findActionButton("autenticar");
+
+        const userCpf = cleanCpf(textValue("cpfInput"));
+        const senha = textValue("loginPassword");
+        const role = textValue("loginRole") || "citizen";
+        const company = textValue("loginCompany");
+
+        if (!userCpf || !senha) {
+            alert("Digite o CPF e a senha.");
+            return;
+        }
+
+        if (userCpf.length !== 11) {
+            alert("Digite um CPF válido com 11 números.");
+            return;
+        }
+
+        if (userCpf === ADMIN_MASTER_CPF && role !== "admin") {
+            alert("Selecione a Área Administrativa para entrar com esse CPF.");
+            return;
+        }
+
+        try {
+            setButtonBusy(button, true, "Entrando...");
+
+            const response = await safeLifeApi("/api/auth/login", {
+                method: "POST",
+                body: JSON.stringify({
+                    cpf: userCpf,
+                    senha,
+                    role,
+                    company: role === "professional" ? company : null
+                })
+            });
+
+            const user = saveLoggedUser(response.user, response.token);
+
+            if (!user) {
+                throw new Error("O servidor não devolveu os dados do usuário.");
+            }
+
+            const passwordField = byId("loginPassword");
+            if (passwordField) passwordField.value = "";
+
+            toastV14("🚀 Login realizado com sucesso!");
+            routeLoggedUser(user);
+        } catch (error) {
+            console.error("Erro no login:", error);
+            alert(error.message || "Não foi possível entrar.");
+        } finally {
+            setButtonBusy(button, false);
+        }
+    };
+
+    window.logout = function logoutV14() {
+        clearLoggedUser();
+        toastV14("Sessão encerrada.");
+
+        if (typeof window.nextScreen === "function") {
+            window.nextScreen("loginScreen");
+        }
+    };
+
+    function escapeHtml(value) {
+        return String(value || "").replace(/[&<>"']/g, function (char) {
+            return {
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#39;"
+            }[char];
+        });
+    }
+
+    function adminUserCard(user) {
+        const normalized = normalizeUser(user);
+        const inactive = normalized.ativo === false;
+
+        return `
+            <article class="admin-user-card ${inactive ? "inactive" : ""}">
+                <div class="admin-user-top">
+                    ${
+                        normalized.foto
+                            ? `<img class="admin-user-avatar" src="${escapeHtml(normalized.foto)}" alt="Foto de ${escapeHtml(normalized.nome)}">`
+                            : `<div class="admin-user-avatar">👤</div>`
+                    }
+                    <div class="admin-user-info">
+                        <h4>${escapeHtml(normalized.nome || "Usuário")}</h4>
+                        <p>${escapeHtml(normalized.email || "E-mail não informado")}</p>
+                        <small>CPF: ${escapeHtml(normalized.cpf)}</small>
+                    </div>
+                </div>
+
+                <div class="admin-chip-row">
+                    <span class="admin-chip">${escapeHtml(normalized.type || "citizen")}</span>
+                    <span class="admin-chip ${inactive ? "red" : "green"}">
+                        ${inactive ? "Bloqueado" : "Ativo"}
+                    </span>
+                    ${
+                        normalized.company
+                            ? `<span class="admin-chip gray">${escapeHtml(normalized.company)}</span>`
+                            : ""
+                    }
+                </div>
+
+                ${
+                    normalized.cpf !== ADMIN_MASTER_CPF
+                        ? `
+                            <div class="admin-actions">
+                                <button
+                                    type="button"
+                                    class="btn ${inactive ? "admin-success-btn" : "admin-danger-btn"}"
+                                    onclick="alternarUsuarioAdminFinal('${escapeHtml(normalized.cpf)}', ${inactive ? "true" : "false"})"
+                                >
+                                    ${inactive ? "Reativar" : "Bloquear"}
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="btn admin-delete-btn"
+                                    onclick="excluirContaAdmin('${escapeHtml(normalized.cpf)}')"
+                                >
+                                    Excluir
+                                </button>
+                            </div>
+                        `
+                        : ""
+                }
+            </article>
+        `;
+    }
+
+    async function fetchAdminUsers() {
+        const response = await safeLifeApi("/api/admin/users");
+        const users = Array.isArray(response) ? response : [];
+        writeJson(USERS_STORAGE_KEY, users.map(function (user) {
+            return normalizeUser(user);
+        }));
+        return users;
+    }
+
+    window.abrirGerenciarUsuarios = async function abrirGerenciarUsuariosV14() {
+        const container = byId("adminUsersList");
+
+        if (container) {
+            container.innerHTML = `
+                <div class="occurrence-card">
+                    <h4>Carregando usuários...</h4>
+                </div>
+            `;
+        }
+
+        try {
+            const users = await fetchAdminUsers();
+
+            if (container) {
+                container.innerHTML = users.length
+                    ? users.map(adminUserCard).join("")
+                    : `<div class="occurrence-card"><h4>Nenhum usuário cadastrado.</h4></div>`;
+            }
+
+            if (typeof window.nextScreen === "function") {
+                window.nextScreen("adminUsersScreen");
+            }
+        } catch (error) {
+            console.error("Erro ao listar usuários:", error);
+            alert(error.message || "Não foi possível carregar os usuários.");
+        }
+    };
+
+    window.alternarUsuarioAdminFinal = async function alternarUsuarioAdminFinalV14(
+        userCpf,
+        ativo
+    ) {
+        const cleaned = cleanCpf(userCpf);
+
+        if (!cleaned || cleaned === ADMIN_MASTER_CPF) return;
+
+        try {
+            await safeLifeApi("/api/admin/users/" + encodeURIComponent(cleaned) + "/status", {
+                method: "PATCH",
+                body: JSON.stringify({
+                    ativo: Boolean(ativo)
+                })
+            });
+
+            toastV14(ativo ? "Conta reativada." : "Conta bloqueada.");
+            await window.abrirGerenciarUsuarios();
+        } catch (error) {
+            console.error("Erro ao alterar conta:", error);
+            alert(error.message || "Não foi possível alterar a conta.");
+        }
+    };
+
+    window.bloquearContaAdmin = async function bloquearContaAdminV14(userCpf) {
+        const cleaned = cleanCpf(userCpf);
+        const users = readJson(USERS_STORAGE_KEY, []);
+        const user = users.find(function (item) {
+            return cleanCpf(item.cpf) === cleaned;
+        });
+
+        await window.alternarUsuarioAdminFinal(
+            cleaned,
+            user ? user.ativo === false : false
+        );
+    };
+
+    window.excluirContaAdmin = async function excluirContaAdminV14(userCpf) {
+        const cleaned = cleanCpf(userCpf);
+
+        if (!cleaned || cleaned === ADMIN_MASTER_CPF) {
+            alert("A conta do administrador master não pode ser excluída.");
+            return;
+        }
+
+        if (!window.confirm("Excluir permanentemente esta conta?")) {
+            return;
+        }
+
+        try {
+            await safeLifeApi(
+                "/api/admin/users/" + encodeURIComponent(cleaned) + "/permanent",
+                {
+                    method: "DELETE"
+                }
+            );
+
+            toastV14("🗑️ Conta excluída.");
+            await window.abrirGerenciarUsuarios();
+        } catch (error) {
+            console.error("Erro ao excluir conta:", error);
+            alert(error.message || "Não foi possível excluir a conta.");
+        }
+    };
+
+    window.cadastrarProfissionalAdmin = async function cadastrarProfissionalAdminV14(event) {
+        if (event && typeof event.preventDefault === "function") {
+            event.preventDefault();
+        }
+
+        const button = findActionButton("cadastrarProfissionalAdmin");
+
+        const nome = textValue("adminProName");
+        const userCpf = cleanCpf(textValue("adminProCpf"));
+        const email = textValue("adminProEmail");
+        const telefone = textValue("adminProPhone");
+        const senha = textValue("adminProPassword");
+        const confirmarSenha = textValue("adminProPasswordConfirm");
+        const company = textValue("adminProCompany");
+        const cargo = textValue("adminProRole") || "Agente Operacional";
+        const especialidade = textValue("adminProSpecialty");
+        const regiaoAtendimento = textValue("adminProRegion");
+        const veiculo = textValue("adminProVehicle");
+        const statusPlantao = textValue("adminProShiftStatus") || "Disponível";
+        const equipe = textValue("adminProTeam");
+
+        if (!nome || !userCpf || !email || !telefone || !senha || !confirmarSenha || !company) {
+            alert("Preencha todos os dados obrigatórios do profissional.");
+            return;
+        }
+
+        if (userCpf.length !== 11) {
+            alert("Digite um CPF válido com 11 números.");
+            return;
+        }
+
+        if (senha.length < 6) {
+            alert("A senha inicial precisa ter pelo menos 6 caracteres.");
+            return;
+        }
+
+        if (senha !== confirmarSenha) {
+            alert("As duas senhas iniciais precisam ser iguais.");
+            return;
+        }
+
+        try {
+            setButtonBusy(button, true, "Criando profissional...");
+
+            const response = await safeLifeApi("/api/admin/profissionais", {
+                method: "POST",
+                body: JSON.stringify({
+                    nome,
+                    cpf: userCpf,
+                    email,
+                    telefone,
+                    senha,
+                    company,
+                    profissional: {
+                        cargo,
+                        especialidade,
+                        regiaoAtendimento,
+                        statusPlantao,
+                        veiculo,
+                        equipe
+                    }
+                })
+            });
+
+            upsertLocalUser(response.user);
+
+            [
+                "adminProName",
+                "adminProCpf",
+                "adminProEmail",
+                "adminProPhone",
+                "adminProPassword",
+                "adminProPasswordConfirm",
+                "adminProRegion",
+                "adminProTeam"
+            ].forEach(function (id) {
+                const field = byId(id);
+                if (field) field.value = "";
+            });
+
+            toastV14("👷 Profissional cadastrado no banco!");
+            await window.abrirGerenciarUsuarios();
+        } catch (error) {
+            console.error("Erro ao cadastrar profissional:", error);
+            alert(error.message || "Não foi possível cadastrar o profissional.");
+        } finally {
+            setButtonBusy(button, false);
+        }
+    };
+
+    function companyCard(company) {
+        const inactive = company.ativo === false;
+
+        return `
+            <article class="company-card ${inactive ? "inactive" : ""}">
+                <div class="company-top">
+                    <div class="company-icon">🏢</div>
+                    <div class="company-info">
+                        <h4>${escapeHtml(company.nome || "Empresa")}</h4>
+                        <p>${escapeHtml(company.tipo || "Parceira")}</p>
+                        <small>${escapeHtml(company.email || "E-mail não informado")}</small>
+                    </div>
+                </div>
+
+                <div class="admin-chip-row">
+                    <span class="admin-chip ${inactive ? "red" : "green"}">
+                        ${inactive ? "Inativa" : "Ativa"}
+                    </span>
+                    ${
+                        company.telefone
+                            ? `<span class="admin-chip gray">${escapeHtml(company.telefone)}</span>`
+                            : ""
+                    }
+                </div>
+
+                <div class="admin-warning-box">
+                    <strong>Endereço:</strong>
+                    ${escapeHtml(company.endereco || "Não informado")}
+                </div>
+
+                <div class="admin-actions">
+                    <button
+                        type="button"
+                        class="btn ${inactive ? "admin-success-btn" : "admin-danger-btn"}"
+                        onclick="alterarStatusEmpresaAdmin('${escapeHtml(company.id)}', ${inactive ? "true" : "false"})"
+                    >
+                        ${inactive ? "Ativar" : "Desativar"}
+                    </button>
+
+                    <button
+                        type="button"
+                        class="btn admin-delete-btn"
+                        onclick="excluirEmpresaAdmin('${escapeHtml(company.id)}')"
+                    >
+                        Excluir
+                    </button>
+                </div>
+            </article>
+        `;
+    }
+
+    async function fetchCompanies() {
+        const response = await safeLifeApi("/api/empresas");
+        const companies = Array.isArray(response) ? response : [];
+        writeJson(COMPANIES_STORAGE_KEY, companies);
+        return companies;
+    }
+
+    window.abrirEmpresasAdmin = async function abrirEmpresasAdminV14() {
+        const container = byId("adminCompaniesList");
+
+        if (container) {
+            container.innerHTML = `
+                <div class="occurrence-card">
+                    <h4>Carregando empresas...</h4>
+                </div>
+            `;
+        }
+
+        try {
+            const companies = await fetchCompanies();
+
+            if (container) {
+                container.innerHTML = companies.length
+                    ? companies.map(companyCard).join("")
+                    : `<div class="occurrence-card"><h4>Nenhuma empresa cadastrada.</h4></div>`;
+            }
+
+            if (typeof window.renderizarSelectEmpresas === "function") {
+                window.renderizarSelectEmpresas();
+            }
+
+            if (typeof window.nextScreen === "function") {
+                window.nextScreen("adminCompaniesScreen");
+            }
+        } catch (error) {
+            console.error("Erro ao listar empresas:", error);
+            alert(error.message || "Não foi possível carregar as empresas.");
+        }
+    };
+
+    window.cadastrarEmpresaAdmin = async function cadastrarEmpresaAdminV14(event) {
+        if (event && typeof event.preventDefault === "function") {
+            event.preventDefault();
+        }
+
+        const button = findActionButton("cadastrarEmpresaAdmin");
+
+        const nome = textValue("adminCompanyName");
+        const tipo = textValue("adminCompanyType") || "Empresa parceira";
+        const cnpj = textValue("adminCompanyCnpj");
+        const telefone = textValue("adminCompanyPhone");
+        const email = textValue("adminCompanyEmail");
+        const endereco = textValue("adminCompanyAddress");
+
+        if (!nome) {
+            alert("Digite o nome da empresa.");
+            return;
+        }
+
+        try {
+            setButtonBusy(button, true, "Salvando empresa...");
+
+            await safeLifeApi("/api/admin/empresas", {
+                method: "POST",
+                body: JSON.stringify({
+                    nome,
+                    tipo,
+                    cnpj,
+                    telefone,
+                    email,
+                    endereco
+                })
+            });
+
+            [
+                "adminCompanyName",
+                "adminCompanyCnpj",
+                "adminCompanyPhone",
+                "adminCompanyEmail",
+                "adminCompanyAddress"
+            ].forEach(function (id) {
+                const field = byId(id);
+                if (field) field.value = "";
+            });
+
+            toastV14("🏢 Empresa cadastrada no banco!");
+            await window.abrirEmpresasAdmin();
+        } catch (error) {
+            console.error("Erro ao cadastrar empresa:", error);
+            alert(error.message || "Não foi possível cadastrar a empresa.");
+        } finally {
+            setButtonBusy(button, false);
+        }
+    };
+
+    window.alterarStatusEmpresaAdmin = async function alterarStatusEmpresaAdminV14(
+        companyId,
+        ativo
+    ) {
+        try {
+            await safeLifeApi(
+                "/api/admin/empresas/" + encodeURIComponent(companyId) + "/status",
+                {
+                    method: "PATCH",
+                    body: JSON.stringify({
+                        ativo: Boolean(ativo)
+                    })
+                }
+            );
+
+            toastV14(ativo ? "Empresa ativada." : "Empresa desativada.");
+            await window.abrirEmpresasAdmin();
+        } catch (error) {
+            console.error("Erro ao alterar empresa:", error);
+            alert(error.message || "Não foi possível alterar a empresa.");
+        }
+    };
+
+    window.excluirEmpresaAdmin = async function excluirEmpresaAdminV14(companyId) {
+        if (!window.confirm("Excluir esta empresa/base?")) {
+            return;
+        }
+
+        try {
+            await safeLifeApi(
+                "/api/admin/empresas/" + encodeURIComponent(companyId),
+                {
+                    method: "DELETE"
+                }
+            );
+
+            toastV14("Empresa excluída.");
+            await window.abrirEmpresasAdmin();
+        } catch (error) {
+            console.error("Erro ao excluir empresa:", error);
+            alert(error.message || "Não foi possível excluir a empresa.");
+        }
+    };
+
+    async function refreshCompanySelects() {
+        try {
+            const companies = await fetchCompanies();
+            const activeCompanies = companies.filter(function (company) {
+                return company.ativo !== false;
+            });
+
+            [
+                "regCompany",
+                "loginCompany",
+                "adminProCompany",
+                "editProCompany"
+            ].forEach(function (id) {
+                const select = byId(id);
+                if (!select) return;
+
+                const current = select.value;
+                select.innerHTML = "";
+
+                activeCompanies.forEach(function (company) {
+                    const option = document.createElement("option");
+                    option.value = company.nome;
+                    option.textContent = company.nome;
+                    select.appendChild(option);
+                });
+
+                if (
+                    current &&
+                    activeCompanies.some(function (company) {
+                        return company.nome === current;
+                    })
+                ) {
+                    select.value = current;
+                }
+            });
+        } catch (error) {
+            console.warn("Não foi possível atualizar as empresas:", error.message);
+        }
+    }
+
+    function fixRescueCard() {
+        const rescue =
+            document.querySelector("#menuScreen .rescue-card") ||
+            document.querySelector('#menuScreen button[onclick*="rescue"]');
+
+        if (!rescue) return;
+
+        rescue.classList.add("rescue-card");
+        rescue.style.gridColumn = "1 / -1";
+        rescue.style.width = "100%";
+        rescue.style.maxWidth = "none";
+        rescue.style.minWidth = "0";
+        rescue.style.justifySelf = "stretch";
+        rescue.style.alignSelf = "stretch";
+        rescue.style.placeSelf = "stretch";
+        rescue.style.margin = "0";
+        rescue.style.textAlign = "center";
+        rescue.style.alignItems = "center";
+        rescue.style.justifyContent = "center";
+    }
+
+    function bindEnterToLogin() {
+        const password = byId("loginPassword");
+        const cpfField = byId("cpfInput");
+
+        [password, cpfField].forEach(function (field) {
+            if (!field || field.dataset.safeLifeEnterBound === "true") return;
+
+            field.dataset.safeLifeEnterBound = "true";
+            field.addEventListener("keydown", function (event) {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    window.autenticar();
+                }
+            });
+        });
+    }
+
+    function bootV14() {
+        fixRescueCard();
+        bindEnterToLogin();
+        refreshCompanySelects();
+
+        window.setTimeout(fixRescueCard, 0);
+        window.setTimeout(fixRescueCard, 150);
+        window.setTimeout(fixRescueCard, 500);
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", bootV14);
+    } else {
+        bootV14();
+    }
+})();
