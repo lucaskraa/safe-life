@@ -150,6 +150,25 @@ function hashSenha(senha) {
     return `scrypt$${salt}$${hash}`;
 }
 
+
+function hashSenhaAsync(senha) {
+    const senhaTexto = String(senha || "");
+    const salt = crypto.randomBytes(16).toString("hex");
+
+    return new Promise((resolve, reject) => {
+        crypto.scrypt(senhaTexto, salt, 64, (erro, chaveDerivada) => {
+            if (erro) {
+                reject(erro);
+                return;
+            }
+
+            resolve(
+                `scrypt$${salt}$${Buffer.from(chaveDerivada).toString("hex")}`
+            );
+        });
+    });
+}
+
 function senhaEstaHasheada(senhaHash) {
     return String(senhaHash || "").startsWith("scrypt$");
 }
@@ -717,12 +736,73 @@ app.use("/api/auth/login", (req, res, next) => {
     next();
 });
 
+
+/* =====================================================
+   TEMPO REAL — EVENTOS PARA O PAINEL PROFISSIONAL
+===================================================== */
+
+const professionalRealtimeClients = new Set();
+
+function broadcastProfessionalEvent(type, payload = {}) {
+    const event = {
+        type,
+        payload,
+        sentAt: new Date().toISOString()
+    };
+
+    const message =
+        `event: ${type}\n` +
+        `data: ${JSON.stringify(event)}\n\n`;
+
+    for (const response of professionalRealtimeClients) {
+        try {
+            response.write(message);
+        } catch (erro) {
+            professionalRealtimeClients.delete(response);
+        }
+    }
+}
+
+app.get("/api/realtime/professional", (req, res) => {
+    res.status(200);
+    res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders?.();
+
+    professionalRealtimeClients.add(res);
+
+    res.write("retry: 2000\n");
+    res.write(
+        `event: connected\ndata: ${JSON.stringify({
+            type: "connected",
+            sentAt: new Date().toISOString()
+        })}\n\n`
+    );
+
+    const heartbeat = setInterval(() => {
+        try {
+            res.write(`: heartbeat ${Date.now()}\n\n`);
+        } catch (_) {
+            clearInterval(heartbeat);
+            professionalRealtimeClients.delete(res);
+        }
+    }, 20000);
+
+    req.on("close", () => {
+        clearInterval(heartbeat);
+        professionalRealtimeClients.delete(res);
+    });
+});
+
 /* =====================================================
    AUTENTICAÇÃO
 ===================================================== */
 
 app.post("/api/auth/register", async (req, res) => {
     const client = await pool.connect();
+    let transactionStarted = false;
 
     try {
         const {
@@ -736,39 +816,40 @@ app.post("/api/auth/register", async (req, res) => {
             foto,
             senha,
             password
-        } = req.body;
+        } = req.body || {};
 
+        const nomeLimpo = limparTexto(nome);
         const cpfLimpo = limparCpf(cpf);
-        const tipoConta = type || role;
+        const emailLimpo = limparTexto(email).toLowerCase();
+        const telefoneLimpo = limparTexto(telefone);
+        const tipoConta = String(type || role || "citizen").toLowerCase();
         const senhaInformada = String(senha || password || "");
-        const senhaTemporaria = !senhaInformada;
-        const senhaFinal = senhaInformada || cpfLimpo;
 
-        if (!nome || !cpfLimpo || !email || !telefone || !tipoConta) {
+        if (!nomeLimpo) {
             return res.status(400).json({
-                error: "Preencha nome, CPF, e-mail, telefone e tipo de conta."
+                error: "Informe o nome completo."
             });
         }
 
         if (cpfLimpo.length !== 11) {
             return res.status(400).json({
-                error: "CPF inválido. Digite exatamente 11 números."
+                error: "Informe um CPF com 11 números."
             });
         }
 
-        if (cpfLimpo === ADMIN_CPF) {
-            return res.status(403).json({
-                error: "Este CPF é reservado para o administrador master."
-            });
-        }
-
-        if (!validarEmail(email)) {
+        if (!validarEmail(emailLimpo)) {
             return res.status(400).json({
-                error: "E-mail inválido."
+                error: "Informe um e-mail válido."
             });
         }
 
-        if (tipoConta !== "citizen" && tipoConta !== "professional") {
+        if (!telefoneLimpo) {
+            return res.status(400).json({
+                error: "Informe o telefone/WhatsApp."
+            });
+        }
+
+        if (!["citizen", "professional"].includes(tipoConta)) {
             return res.status(400).json({
                 error: "Tipo de conta inválido."
             });
@@ -776,27 +857,66 @@ app.post("/api/auth/register", async (req, res) => {
 
         if (tipoConta === "professional" && !company) {
             return res.status(400).json({
-                error: "Funcionário precisa informar a empresa/base."
+                error: "Selecione a empresa/base do profissional."
             });
         }
 
-        if (senhaInformada && senhaInformada.length < 6) {
+        if (senhaInformada.length < 6) {
             return res.status(400).json({
                 error: "A senha precisa ter pelo menos 6 caracteres."
             });
         }
 
-        const usuarioExiste = await buscarUsuarioPorCpf(cpfLimpo);
+        const duplicado = await client.query(
+            `
+            SELECT id, cpf, email
+            FROM usuarios
+            WHERE cpf = $1
+               OR LOWER(COALESCE(email, '')) = LOWER($2)
+            LIMIT 1
+            `,
+            [cpfLimpo, emailLimpo]
+        );
 
-        if (usuarioExiste) {
+        if (duplicado.rows.length > 0) {
+            const existente = duplicado.rows[0];
+
+            if (existente.cpf === cpfLimpo) {
+                return res.status(409).json({
+                    error: "Este CPF já está cadastrado."
+                });
+            }
+
             return res.status(409).json({
-                error: "Este CPF já está cadastrado."
+                error: "Este e-mail já está cadastrado."
+            });
+        }
+
+        const senhaHash = await hashSenhaAsync(senhaInformada);
+
+        let fotoFinal = limparTexto(foto || "");
+
+        if (
+            fotoFinal &&
+            !fotoFinal.startsWith("data:image/") &&
+            !/^https?:\/\//i.test(fotoFinal)
+        ) {
+            fotoFinal = "";
+        }
+
+        /*
+         * Impede payload enorme no perfil. O navegador já comprime,
+         * mas o servidor também limita por segurança.
+         */
+        if (fotoFinal.length > 1400000) {
+            return res.status(413).json({
+                error: "A foto de perfil ficou muito grande. Escolha uma imagem menor."
             });
         }
 
         await client.query("BEGIN");
+        transactionStarted = true;
 
-        const fotoPadrao = "img/vitor-chineque.jpg";
         const usuarioResult = await client.query(
             `
             INSERT INTO usuarios
@@ -816,14 +936,16 @@ app.post("/api/auth/register", async (req, res) => {
             RETURNING *
             `,
             [
-                limparTexto(nome),
+                nomeLimpo,
                 cpfLimpo,
-                hashSenha(senhaFinal),
-                limparTexto(email).toLowerCase(),
-                limparTexto(telefone),
+                senhaHash,
+                emailLimpo,
+                telefoneLimpo,
                 tipoConta,
-                tipoConta === "professional" ? limparTexto(company) : null,
-                foto || fotoPadrao
+                tipoConta === "professional"
+                    ? limparTexto(company)
+                    : null,
+                fotoFinal || null
             ]
         );
 
@@ -838,39 +960,44 @@ app.post("/api/auth/register", async (req, res) => {
                     cargo,
                     empresa,
                     nivel_acesso,
+                    status_plantao,
                     ativo
                 )
                 VALUES
-                ($1,$2,$3,$4,TRUE)
+                ($1,$2,$3,$4,$5,TRUE)
                 `,
                 [
                     novoUsuario.id,
                     "Agente Operacional",
                     limparTexto(company),
-                    "operador"
+                    "operador",
+                    "Disponível"
                 ]
             );
         }
 
         await client.query("COMMIT");
+        transactionStarted = false;
 
-        const usuarioCompleto = await buscarUsuarioPorCpf(cpfLimpo);
-        const token = criarTokenSessao(usuarioCompleto || novoUsuario);
+        const usuarioCompleto =
+            (await buscarUsuarioPorCpf(cpfLimpo)) ||
+            novoUsuario;
+
+        const token = criarTokenSessao(usuarioCompleto);
 
         return res.status(201).json({
-            message: senhaTemporaria
-                ? "Usuário cadastrado. Como nenhuma senha foi enviada, o CPF foi usado como senha temporária."
-                : "Usuário cadastrado com sucesso!",
-            senhaTemporaria,
+            message: "Conta criada com sucesso.",
             token,
-            user: usuarioSeguro(usuarioCompleto || novoUsuario)
+            user: usuarioSeguro(usuarioCompleto)
         });
     } catch (erro) {
-        try {
-            await client.query("ROLLBACK");
-        } catch (_) {
-            // A transação pode não ter sido iniciada.
+        if (transactionStarted) {
+            try {
+                await client.query("ROLLBACK");
+            } catch (_) {}
         }
+
+        console.error("❌ Erro no cadastro:", erro);
 
         const conflito = erro.code === "23505";
 
@@ -2130,6 +2257,16 @@ app.post("/api/pets", async (req, res) => {
             ]
         );
 
+        if (
+            result.rows[0].desaparecido === true ||
+            String(result.rows[0].status_pet || "").toUpperCase() === "DESAPARECIDO"
+        ) {
+            broadcastProfessionalEvent("new_missing_pet", {
+                id: result.rows[0].id,
+                name: result.rows[0].nome
+            });
+        }
+
         return res.status(201).json({
             message: "Pet cadastrado com sucesso!",
             pet: result.rows[0]
@@ -2410,6 +2547,13 @@ app.post("/api/ocorrencias", async (req, res) => {
             ]
         );
 
+        broadcastProfessionalEvent("new_occurrence", {
+            origin: "ocorrencia",
+            id: result.rows[0].id,
+            priority: result.rows[0].prioridade,
+            category: result.rows[0].categoria
+        });
+
         return res.status(201).json({
             message: "Chamado enviado com sucesso.",
             data: result.rows[0]
@@ -2569,6 +2713,13 @@ app.post("/api/ocorrencias/anonima", async (req, res) => {
                 prioridade || "NORMAL"
             ]
         );
+
+        broadcastProfessionalEvent("new_occurrence", {
+            origin: "anonima",
+            id: result.rows[0].id,
+            priority: result.rows[0].prioridade,
+            category: result.rows[0].categoria
+        });
 
         return res.status(201).json({
             message: "Denúncia anônima enviada com sucesso.",
@@ -2957,6 +3108,12 @@ app.patch("/api/chamados/:origem/:id/status", async (req, res) => {
 
             await client.query("COMMIT");
 
+            broadcastProfessionalEvent("queue_changed", {
+                origin: "ocorrencia",
+                id,
+                status
+            });
+
             return res.status(200).json({
                 message: status === "CONCLUIDA"
                     ? "Ocorrência concluída com sucesso."
@@ -2991,6 +3148,13 @@ app.patch("/api/chamados/:origem/:id/status", async (req, res) => {
             }
 
             await client.query("COMMIT");
+
+            broadcastProfessionalEvent("queue_changed", {
+                origin: "anonima",
+                id,
+                status
+            });
+
             return res.status(200).json({
                 message: status === "CONCLUIDA"
                     ? "Denúncia anônima concluída com sucesso."
@@ -3186,12 +3350,11 @@ app.post("/api/pro/pets/:id/concluir-resgate", async (req, res) => {
 
         const petResult = await client.query(
             `
-            SELECT p.*, u.nome AS nome_dono
+            SELECT p.*
             FROM pets p
-            INNER JOIN usuarios u ON u.id = p.usuario_id
             WHERE p.id = $1
               AND p.ativo = TRUE
-            FOR UPDATE
+            FOR UPDATE OF p
             `,
             [petId]
         );
@@ -3276,6 +3439,12 @@ app.post("/api/pro/pets/:id/concluir-resgate", async (req, res) => {
         });
 
         await client.query("COMMIT");
+
+        broadcastProfessionalEvent("missing_pet_resolved", {
+            id: petId,
+            name: pet.nome
+        });
+
         return res.status(200).json({
             message: "Resgate concluído e cidadão notificado.",
             pet: petAtualizado.rows[0],
