@@ -73,6 +73,15 @@ app.use(express.urlencoded({
     limit: "35mb"
 }));
 
+
+app.use((req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("Referrer-Policy", "no-referrer");
+    res.setHeader("Permissions-Policy", "camera=(self), geolocation=(self)");
+    next();
+});
+
 if (fs.existsSync(PUBLIC_DIR)) {
     app.use(express.static(PUBLIC_DIR));
 }
@@ -179,6 +188,7 @@ function criarTokenSessao(usuario, duracaoHoras = 12) {
         sub: usuario.id,
         cpf: usuario.cpf,
         tipo: usuario.tipo,
+        sv: Number(usuario.session_version || 1),
         iat: agora,
         exp: agora + (duracaoHoras * 60 * 60)
     };
@@ -249,6 +259,11 @@ function usuarioSeguro(usuario) {
         company: usuario.empresa || "Nenhum",
         foto: usuario.foto_perfil,
         ativo: usuario.ativo,
+        bloqueadoAte: usuario.bloqueado_ate || null,
+        bloqueadoEm: usuario.bloqueado_em || null,
+        motivoBloqueio: usuario.motivo_bloqueio || null,
+        excluidaEm: usuario.excluida_em || null,
+        sessionVersion: Number(usuario.session_version || 1),
         cargo: usuario.cargo || null,
         nivelAcesso: usuario.nivel_acesso || null,
         registroProfissional: usuario.registro_profissional || null,
@@ -378,33 +393,189 @@ async function garantirAdminNoBanco() {
     return result.rows[0];
 }
 
+
+function estadoConta(usuario) {
+    if (!usuario) {
+        return {
+            ok: false,
+            status: 404,
+            code: "ACCOUNT_NOT_FOUND",
+            message: "Conta não encontrada."
+        };
+    }
+
+    if (usuario.excluida_em) {
+        return {
+            ok: false,
+            status: 410,
+            code: "ACCOUNT_DELETED",
+            message: "Esta conta foi excluída pelo administrador."
+        };
+    }
+
+    const bloqueadoAte = usuario.bloqueado_ate
+        ? new Date(usuario.bloqueado_ate)
+        : null;
+
+    if (bloqueadoAte && bloqueadoAte.getTime() > Date.now()) {
+        return {
+            ok: false,
+            status: 423,
+            code: "ACCOUNT_SUSPENDED",
+            message: usuario.motivo_bloqueio
+                ? `Conta suspensa: ${usuario.motivo_bloqueio}`
+                : "Esta conta está temporariamente suspensa.",
+            blockedUntil: bloqueadoAte.toISOString()
+        };
+    }
+
+    if (usuario.ativo !== true) {
+        return {
+            ok: false,
+            status: 403,
+            code: "ACCOUNT_INACTIVE",
+            message: "Esta conta está desativada."
+        };
+    }
+
+    return { ok: true };
+}
+
+async function reativarBloqueioExpirado(usuario) {
+    if (
+        usuario &&
+        !usuario.excluida_em &&
+        usuario.bloqueado_ate &&
+        new Date(usuario.bloqueado_ate).getTime() <= Date.now()
+    ) {
+        const result = await pool.query(
+            `
+            UPDATE usuarios
+            SET
+                ativo = TRUE,
+                bloqueado_ate = NULL,
+                bloqueado_em = NULL,
+                motivo_bloqueio = NULL,
+                bloqueado_por = NULL
+            WHERE id = $1
+            RETURNING *
+            `,
+            [usuario.id]
+        );
+
+        if (usuario.tipo === "professional") {
+            await pool.query(
+                "UPDATE funcionarios SET ativo = TRUE WHERE usuario_id = $1",
+                [usuario.id]
+            );
+        }
+
+        return result.rows[0] || usuario;
+    }
+
+    return usuario;
+}
+
+async function registrarAuditoria({
+    administradorId = null,
+    usuarioAlvoId = null,
+    acao,
+    detalhes = {},
+    req = null
+}) {
+    try {
+        await pool.query(
+            `
+            INSERT INTO auditoria_seguranca
+            (
+                administrador_id,
+                usuario_alvo_id,
+                acao,
+                detalhes,
+                ip_origem,
+                user_agent
+            )
+            VALUES ($1,$2,$3,$4::jsonb,$5,$6)
+            `,
+            [
+                administradorId,
+                usuarioAlvoId,
+                acao,
+                JSON.stringify(detalhes || {}),
+                req ? String(req.ip || "") : null,
+                req ? String(req.headers["user-agent"] || "") : null
+            ]
+        );
+    } catch (erro) {
+        console.warn("⚠️ Não foi possível registrar auditoria:", erro.message);
+    }
+}
+
+async function inserirNotificacao(client, {
+    usuarioId,
+    tipo,
+    titulo,
+    mensagem,
+    foto = null,
+    dados = {}
+}) {
+    await client.query(
+        `
+        INSERT INTO notificacoes
+        (usuario_id, tipo, titulo, mensagem, foto, dados)
+        VALUES ($1,$2,$3,$4,$5,$6::jsonb)
+        `,
+        [
+            usuarioId,
+            tipo,
+            titulo,
+            mensagem,
+            foto,
+            JSON.stringify(dados || {})
+        ]
+    );
+}
+
 async function verificarAdmin(req, res, next) {
     try {
         const tokenBearer = extrairBearerToken(req);
         const tokenEmergencial = String(req.headers["x-admin-token"] || "");
         const payload = validarTokenSessao(tokenBearer);
 
-        const tokenSessaoValido =
-            payload &&
-            payload.tipo === "admin" &&
-            limparCpf(payload.cpf) === ADMIN_CPF;
-
         const tokenEmergencialValido =
-            Boolean(ADMIN_TOKEN) &&
-            tokenEmergencial === ADMIN_TOKEN;
+            Boolean(ADMIN_TOKEN) && tokenEmergencial === ADMIN_TOKEN;
 
-        if (!tokenSessaoValido && !tokenEmergencialValido) {
+        if (!payload && !tokenEmergencialValido) {
             return res.status(403).json({
-                error: "Acesso administrativo negado. Faça login como administrador e envie o token Bearer."
+                error: "Acesso administrativo negado.",
+                code: "ADMIN_AUTH_REQUIRED"
             });
         }
 
         const admin = await garantirAdminNoBanco();
+        const estado = estadoConta(admin);
 
-        if (!admin || limparCpf(admin.cpf) !== ADMIN_CPF || admin.ativo !== true) {
-            return res.status(403).json({
-                error: "Administrador master não encontrado ou bloqueado."
+        if (!estado.ok) {
+            return res.status(estado.status).json({
+                error: estado.message,
+                code: estado.code,
+                blockedUntil: estado.blockedUntil || null
             });
+        }
+
+        if (!tokenEmergencialValido) {
+            const tokenSessaoValido =
+                payload &&
+                payload.tipo === "admin" &&
+                limparCpf(payload.cpf) === ADMIN_CPF &&
+                Number(payload.sv || 1) === Number(admin.session_version || 1);
+
+            if (!tokenSessaoValido) {
+                return res.status(401).json({
+                    error: "Sessão administrativa expirada ou revogada.",
+                    code: "SESSION_REVOKED"
+                });
+            }
         }
 
         req.admin = admin;
@@ -492,6 +663,56 @@ app.get("/", async (req, res) => {
     }
 
     return res.redirect("/api");
+});
+
+
+const tentativasLoginMemoria = new Map();
+
+app.use("/api/auth/login", (req, res, next) => {
+    const cpf = limparCpf(req.body?.cpf);
+    const ip = String(req.ip || req.socket?.remoteAddress || "desconhecido");
+    const chave = `${ip}:${cpf}`;
+    const agora = Date.now();
+    const janela = 15 * 60 * 1000;
+    const maximo = 10;
+    const anteriores = (tentativasLoginMemoria.get(chave) || []).filter(
+        (tempo) => agora - tempo < janela
+    );
+
+    if (anteriores.length >= maximo) {
+        return res.status(429).json({
+            error: "Muitas tentativas de login. Aguarde 15 minutos.",
+            code: "LOGIN_RATE_LIMIT"
+        });
+    }
+
+    res.on("finish", () => {
+        const sucesso = res.statusCode >= 200 && res.statusCode < 300;
+
+        if (sucesso) {
+            tentativasLoginMemoria.delete(chave);
+        } else {
+            anteriores.push(Date.now());
+            tentativasLoginMemoria.set(chave, anteriores);
+        }
+
+        pool.query(
+            `
+            INSERT INTO tentativas_login
+            (cpf, sucesso, ip_origem, user_agent, motivo)
+            VALUES ($1,$2,$3,$4,$5)
+            `,
+            [
+                cpf || null,
+                sucesso,
+                ip,
+                String(req.headers["user-agent"] || ""),
+                sucesso ? "LOGIN_OK" : `HTTP_${res.statusCode}`
+            ]
+        ).catch(() => {});
+    });
+
+    next();
 });
 
 /* =====================================================
@@ -728,15 +949,24 @@ app.post("/api/auth/login", async (req, res) => {
             });
         }
 
-        const usuario = await buscarUsuarioPorCpf(cpfLimpo);
+        let usuario = await buscarUsuarioPorCpf(cpfLimpo);
 
-        if (
-            !usuario ||
-            usuario.tipo !== tipoAcesso ||
-            usuario.ativo !== true
-        ) {
+        if (!usuario || usuario.tipo !== tipoAcesso) {
             return res.status(401).json({
-                error: "Credenciais inválidas, perfil incorreto ou conta bloqueada."
+                error: "CPF, senha ou perfil incorreto.",
+                code: "INVALID_CREDENTIALS"
+            });
+        }
+
+        usuario = await reativarBloqueioExpirado(usuario);
+        const estado = estadoConta(usuario);
+
+        if (!estado.ok) {
+            return res.status(estado.status).json({
+                error: estado.message,
+                code: estado.code,
+                blockedUntil: estado.blockedUntil || null,
+                reason: usuario.motivo_bloqueio || null
             });
         }
 
@@ -778,6 +1008,50 @@ app.post("/api/auth/login", async (req, res) => {
     } catch (erro) {
         return res.status(500).json({
             error: "Erro ao realizar login.",
+            details: detalhesErro(erro)
+        });
+    }
+});
+
+
+app.get("/api/auth/session-status", async (req, res) => {
+    try {
+        const payload = validarTokenSessao(extrairBearerToken(req));
+
+        if (!payload) {
+            return res.status(401).json({
+                error: "Sessão inválida ou expirada.",
+                code: "SESSION_INVALID"
+            });
+        }
+
+        let usuario = await buscarUsuarioPorCpf(payload.cpf);
+        usuario = await reativarBloqueioExpirado(usuario);
+        const estado = estadoConta(usuario);
+
+        if (!estado.ok) {
+            return res.status(estado.status).json({
+                error: estado.message,
+                code: estado.code,
+                blockedUntil: estado.blockedUntil || null,
+                reason: usuario?.motivo_bloqueio || null
+            });
+        }
+
+        if (Number(payload.sv || 1) !== Number(usuario.session_version || 1)) {
+            return res.status(401).json({
+                error: "Sua sessão foi encerrada pelo administrador.",
+                code: "SESSION_REVOKED"
+            });
+        }
+
+        return res.status(200).json({
+            ok: true,
+            user: usuarioSeguro(usuario)
+        });
+    } catch (erro) {
+        return res.status(500).json({
+            error: "Erro ao verificar a sessão.",
             details: detalhesErro(erro)
         });
     }
@@ -2550,6 +2824,8 @@ app.get("/api/pro/ocorrencias", async (req, res) => {
 ===================================================== */
 
 app.patch("/api/chamados/:origem/:id/status", async (req, res) => {
+    const client = await pool.connect();
+
     try {
         const origem = String(req.params.origem || "").toLowerCase();
         const id = Number(req.params.id);
@@ -2557,173 +2833,182 @@ app.patch("/api/chamados/:origem/:id/status", async (req, res) => {
         const funcionarioCpf = limparCpf(req.body.funcionarioCpf);
         const observacao = limparTexto(req.body.observacao || "");
 
-        const statusPermitidos = [
-            "PENDENTE",
-            "EM_ATENDIMENTO",
-            "CONCLUIDA",
-            "CANCELADA"
-        ];
-
         if (!Number.isInteger(id) || id <= 0) {
-            return res.status(400).json({
-                error: "ID do chamado inválido."
-            });
+            return res.status(400).json({ error: "ID do chamado inválido." });
         }
 
-        if (!statusPermitidos.includes(status)) {
-            return res.status(400).json({
-                error: "Status inválido."
-            });
+        if (!["PENDENTE", "EM_ATENDIMENTO", "CONCLUIDA", "CANCELADA"].includes(status)) {
+            return res.status(400).json({ error: "Status inválido." });
         }
 
-        let funcionarioId = null;
+        let funcionario = null;
 
         if (funcionarioCpf) {
-            const funcionarioResult = await pool.query(
+            const funcionarioResult = await client.query(
                 `
-                SELECT f.id
+                SELECT f.id, f.empresa, u.nome, u.cpf
                 FROM funcionarios f
-                INNER JOIN usuarios u
-                    ON u.id = f.usuario_id
+                INNER JOIN usuarios u ON u.id = f.usuario_id
                 WHERE u.cpf = $1
                   AND u.ativo = TRUE
+                  AND u.excluida_em IS NULL
                   AND f.ativo = TRUE
                 LIMIT 1
                 `,
                 [funcionarioCpf]
             );
-
-            funcionarioId = funcionarioResult.rows[0]?.id || null;
+            funcionario = funcionarioResult.rows[0] || null;
         }
 
+        await client.query("BEGIN");
+
         if (origem === "ocorrencia") {
-            const anteriorResult = await pool.query(
+            const anteriorResult = await client.query(
                 `
-                SELECT id, status
-                FROM ocorrencias
-                WHERE id = $1
-                LIMIT 1
+                SELECT o.*, u.nome AS nome_cidadao
+                FROM ocorrencias o
+                LEFT JOIN usuarios u ON u.id = o.usuario_id
+                WHERE o.id = $1
+                FOR UPDATE
                 `,
                 [id]
             );
 
             if (anteriorResult.rows.length === 0) {
-                return res.status(404).json({
-                    error: "Ocorrência não encontrada."
-                });
+                await client.query("ROLLBACK");
+                return res.status(404).json({ error: "Ocorrência não encontrada." });
             }
 
-            const statusAnterior = anteriorResult.rows[0].status;
+            const anterior = anteriorResult.rows[0];
 
-            const atualizadoResult = await pool.query(
+            const atualizadoResult = await client.query(
                 `
                 UPDATE ocorrencias
                 SET
-                    status = $1,
-                    atendente_id = CASE
-                        WHEN $2::INTEGER IS NULL THEN atendente_id
-                        ELSE $2::INTEGER
-                    END,
+                    status = $1::status_ocorrencia_enum,
+                    atendente_id = COALESCE($2::INTEGER, atendente_id),
                     concluido_em = CASE
-                        WHEN $1 = 'CONCLUIDA' THEN CURRENT_TIMESTAMP
-                        WHEN $1 = 'PENDENTE' THEN NULL
+                        WHEN $1::status_ocorrencia_enum = 'CONCLUIDA'::status_ocorrencia_enum
+                            THEN CURRENT_TIMESTAMP
+                        WHEN $1::status_ocorrencia_enum = 'PENDENTE'::status_ocorrencia_enum
+                            THEN NULL
                         ELSE concluido_em
                     END,
                     atualizado_em = CURRENT_TIMESTAMP
-                WHERE id = $3
+                WHERE id = $3::INTEGER
                 RETURNING *
                 `,
-                [status, funcionarioId, id]
+                [status, funcionario?.id || null, id]
             );
 
             try {
-                await pool.query(
+                await client.query(
                     `
                     INSERT INTO historico_ocorrencias
-                    (
-                        ocorrencia_id,
-                        funcionario_id,
-                        status_anterior,
-                        status_novo,
-                        acao,
-                        observacao
-                    )
-                    VALUES ($1,$2,$3,$4,$5,$6)
+                    (ocorrencia_id, funcionario_id, status_anterior, status_novo, acao, observacao)
+                    VALUES
+                    ($1::INTEGER,$2::INTEGER,$3::status_ocorrencia_enum,$4::status_ocorrencia_enum,$5,$6)
                     `,
                     [
                         id,
-                        funcionarioId,
-                        statusAnterior,
+                        funcionario?.id || null,
+                        anterior.status,
                         status,
                         "Alteração de status",
                         observacao || null
                     ]
                 );
             } catch (historicoErro) {
-                console.warn(
-                    "⚠️ Status atualizado, mas o histórico não foi gravado:",
-                    historicoErro.message
-                );
+                console.warn("⚠️ Histórico não gravado:", historicoErro.message);
             }
 
+            if (anterior.usuario_id && ["EM_ATENDIMENTO", "CONCLUIDA", "CANCELADA"].includes(status)) {
+                const tituloChamado = anterior.opcao_escolhida || anterior.assunto || anterior.tipo || "Ocorrência";
+                const profissionalNome = funcionario?.nome || "Equipe Safe Life";
+                let titulo = "Ocorrência atualizada";
+                let mensagem = `A ocorrência “${tituloChamado}” recebeu uma atualização.`;
+
+                if (status === "EM_ATENDIMENTO") {
+                    titulo = "Atendimento iniciado";
+                    mensagem = `${profissionalNome} iniciou o atendimento da ocorrência “${tituloChamado}”.`;
+                } else if (status === "CONCLUIDA") {
+                    titulo = "Atendimento concluído";
+                    mensagem = `${profissionalNome} concluiu a ocorrência “${tituloChamado}”.`;
+                } else if (status === "CANCELADA") {
+                    titulo = "Ocorrência cancelada";
+                    mensagem = `A ocorrência “${tituloChamado}” foi cancelada.`;
+                }
+
+                await inserirNotificacao(client, {
+                    usuarioId: anterior.usuario_id,
+                    tipo: `OCORRENCIA_${status}`,
+                    titulo,
+                    mensagem,
+                    foto: anterior.foto || null,
+                    dados: {
+                        ocorrenciaId: id,
+                        status,
+                        profissional: profissionalNome,
+                        empresa: funcionario?.empresa || null
+                    }
+                });
+            }
+
+            await client.query("COMMIT");
+
             return res.status(200).json({
-                message:
-                    status === "CONCLUIDA"
-                        ? "Ocorrência concluída com sucesso."
-                        : "Status da ocorrência atualizado.",
+                message: status === "CONCLUIDA"
+                    ? "Ocorrência concluída com sucesso."
+                    : "Status da ocorrência atualizado.",
                 data: atualizadoResult.rows[0]
             });
         }
 
         if (origem === "anonima") {
-            const atualizadoResult = await pool.query(
+            const atualizadoResult = await client.query(
                 `
                 UPDATE denuncias_anonimas
                 SET
-                    status = $1,
+                    status = $1::status_ocorrencia_enum,
                     concluido_em = CASE
-                        WHEN $1 = 'CONCLUIDA' THEN CURRENT_TIMESTAMP
-                        WHEN $1 = 'PENDENTE' THEN NULL
+                        WHEN $1::status_ocorrencia_enum = 'CONCLUIDA'::status_ocorrencia_enum
+                            THEN CURRENT_TIMESTAMP
+                        WHEN $1::status_ocorrencia_enum = 'PENDENTE'::status_ocorrencia_enum
+                            THEN NULL
                         ELSE concluido_em
                     END,
                     atualizado_em = CURRENT_TIMESTAMP
-                WHERE id = $2
+                WHERE id = $2::INTEGER
                 RETURNING *
                 `,
                 [status, id]
             );
 
             if (atualizadoResult.rows.length === 0) {
-                return res.status(404).json({
-                    error: "Denúncia anônima não encontrada."
-                });
+                await client.query("ROLLBACK");
+                return res.status(404).json({ error: "Denúncia anônima não encontrada." });
             }
 
+            await client.query("COMMIT");
             return res.status(200).json({
-                message:
-                    status === "CONCLUIDA"
-                        ? "Denúncia anônima concluída com sucesso."
-                        : "Status da denúncia anônima atualizado.",
+                message: status === "CONCLUIDA"
+                    ? "Denúncia anônima concluída com sucesso."
+                    : "Status da denúncia atualizado.",
                 data: atualizadoResult.rows[0]
             });
         }
 
-        return res.status(400).json({
-            error: "Origem inválida. Use ocorrencia ou anonima."
-        });
+        await client.query("ROLLBACK");
+        return res.status(400).json({ error: "Origem inválida." });
     } catch (erro) {
-        console.error("❌ Erro ao atualizar chamado:", {
-            origem: req.params.origem,
-            id: req.params.id,
-            status: req.body?.status,
-            mensagem: erro.message,
-            codigo: erro.code
-        });
-
+        try { await client.query("ROLLBACK"); } catch (_) {}
+        console.error("❌ Erro ao atualizar chamado:", erro);
         return res.status(500).json({
             error: "Erro ao atualizar status.",
             details: erro.message
         });
+    } finally {
+        client.release();
     }
 });
 
@@ -2772,6 +3057,429 @@ app.delete("/api/chamados/:origem/:id", async (req, res) => {
             error: "Erro ao remover chamado.",
             details: erro.message
         });
+    }
+});
+
+
+/* =====================================================
+   SAFE LIFE V18 — PETS, NOTIFICAÇÕES E ADMINISTRAÇÃO
+===================================================== */
+
+app.get("/api/pro/pets/cadastrados", async (req, res) => {
+    try {
+        const result = await pool.query(
+            `
+            SELECT
+                p.*,
+                u.nome AS nome_dono,
+                u.cpf AS cpf_dono,
+                u.telefone AS telefone_dono,
+                u.foto_perfil AS foto_dono
+            FROM pets p
+            INNER JOIN usuarios u ON u.id = p.usuario_id
+            WHERE p.ativo = TRUE
+              AND p.desaparecido = FALSE
+              AND p.status_pet = 'CADASTRADO'
+              AND u.excluida_em IS NULL
+            ORDER BY p.criado_em DESC
+            `
+        );
+        return res.status(200).json(result.rows);
+    } catch (erro) {
+        return res.status(500).json({
+            error: "Erro ao listar pets cadastrados.",
+            details: erro.message
+        });
+    }
+});
+
+app.get("/api/pro/pets/desaparecidos", async (req, res) => {
+    try {
+        const result = await pool.query(
+            `
+            SELECT
+                p.*,
+                u.nome AS nome_dono,
+                u.cpf AS cpf_dono,
+                u.telefone AS telefone_dono,
+                u.email AS email_dono,
+                u.foto_perfil AS foto_dono
+            FROM pets p
+            INNER JOIN usuarios u ON u.id = p.usuario_id
+            WHERE p.ativo = TRUE
+              AND p.desaparecido = TRUE
+              AND p.status_pet = 'DESAPARECIDO'
+              AND u.excluida_em IS NULL
+            ORDER BY p.desaparecido_em DESC NULLS LAST, p.criado_em DESC
+            `
+        );
+        return res.status(200).json(result.rows);
+    } catch (erro) {
+        return res.status(500).json({
+            error: "Erro ao listar pets desaparecidos.",
+            details: erro.message
+        });
+    }
+});
+
+app.post("/api/pro/pets/:id/concluir-resgate", async (req, res) => {
+    const client = await pool.connect();
+
+    try {
+        const petId = Number(req.params.id);
+        const funcionarioCpf = limparCpf(req.body.funcionarioCpf);
+        const fotoEncontrado = limparTexto(req.body.fotoEncontrado);
+        const destinoTipo = limparTexto(req.body.destinoTipo).toUpperCase();
+        const destinoNome = limparTexto(req.body.destinoNome || "");
+        const destinoEndereco = limparTexto(req.body.destinoEndereco);
+        const instrucoesRetirada = limparTexto(req.body.instrucoesRetirada);
+
+        if (!Number.isInteger(petId) || petId <= 0) {
+            return res.status(400).json({ error: "Pet inválido." });
+        }
+
+        if (!fotoEncontrado || !fotoEncontrado.startsWith("data:image/")) {
+            return res.status(400).json({
+                error: "É obrigatório enviar uma foto atual do pet encontrado."
+            });
+        }
+
+        if (!["PROFISSIONAL", "INSTITUICAO"].includes(destinoTipo)) {
+            return res.status(400).json({ error: "Escolha onde o pet ficará." });
+        }
+
+        if (!destinoEndereco || !instrucoesRetirada) {
+            return res.status(400).json({
+                error: "Informe o endereço e as instruções para retirada."
+            });
+        }
+
+        if (destinoTipo === "INSTITUICAO" && !destinoNome) {
+            return res.status(400).json({
+                error: "Informe o nome da instituição."
+            });
+        }
+
+        const funcionarioResult = await client.query(
+            `
+            SELECT f.id, f.empresa, u.nome, u.cpf
+            FROM funcionarios f
+            INNER JOIN usuarios u ON u.id = f.usuario_id
+            WHERE u.cpf = $1
+              AND u.ativo = TRUE
+              AND u.excluida_em IS NULL
+              AND f.ativo = TRUE
+            LIMIT 1
+            `,
+            [funcionarioCpf]
+        );
+
+        if (funcionarioResult.rows.length === 0) {
+            return res.status(403).json({
+                error: "Profissional não encontrado ou sem permissão."
+            });
+        }
+
+        const funcionario = funcionarioResult.rows[0];
+        await client.query("BEGIN");
+
+        const petResult = await client.query(
+            `
+            SELECT p.*, u.nome AS nome_dono
+            FROM pets p
+            INNER JOIN usuarios u ON u.id = p.usuario_id
+            WHERE p.id = $1
+              AND p.ativo = TRUE
+            FOR UPDATE
+            `,
+            [petId]
+        );
+
+        if (petResult.rows.length === 0) {
+            await client.query("ROLLBACK");
+            return res.status(404).json({ error: "Pet não encontrado." });
+        }
+
+        const pet = petResult.rows[0];
+
+        if (!pet.desaparecido || pet.status_pet !== "DESAPARECIDO") {
+            await client.query("ROLLBACK");
+            return res.status(409).json({
+                error: "Este pet não está mais marcado como desaparecido."
+            });
+        }
+
+        const resgateResult = await client.query(
+            `
+            INSERT INTO resgates_pets
+            (
+                pet_id,
+                funcionario_id,
+                foto_encontrado,
+                destino_tipo,
+                destino_nome,
+                destino_endereco,
+                instrucoes_retirada,
+                status,
+                concluido_em
+            )
+            VALUES ($1,$2,$3,$4,$5,$6,$7,'CONCLUIDO',CURRENT_TIMESTAMP)
+            RETURNING *
+            `,
+            [
+                petId,
+                funcionario.id,
+                fotoEncontrado,
+                destinoTipo,
+                destinoTipo === "INSTITUICAO" ? destinoNome : funcionario.nome,
+                destinoEndereco,
+                instrucoesRetirada
+            ]
+        );
+
+        const petAtualizado = await client.query(
+            `
+            UPDATE pets
+            SET
+                desaparecido = FALSE,
+                status_pet = 'ENCONTRADO',
+                encontrado_em = CURRENT_TIMESTAMP,
+                atualizado_em = CURRENT_TIMESTAMP
+            WHERE id = $1
+            RETURNING *
+            `,
+            [petId]
+        );
+
+        const localNome = destinoTipo === "INSTITUICAO"
+            ? destinoNome
+            : `endereço de ${funcionario.nome}`;
+
+        await inserirNotificacao(client, {
+            usuarioId: pet.usuario_id,
+            tipo: "PET_ENCONTRADO",
+            titulo: `${pet.nome} foi encontrado!`,
+            mensagem: `${funcionario.nome} encontrou ${pet.nome}. O animal ficará em ${localNome}, no endereço: ${destinoEndereco}.`,
+            foto: fotoEncontrado,
+            dados: {
+                petId,
+                petNome: pet.nome,
+                profissional: funcionario.nome,
+                empresa: funcionario.empresa,
+                destinoTipo,
+                destinoNome: destinoTipo === "INSTITUICAO" ? destinoNome : funcionario.nome,
+                destinoEndereco,
+                instrucoesRetirada,
+                resgateId: resgateResult.rows[0].id
+            }
+        });
+
+        await client.query("COMMIT");
+        return res.status(200).json({
+            message: "Resgate concluído e cidadão notificado.",
+            pet: petAtualizado.rows[0],
+            resgate: resgateResult.rows[0]
+        });
+    } catch (erro) {
+        try { await client.query("ROLLBACK"); } catch (_) {}
+        return res.status(500).json({
+            error: "Erro ao concluir o resgate do pet.",
+            details: erro.message
+        });
+    } finally {
+        client.release();
+    }
+});
+
+app.get("/api/users/:cpf/notifications-v18", async (req, res) => {
+    try {
+        const cpf = limparCpf(req.params.cpf);
+        const result = await pool.query(
+            `
+            SELECT
+                n.id,
+                n.tipo,
+                n.titulo AS title,
+                n.mensagem AS message,
+                n.foto,
+                n.dados,
+                n.lida,
+                n.criado_em AS "createdAt"
+            FROM notificacoes n
+            INNER JOIN usuarios u ON u.id = n.usuario_id
+            WHERE u.cpf = $1
+            ORDER BY n.criado_em DESC
+            LIMIT 100
+            `,
+            [cpf]
+        );
+        return res.status(200).json(result.rows);
+    } catch (erro) {
+        return res.status(500).json({
+            error: "Erro ao carregar notificações.",
+            details: erro.message
+        });
+    }
+});
+
+app.patch("/api/admin/accounts/:cpf/suspend", verificarAdmin, async (req, res) => {
+    try {
+        const cpf = limparCpf(req.params.cpf);
+        const dias = Number(req.body.dias);
+        const motivo = limparTexto(req.body.motivo);
+
+        if (cpf === ADMIN_CPF) {
+            return res.status(403).json({ error: "O administrador master não pode ser suspenso." });
+        }
+
+        if (!Number.isInteger(dias) || dias < 1 || dias > 365) {
+            return res.status(400).json({ error: "Informe entre 1 e 365 dias." });
+        }
+
+        if (!motivo) {
+            return res.status(400).json({ error: "Informe o motivo da suspensão." });
+        }
+
+        const result = await pool.query(
+            `
+            UPDATE usuarios
+            SET
+                ativo = FALSE,
+                bloqueado_em = CURRENT_TIMESTAMP,
+                bloqueado_ate = CURRENT_TIMESTAMP + ($1::INTEGER * INTERVAL '1 day'),
+                motivo_bloqueio = $2,
+                bloqueado_por = $3,
+                session_version = session_version + 1,
+                atualizado_em = CURRENT_TIMESTAMP
+            WHERE cpf = $4
+              AND excluida_em IS NULL
+            RETURNING *
+            `,
+            [dias, motivo, req.admin.id, cpf]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: "Conta não encontrada." });
+        }
+
+        if (result.rows[0].tipo === "professional") {
+            await pool.query("UPDATE funcionarios SET ativo = FALSE WHERE usuario_id = $1", [result.rows[0].id]);
+        }
+
+        await pool.query(
+            `
+            INSERT INTO bloqueios_conta
+            (usuario_id, administrador_id, inicio_em, fim_em, motivo, ativo)
+            VALUES ($1,$2,CURRENT_TIMESTAMP,$3,$4,TRUE)
+            `,
+            [result.rows[0].id, req.admin.id, result.rows[0].bloqueado_ate, motivo]
+        );
+
+        await registrarAuditoria({
+            administradorId: req.admin.id,
+            usuarioAlvoId: result.rows[0].id,
+            acao: "CONTA_SUSPENSA",
+            detalhes: { dias, motivo, bloqueadoAte: result.rows[0].bloqueado_ate },
+            req
+        });
+
+        return res.status(200).json({
+            message: `Conta suspensa por ${dias} dia(s).`,
+            user: usuarioSeguro(result.rows[0])
+        });
+    } catch (erro) {
+        return res.status(500).json({ error: "Erro ao suspender conta.", details: erro.message });
+    }
+});
+
+app.patch("/api/admin/accounts/:cpf/reactivate", verificarAdmin, async (req, res) => {
+    try {
+        const cpf = limparCpf(req.params.cpf);
+        const result = await pool.query(
+            `
+            UPDATE usuarios
+            SET
+                ativo = TRUE,
+                bloqueado_em = NULL,
+                bloqueado_ate = NULL,
+                motivo_bloqueio = NULL,
+                bloqueado_por = NULL,
+                session_version = session_version + 1,
+                atualizado_em = CURRENT_TIMESTAMP
+            WHERE cpf = $1
+              AND excluida_em IS NULL
+            RETURNING *
+            `,
+            [cpf]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: "Conta não encontrada ou já excluída." });
+        }
+
+        if (result.rows[0].tipo === "professional") {
+            await pool.query("UPDATE funcionarios SET ativo = TRUE WHERE usuario_id = $1", [result.rows[0].id]);
+        }
+
+        await pool.query("UPDATE bloqueios_conta SET ativo = FALSE, revogado_em = CURRENT_TIMESTAMP WHERE usuario_id = $1 AND ativo = TRUE", [result.rows[0].id]);
+
+        await registrarAuditoria({
+            administradorId: req.admin.id,
+            usuarioAlvoId: result.rows[0].id,
+            acao: "CONTA_REATIVADA",
+            req
+        });
+
+        return res.status(200).json({ message: "Conta reativada.", user: usuarioSeguro(result.rows[0]) });
+    } catch (erro) {
+        return res.status(500).json({ error: "Erro ao reativar conta.", details: erro.message });
+    }
+});
+
+app.delete("/api/admin/accounts/:cpf/delete", verificarAdmin, async (req, res) => {
+    try {
+        const cpf = limparCpf(req.params.cpf);
+        const motivo = limparTexto(req.body?.motivo || "Conta excluída pelo administrador.");
+
+        if (cpf === ADMIN_CPF) {
+            return res.status(403).json({ error: "O administrador master não pode ser excluído." });
+        }
+
+        const result = await pool.query(
+            `
+            UPDATE usuarios
+            SET
+                ativo = FALSE,
+                excluida_em = CURRENT_TIMESTAMP,
+                motivo_bloqueio = $1,
+                session_version = session_version + 1,
+                atualizado_em = CURRENT_TIMESTAMP
+            WHERE cpf = $2
+              AND excluida_em IS NULL
+            RETURNING *
+            `,
+            [motivo, cpf]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: "Conta não encontrada ou já excluída." });
+        }
+
+        if (result.rows[0].tipo === "professional") {
+            await pool.query("UPDATE funcionarios SET ativo = FALSE WHERE usuario_id = $1", [result.rows[0].id]);
+        }
+
+        await registrarAuditoria({
+            administradorId: req.admin.id,
+            usuarioAlvoId: result.rows[0].id,
+            acao: "CONTA_EXCLUIDA",
+            detalhes: { motivo },
+            req
+        });
+
+        return res.status(200).json({ message: "Conta excluída e sessões revogadas." });
+    } catch (erro) {
+        return res.status(500).json({ error: "Erro ao excluir conta.", details: erro.message });
     }
 });
 
