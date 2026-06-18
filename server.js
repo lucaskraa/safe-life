@@ -2550,16 +2550,12 @@ app.get("/api/pro/ocorrencias", async (req, res) => {
 ===================================================== */
 
 app.patch("/api/chamados/:origem/:id/status", async (req, res) => {
-    const client = await pool.connect();
-
     try {
-        const { origem, id } = req.params;
-
-        const {
-            status,
-            funcionarioCpf,
-            observacao
-        } = req.body;
+        const origem = String(req.params.origem || "").toLowerCase();
+        const id = Number(req.params.id);
+        const status = String(req.body.status || "").toUpperCase();
+        const funcionarioCpf = limparCpf(req.body.funcionarioCpf);
+        const observacao = limparTexto(req.body.observacao || "");
 
         const statusPermitidos = [
             "PENDENTE",
@@ -2568,156 +2564,166 @@ app.patch("/api/chamados/:origem/:id/status", async (req, res) => {
             "CANCELADA"
         ];
 
+        if (!Number.isInteger(id) || id <= 0) {
+            return res.status(400).json({
+                error: "ID do chamado inválido."
+            });
+        }
+
         if (!statusPermitidos.includes(status)) {
             return res.status(400).json({
                 error: "Status inválido."
             });
         }
 
-        await client.query("BEGIN");
-
         let funcionarioId = null;
 
         if (funcionarioCpf) {
-            const funcionario = await client.query(
+            const funcionarioResult = await pool.query(
                 `
                 SELECT f.id
                 FROM funcionarios f
                 INNER JOIN usuarios u
-                ON u.id = f.usuario_id
+                    ON u.id = f.usuario_id
                 WHERE u.cpf = $1
+                  AND u.ativo = TRUE
+                  AND f.ativo = TRUE
                 LIMIT 1
                 `,
-                [limparCpf(funcionarioCpf)]
+                [funcionarioCpf]
             );
 
-            if (funcionario.rows[0]) {
-                funcionarioId = funcionario.rows[0].id;
-            }
+            funcionarioId = funcionarioResult.rows[0]?.id || null;
         }
 
         if (origem === "ocorrencia") {
-            const atual = await client.query(
+            const anteriorResult = await pool.query(
                 `
-                SELECT *
+                SELECT id, status
                 FROM ocorrencias
                 WHERE id = $1
+                LIMIT 1
                 `,
                 [id]
             );
 
-            if (atual.rows.length === 0) {
-                await client.query("ROLLBACK");
-
+            if (anteriorResult.rows.length === 0) {
                 return res.status(404).json({
                     error: "Ocorrência não encontrada."
                 });
             }
 
-            const result = await client.query(
+            const statusAnterior = anteriorResult.rows[0].status;
+
+            const atualizadoResult = await pool.query(
                 `
                 UPDATE ocorrencias
                 SET
                     status = $1,
-                    atendente_id = COALESCE($2, atendente_id),
+                    atendente_id = CASE
+                        WHEN $2::INTEGER IS NULL THEN atendente_id
+                        ELSE $2::INTEGER
+                    END,
                     concluido_em = CASE
                         WHEN $1 = 'CONCLUIDA' THEN CURRENT_TIMESTAMP
+                        WHEN $1 = 'PENDENTE' THEN NULL
                         ELSE concluido_em
-                    END
+                    END,
+                    atualizado_em = CURRENT_TIMESTAMP
                 WHERE id = $3
                 RETURNING *
                 `,
                 [status, funcionarioId, id]
             );
 
-            await client.query(
-                `
-                INSERT INTO historico_ocorrencias
-                (
-                    ocorrencia_id,
-                    funcionario_id,
-                    status_anterior,
-                    status_novo,
-                    acao,
-                    observacao
-                )
-                VALUES
-                ($1,$2,$3,$4,$5,$6)
-                `,
-                [
-                    id,
-                    funcionarioId,
-                    atual.rows[0].status,
-                    status,
-                    "Alteração de status",
-                    observacao || null
-                ]
-            );
-
-            await client.query("COMMIT");
+            try {
+                await pool.query(
+                    `
+                    INSERT INTO historico_ocorrencias
+                    (
+                        ocorrencia_id,
+                        funcionario_id,
+                        status_anterior,
+                        status_novo,
+                        acao,
+                        observacao
+                    )
+                    VALUES ($1,$2,$3,$4,$5,$6)
+                    `,
+                    [
+                        id,
+                        funcionarioId,
+                        statusAnterior,
+                        status,
+                        "Alteração de status",
+                        observacao || null
+                    ]
+                );
+            } catch (historicoErro) {
+                console.warn(
+                    "⚠️ Status atualizado, mas o histórico não foi gravado:",
+                    historicoErro.message
+                );
+            }
 
             return res.status(200).json({
-                message: "Status da ocorrência atualizado.",
-                data: result.rows[0]
+                message:
+                    status === "CONCLUIDA"
+                        ? "Ocorrência concluída com sucesso."
+                        : "Status da ocorrência atualizado.",
+                data: atualizadoResult.rows[0]
             });
         }
 
         if (origem === "anonima") {
-            const atual = await client.query(
-                `
-                SELECT *
-                FROM denuncias_anonimas
-                WHERE id = $1
-                `,
-                [id]
-            );
-
-            if (atual.rows.length === 0) {
-                await client.query("ROLLBACK");
-
-                return res.status(404).json({
-                    error: "Denúncia anônima não encontrada."
-                });
-            }
-
-            const result = await client.query(
+            const atualizadoResult = await pool.query(
                 `
                 UPDATE denuncias_anonimas
                 SET
                     status = $1,
                     concluido_em = CASE
                         WHEN $1 = 'CONCLUIDA' THEN CURRENT_TIMESTAMP
+                        WHEN $1 = 'PENDENTE' THEN NULL
                         ELSE concluido_em
-                    END
+                    END,
+                    atualizado_em = CURRENT_TIMESTAMP
                 WHERE id = $2
                 RETURNING *
                 `,
                 [status, id]
             );
 
-            await client.query("COMMIT");
+            if (atualizadoResult.rows.length === 0) {
+                return res.status(404).json({
+                    error: "Denúncia anônima não encontrada."
+                });
+            }
 
             return res.status(200).json({
-                message: "Status da denúncia anônima atualizado.",
-                data: result.rows[0]
+                message:
+                    status === "CONCLUIDA"
+                        ? "Denúncia anônima concluída com sucesso."
+                        : "Status da denúncia anônima atualizado.",
+                data: atualizadoResult.rows[0]
             });
         }
-
-        await client.query("ROLLBACK");
 
         return res.status(400).json({
             error: "Origem inválida. Use ocorrencia ou anonima."
         });
-
     } catch (erro) {
-        await client.query("ROLLBACK");
+        console.error("❌ Erro ao atualizar chamado:", {
+            origem: req.params.origem,
+            id: req.params.id,
+            status: req.body?.status,
+            mensagem: erro.message,
+            codigo: erro.code
+        });
 
         return res.status(500).json({
             error: "Erro ao atualizar status.",
             details: erro.message
         });
-    } finally {
-        client.release();
     }
 });
 
