@@ -2412,6 +2412,21 @@ app.get("/api/pro/ocorrencias", async (req, res) => {
                 FROM denuncias_anonimas
             ) chamados
             WHERE status <> 'CONCLUIDA'
+              AND status <> 'CANCELADA'
+              AND NOT (
+                    (LOWER(COALESCE(assunto, '')) = 'animal na rua'
+                     AND LOWER(COALESCE(localizacao, '')) LIKE 'rua das flores%')
+                 OR (LOWER(COALESCE(assunto, '')) = 'animal ferido'
+                     AND LOWER(COALESCE(localizacao, '')) LIKE 'avenida principal%')
+                 OR (LOWER(COALESCE(assunto, '')) = 'sem água e comida'
+                     AND LOWER(COALESCE(localizacao, '')) LIKE 'rua esperança%')
+                 OR (LOWER(COALESCE(assunto, '')) = 'animal acorrentado'
+                     AND LOWER(COALESCE(localizacao, '')) LIKE 'travessa das palmeiras%')
+                 OR COALESCE(foto, '') LIKE '%photo-1558788353-f76d92427f16%'
+                 OR COALESCE(foto, '') LIKE '%photo-1574158622682-e40e69881006%'
+                 OR COALESCE(foto, '') LIKE '%photo-1583512603805-3cc6b41f3edb%'
+                 OR COALESCE(foto, '') LIKE '%photo-1596492784531-6e6eb5ea9993%'
+              )
             ORDER BY criado_em DESC
             `
         );
