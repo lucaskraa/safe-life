@@ -7,7 +7,7 @@ const { Pool } = require("pg");
 
 const app = express();
 
-const SAFE_LIFE_VERSION = "18.1";
+const SAFE_LIFE_VERSION = "19.0";
 const PORT = Number(process.env.PORT) || 3000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 const IS_PRODUCTION = NODE_ENV === "production";
@@ -1797,7 +1797,7 @@ app.post("/api/admin/profissionais", verificarAdmin, async (req, res) => {
             [
                 limparTexto(nome),
                 cpfLimpo,
-                hashSenha(senhaFinal),
+                await hashSenhaAsync(senhaFinal),
                 limparTexto(email).toLowerCase(),
                 limparTexto(telefone),
                 limparTexto(company),
@@ -3227,7 +3227,7 @@ app.delete("/api/chamados/:origem/:id", async (req, res) => {
 
 
 /* =====================================================
-   SAFE LIFE V18 — PETS, NOTIFICAÇÕES E ADMINISTRAÇÃO
+   SAFE LIFE V19 — PETS, NOTIFICAÇÕES E ADMINISTRAÇÃO
 ===================================================== */
 
 app.get("/api/pro/pets/cadastrados", async (req, res) => {
