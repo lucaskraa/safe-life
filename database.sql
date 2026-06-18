@@ -1,5 +1,5 @@
 -- =============================================================
--- SAFE LIFE V18.3 — BANCO COMPLETO DE PRODUÇÃO / SUPABASE
+-- SAFE LIFE V19 — BANCO COMPLETO DE PRODUÇÃO / SUPABASE
 -- Atualização segura: não apaga contas, pets ou chamados reais.
 -- Pode ser executado no SQL Editor do Supabase.
 -- =============================================================
@@ -653,7 +653,7 @@ REVOKE ALL ON TABLE tentativas_login FROM anon, authenticated;
 COMMIT;
 
 SELECT
-    'Safe Life V18.3 instalado com segurança' AS resultado,
+    'Safe Life V19 instalado com segurança' AS resultado,
     (SELECT COUNT(*) FROM usuarios WHERE excluida_em IS NULL) AS usuarios_ativos_no_banco,
     (SELECT COUNT(*) FROM pets WHERE ativo = TRUE) AS pets_reais,
     (SELECT COUNT(*) FROM ocorrencias) AS ocorrencias_reais,
