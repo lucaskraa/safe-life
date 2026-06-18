@@ -1,61 +1,83 @@
 -- =====================================================
--- SAFE LIFE — LIMPEZA DEFINITIVA DOS DADOS DE DEMONSTRAÇÃO
--- Execute UMA VEZ no Supabase > SQL Editor > New query > Run.
--- Mantém as denúncias reais e remove somente os exemplos antigos.
+-- SAFE LIFE V17 — MIGRAÇÃO SEGURA
+-- NÃO APAGA USUÁRIOS, PETS OU CHAMADOS.
+-- Execute uma única vez no SQL Editor do Supabase.
 -- =====================================================
 
-BEGIN;
+ALTER TABLE IF EXISTS ocorrencias
+    ADD COLUMN IF NOT EXISTS concluido_em TIMESTAMP;
 
-CREATE TEMP TABLE demo_occurrence_ids AS
-SELECT id
-FROM ocorrencias
-WHERE
-       (LOWER(COALESCE(assunto, '')) = 'animal na rua'
-        AND LOWER(COALESCE(localizacao, '')) LIKE 'rua das flores%')
-    OR (LOWER(COALESCE(assunto, '')) = 'animal ferido'
-        AND LOWER(COALESCE(localizacao, '')) LIKE 'avenida principal%')
-    OR LOWER(COALESCE(detalhes, '')) LIKE '%cachorro assustado%próximo aos carros%'
-    OR LOWER(COALESCE(detalhes, '')) LIKE '%gato aparentemente ferido%parado na calçada%'
-    OR COALESCE(foto, '') LIKE '%photo-1558788353-f76d92427f16%'
-    OR COALESCE(foto, '') LIKE '%photo-1574158622682-e40e69881006%';
+ALTER TABLE IF EXISTS denuncias_anonimas
+    ADD COLUMN IF NOT EXISTS concluido_em TIMESTAMP;
 
-DELETE FROM historico_ocorrencias
-WHERE ocorrencia_id IN (SELECT id FROM demo_occurrence_ids);
+ALTER TABLE IF EXISTS ocorrencias
+    ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
-DELETE FROM ocorrencias
-WHERE id IN (SELECT id FROM demo_occurrence_ids);
+ALTER TABLE IF EXISTS denuncias_anonimas
+    ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
-DELETE FROM denuncias_anonimas
-WHERE
-       (LOWER(COALESCE(assunto, '')) = 'sem água e comida'
-        AND LOWER(COALESCE(localizacao, '')) LIKE 'rua esperança%')
-    OR (LOWER(COALESCE(assunto, '')) = 'animal acorrentado'
-        AND LOWER(COALESCE(localizacao, '')) LIKE 'travessa das palmeiras%')
-    OR LOWER(COALESCE(detalhes, '')) LIKE '%cachorro preso no quintal%sem água%'
-    OR LOWER(COALESCE(detalhes, '')) LIKE '%animal fica acorrentado o dia inteiro%'
-    OR COALESCE(foto, '') LIKE '%photo-1583512603805-3cc6b41f3edb%'
-    OR COALESCE(foto, '') LIKE '%photo-1596492784531-6e6eb5ea9993%';
+CREATE TABLE IF NOT EXISTS historico_ocorrencias (
+    id SERIAL PRIMARY KEY,
+    ocorrencia_id INTEGER,
+    funcionario_id INTEGER,
+    status_anterior status_ocorrencia_enum,
+    status_novo status_ocorrencia_enum,
+    acao VARCHAR(150),
+    observacao TEXT,
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'fk_historico_ocorrencia'
+    ) THEN
+        ALTER TABLE historico_ocorrencias
+        ADD CONSTRAINT fk_historico_ocorrencia
+        FOREIGN KEY (ocorrencia_id)
+        REFERENCES ocorrencias(id)
+        ON DELETE CASCADE;
+    END IF;
+END;
+$$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'fk_historico_funcionario'
+    ) THEN
+        ALTER TABLE historico_ocorrencias
+        ADD CONSTRAINT fk_historico_funcionario
+        FOREIGN KEY (funcionario_id)
+        REFERENCES funcionarios(id)
+        ON DELETE SET NULL;
+    END IF;
+END;
+$$;
 
 UPDATE usuarios
-SET foto_perfil = CASE cpf
-    WHEN '11111111111' THEN 'img/pequenochinique.jpeg'
-    WHEN '99999999999' THEN 'img/corredorzeca.jpeg'
-    WHEN '45317828791' THEN 'img/apenasumsiri.jpeg'
-    ELSE foto_perfil
-END
-WHERE cpf IN ('11111111111', '99999999999', '45317828791');
+SET foto_perfil = 'img/pequenochinique.jpeg'
+WHERE cpf = '11111111111';
 
-COMMIT;
+UPDATE usuarios
+SET foto_perfil = 'img/corredorzeca.jpeg'
+WHERE cpf = '99999999999';
 
--- Resultado esperado: zero linhas para os exemplos antigos.
-SELECT id, assunto, localizacao, status
-FROM ocorrencias
-WHERE
-       LOWER(COALESCE(localizacao, '')) LIKE 'rua das flores%'
-    OR LOWER(COALESCE(localizacao, '')) LIKE 'avenida principal%';
+UPDATE usuarios
+SET foto_perfil = 'img/apenasumsiri.jpeg'
+WHERE cpf = '45317828791';
 
-SELECT id, assunto, localizacao, status
-FROM denuncias_anonimas
-WHERE
-       LOWER(COALESCE(localizacao, '')) LIKE 'rua esperança%'
-    OR LOWER(COALESCE(localizacao, '')) LIKE 'travessa das palmeiras%';
+CREATE INDEX IF NOT EXISTS idx_ocorrencias_usuario_status
+ON ocorrencias(usuario_id, status);
+
+CREATE INDEX IF NOT EXISTS idx_ocorrencias_atendente_status
+ON ocorrencias(atendente_id, status);
+
+SELECT
+    'Migração V17 concluída' AS resultado,
+    COUNT(*) AS total_usuarios
+FROM usuarios;
