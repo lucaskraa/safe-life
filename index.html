@@ -383,7 +383,7 @@
 
                     <input
                         type="text"
-                        id="regPhone"
+                        id="regPhone" inputmode="tel" maxlength="15"
                         placeholder="(00) 00000-0000"
                         inputmode="tel"
                         autocomplete="tel"
@@ -852,193 +852,170 @@
         </section>
 
         <!-- =====================================================
-             CADASTRAR PET
+             CADASTRAR PET NORMAL
         ====================================================== -->
         <section class="screen" id="scrPetForm">
-
             <header>
-                <h1>
-                    Cadastrar Meu Pet
-                </h1>
-
-                <p>
-                    Registre seu animal no Safe Life
-                </p>
+                <h1>Cadastrar Meu Pet</h1>
+                <p>Registre um pet que vive com você</p>
             </header>
 
             <main>
-
-                <form
-                    id="petForm"
-                    onsubmit="registrarPet(event)"
-                >
-
-                    <label for="petName">
-                        Nome do Pet
-                    </label>
-
-                    <input
-                        type="text"
-                        id="petName"
-                        placeholder="Ex: Ademir"
-                        required
-                    >
-
-                    <label for="petAge">
-                        Idade
-                    </label>
-
-                    <input
-                        type="number"
-                        id="petAge"
-                        placeholder="Ex: 3"
-                    >
-
-                    <label for="petSpecies">
-                        Espécie
-                    </label>
-
-                    <input
-                        type="text"
-                        id="petSpecies"
-                        placeholder="Ex: Cachorro, Gato, Coelho"
-                    >
-
-                    <label for="petBreed">
-                        Raça
-                    </label>
-
-                    <input
-                        type="text"
-                        id="petBreed"
-                        placeholder="Ex: SRD, Poodle, Persa"
-                    >
-
-                    <label for="petSex">
-                        Sexo
-                    </label>
-
-                    <select id="petSex">
-                        <option value="NAO_INFORMADO">Não informado</option>
-                        <option value="MACHO">Macho</option>
-                        <option value="FEMEA">Fêmea</option>
-                    </select>
-
-                    <label for="petColor">
-                        Cor principal
-                    </label>
-
-                    <input
-                        type="text"
-                        id="petColor"
-                        placeholder="Ex: Preto, caramelo, cinza"
-                    >
-
-                    <label for="petWeight">
-                        Peso aproximado
-                    </label>
-
-                    <input
-                        type="number"
-                        id="petWeight"
-                        placeholder="Ex: 4.5"
-                        step="0.1"
-                    >
-
-                    <label for="petMissingStatus">
-                        Situação do Pet
-                    </label>
-
-                    <select id="petMissingStatus" onchange="alternarCamposDesaparecido()">
-                        <option value="CADASTRADO">Pet cadastrado normalmente</option>
-                        <option value="DESAPARECIDO">Meu pet está desaparecido</option>
-                    </select>
-
-                    <div id="petMissingFields" class="pet-missing-fields hidden">
-                        <label for="petMissingLocation">
-                            Local onde desapareceu
-                        </label>
-
-                        <input
-                            type="text"
-                            id="petMissingLocation"
-                            placeholder="Rua, bairro, ponto de referência"
-                        >
-
-                        <button
-                            class="btn location-small-btn"
-                            type="button"
-                            onclick="usarMinhaLocalizacaoNoCampo('petMissingLocation')"
-                        >
-                            Usar minha localização atual 📍
-                        </button>
-
-                        <label for="petMissingDetails">
-                            Detalhes do desaparecimento
-                        </label>
-
-                        <textarea
-                            id="petMissingDetails"
-                            placeholder="Ex: fugiu pelo portão, estava usando coleira vermelha, atende pelo nome..."
-                        ></textarea>
+                <form id="petForm" class="pet-form-shell-modern" onsubmit="registrarPet(event)">
+                    <div class="pet-form-top-modern">
+                        <div>
+                            <span class="pet-form-chip">🐾 Cadastro normal</span>
+                            <h3>Dados do pet</h3>
+                            <p>Esta tela é somente para pets cadastrados normalmente.</p>
+                        </div>
+                        <div class="pet-form-side-icon">🐕</div>
                     </div>
 
-                    <label for="petObservations">
-                        Observações
-                    </label>
+                    <div class="pet-form-grid-modern">
+                        <div class="pet-field-card">
+                            <label for="petName">Nome do pet</label>
+                            <input type="text" id="petName" placeholder="Ex: Ademir" required>
+                        </div>
 
-                    <textarea
-                        id="petObservations"
-                        placeholder="Temperamento, saúde, coleira, marcas no corpo ou informações importantes"
-                    ></textarea>
+                        <div class="pet-field-card">
+                            <label for="petAge">Idade</label>
+                            <input type="number" id="petAge" min="0" placeholder="Ex: 3">
+                        </div>
 
-                    <label for="petLocation">
-                        Localização do Pet
-                    </label>
+                        <div class="pet-field-card">
+                            <label for="petSpecies">Espécie</label>
+                            <input type="text" id="petSpecies" placeholder="Cachorro, gato, coelho..." required>
+                        </div>
 
-                    <input
-                        type="text"
-                        id="petLocation"
-                        placeholder="Endereço ou região onde o pet vive"
-                    >
+                        <div class="pet-field-card">
+                            <label for="petBreed">Raça</label>
+                            <input type="text" id="petBreed" placeholder="Ex: SRD, Poodle, Persa">
+                        </div>
 
-                    <button
-                        class="btn location-small-btn"
-                        type="button"
-                        onclick="usarMinhaLocalizacaoNoCampo('petLocation')"
-                    >
-                        Usar minha localização atual 📍
-                    </button>
+                        <div class="pet-field-card">
+                            <label for="petSex">Sexo</label>
+                            <select id="petSex">
+                                <option value="NAO_INFORMADO">Não informado</option>
+                                <option value="MACHO">Macho</option>
+                                <option value="FEMEA">Fêmea</option>
+                            </select>
+                        </div>
 
-                    <label for="petPhoto">
-                        Foto do Pet
-                    </label>
+                        <div class="pet-field-card">
+                            <label for="petColor">Cor principal</label>
+                            <input type="text" id="petColor" placeholder="Preto, caramelo, cinza...">
+                        </div>
 
-                    <input
-                        type="file"
-                        id="petPhoto"
-                        accept="image/*"
-                    >
+                        <div class="pet-field-card">
+                            <label for="petWeight">Peso aproximado</label>
+                            <input type="number" id="petWeight" min="0" step="0.1" placeholder="Ex: 4.5">
+                        </div>
 
-                    <button
-                        type="submit"
-                        class="btn"
-                    >
-                        Salvar Pet 🐾
-                    </button>
+                        <div class="pet-field-card">
+                            <label for="petLocation">Endereço onde o pet vive</label>
+                            <input type="text" id="petLocation" placeholder="Rua, bairro e cidade">
+                            <button class="btn location-small-btn pet-location-btn" type="button" onclick="usarMinhaLocalizacaoNoCampo('petLocation')">
+                                Usar meu endereço atual 📍
+                            </button>
+                        </div>
 
+                        <div class="pet-field-card pet-field-card-full">
+                            <label for="petObservations">Observações</label>
+                            <textarea id="petObservations" placeholder="Temperamento, saúde, coleira, marcas no corpo..."></textarea>
+                        </div>
+
+                        <div class="pet-field-card pet-field-card-full pet-photo-card">
+                            <label for="petPhoto">Foto do pet</label>
+                            <input type="file" id="petPhoto" accept="image/*">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn">Salvar Pet 🐾</button>
                 </form>
 
-                <button
-                    class="btn secondary-btn"
-                    onclick="nextScreen('menuScreen')"
-                    type="button"
-                >
-                    Voltar
-                </button>
-
+                <button class="btn secondary-btn" onclick="nextScreen('menuScreen')" type="button">Voltar</button>
             </main>
+        </section>
 
+        <!-- =====================================================
+             PET DESAPARECIDO — FLUXO SEPARADO
+        ====================================================== -->
+        <section class="screen" id="scrMissingPetForm">
+            <header>
+                <h1>Pet Desaparecido</h1>
+                <p>Envie um alerta específico para a equipe profissional</p>
+            </header>
+
+            <main>
+                <form id="missingPetForm" class="pet-form-shell-modern missing-pet-form" onsubmit="registrarPetDesaparecido(event)">
+                    <div class="pet-form-top-modern missing-pet-top">
+                        <div>
+                            <span class="pet-form-chip">🚨 Alerta de desaparecimento</span>
+                            <h3>Informações para localizar o pet</h3>
+                            <p>Informe onde ele foi visto pela última vez.</p>
+                        </div>
+                        <div class="pet-form-side-icon">🔎</div>
+                    </div>
+
+                    <div class="pet-form-grid-modern">
+                        <div class="pet-field-card">
+                            <label for="missingPetName">Nome do pet</label>
+                            <input type="text" id="missingPetName" placeholder="Nome do animal" required>
+                        </div>
+
+                        <div class="pet-field-card">
+                            <label for="missingPetAge">Idade aproximada</label>
+                            <input type="number" id="missingPetAge" min="0" placeholder="Ex: 2">
+                        </div>
+
+                        <div class="pet-field-card">
+                            <label for="missingPetSpecies">Espécie</label>
+                            <input type="text" id="missingPetSpecies" placeholder="Cachorro, gato..." required>
+                        </div>
+
+                        <div class="pet-field-card">
+                            <label for="missingPetBreed">Raça</label>
+                            <input type="text" id="missingPetBreed" placeholder="Ex: SRD">
+                        </div>
+
+                        <div class="pet-field-card">
+                            <label for="missingPetSex">Sexo</label>
+                            <select id="missingPetSex">
+                                <option value="NAO_INFORMADO">Não informado</option>
+                                <option value="MACHO">Macho</option>
+                                <option value="FEMEA">Fêmea</option>
+                            </select>
+                        </div>
+
+                        <div class="pet-field-card">
+                            <label for="missingPetColor">Cor e características</label>
+                            <input type="text" id="missingPetColor" placeholder="Cor, manchas, coleira...">
+                        </div>
+
+                        <div class="pet-field-card pet-field-card-full missing-last-seen-card">
+                            <label for="missingPetLastSeen">Onde ele foi visto pela última vez?</label>
+                            <input type="text" id="missingPetLastSeen" placeholder="Rua, bairro, ponto de referência e cidade" required>
+                            <button class="btn location-small-btn pet-location-btn" type="button" onclick="usarMinhaLocalizacaoNoCampo('missingPetLastSeen')">
+                                Usar o endereço onde estou 📍
+                            </button>
+                        </div>
+
+                        <div class="pet-field-card pet-field-card-full">
+                            <label for="missingPetDetails">Detalhes do desaparecimento</label>
+                            <textarea id="missingPetDetails" placeholder="Quando desapareceu, roupa ou coleira, comportamento e outras informações importantes" required></textarea>
+                        </div>
+
+                        <div class="pet-field-card pet-field-card-full pet-photo-card">
+                            <label for="missingPetPhoto">Foto recente do pet</label>
+                            <input type="file" id="missingPetPhoto" accept="image/*" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn missing-submit-btn">Publicar Alerta 🚨</button>
+                </form>
+
+                <button class="btn secondary-btn" onclick="nextScreen('menuScreen')" type="button">Voltar</button>
+            </main>
         </section>
 
         <!-- =====================================================
@@ -1216,7 +1193,7 @@
 
                     <input
                         type="text"
-                        id="editPhone"
+                        id="editPhone" inputmode="tel" maxlength="15"
                         placeholder="(00) 00000-0000"
                     >
 
@@ -1351,12 +1328,12 @@
 
                     <button
                         class="professional-tool-card"
-                        onclick="abrirAgentesAtivos()"
+                        onclick="abrirPetsDesaparecidosPro()"
                         type="button"
                     >
                         <span>🟢</span>
-                        <strong>Agentes Ativos</strong>
-                        <small>Ver equipes disponíveis próximas.</small>
+                        <strong>Pets Desaparecidos</strong>
+                        <small>Atender alertas e concluir resgates.</small>
                     </button>
 
                     <button
@@ -1386,7 +1363,7 @@
                     >
                         <span>🐾</span>
                         <strong>Ver Pets Cadastrados</strong>
-                        <small>Ver pets dos cidadãos e desaparecidos.</small>
+                        <small>Ver somente pets cadastrados normalmente.</small>
                     </button>
 
                 </section>
@@ -1500,7 +1477,7 @@
 
                     <input
                         type="text"
-                        id="editProPhone"
+                        id="editProPhone" inputmode="tel" maxlength="15"
                         placeholder="(00) 00000-0000"
                     >
 
@@ -1938,7 +1915,7 @@
                     <input type="text" id="adminCompanyCnpj" placeholder="Opcional">
 
                     <label for="adminCompanyPhone">Telefone / WhatsApp</label>
-                    <input type="text" id="adminCompanyPhone" placeholder="(00) 00000-0000">
+                    <input type="text" id="adminCompanyPhone" inputmode="tel" maxlength="15" placeholder="(00) 00000-0000">
 
                     <label for="adminCompanyEmail">E-mail</label>
                     <input type="email" id="adminCompanyEmail" placeholder="contato@empresa.com">
@@ -2033,7 +2010,7 @@
                     <label for="adminProPhone">Telefone / WhatsApp</label>
                     <input
                         type="text"
-                        id="adminProPhone"
+                        id="adminProPhone" maxlength="15"
                         placeholder="(00) 00000-0000"
                         inputmode="tel"
                         autocomplete="tel"
@@ -2266,45 +2243,96 @@
         </section>
 
         <!-- =====================================================
-             AGENTES ATIVOS
+             PETS CADASTRADOS — PROFISSIONAL
         ====================================================== -->
-        <section class="screen" id="activeAgentsScreen">
-
+        <section class="screen" id="proPetsScreen">
             <header>
-                <h1>
-                    Agentes Ativos
-                </h1>
-
-                <p>
-                    Equipes disponíveis próximas das ocorrências
-                </p>
+                <h1>Pets Cadastrados</h1>
+                <p>Somente animais cadastrados normalmente no banco</p>
             </header>
 
             <main>
-
                 <div class="occurrence-card">
-                    <h4>
-                        🟢 Equipes em plantão
-                    </h4>
+                    <h4>🐾 Cadastro dos cidadãos</h4>
+                    <p>Pets desaparecidos não aparecem nesta lista.</p>
+                </div>
 
+                <div id="proPetsList"></div>
+
+                <button class="btn secondary-btn" onclick="nextScreen('proDashboard')" type="button">Voltar ao Painel</button>
+            </main>
+        </section>
+
+        <!-- =====================================================
+             PETS DESAPARECIDOS — PROFISSIONAL
+        ====================================================== -->
+        <section class="screen" id="activeAgentsScreen">
+            <header>
+                <h1>Pets Desaparecidos</h1>
+                <p>Alertas reais enviados pelos cidadãos</p>
+            </header>
+
+            <main>
+                <div class="occurrence-card missing-pro-info">
+                    <h4>🚨 Resgate com comprovação</h4>
                     <p>
-                        Esta tela simula os agentes ativos e ajuda o profissional a decidir
-                        quem pode chegar mais rápido em uma ocorrência.
+                        Para concluir um resgate, envie uma foto atual do animal e informe onde ele ficará aguardando a retirada.
                     </p>
                 </div>
 
                 <div id="activeAgentsList"></div>
 
-                <button
-                    class="btn secondary-btn"
-                    onclick="nextScreen('proDashboard')"
-                    type="button"
-                >
-                    Voltar ao Painel
-                </button>
-
+                <button class="btn secondary-btn" onclick="nextScreen('proDashboard')" type="button">Voltar ao Painel</button>
             </main>
+        </section>
 
+        <!-- =====================================================
+             CONCLUIR RESGATE DE PET DESAPARECIDO
+        ====================================================== -->
+        <section class="screen" id="petRescueCompletionScreen">
+            <header>
+                <h1>Concluir Resgate</h1>
+                <p>Comprove que o pet foi encontrado e informe o local de retirada</p>
+            </header>
+
+            <main>
+                <form id="petRescueCompletionForm" class="pet-rescue-completion-card" onsubmit="concluirResgatePet(event)">
+                    <input type="hidden" id="rescuePetId">
+
+                    <div id="rescuePetSummary" class="rescue-pet-summary"></div>
+
+                    <label for="rescueFoundPhoto">Foto atual do animal encontrado</label>
+                    <input type="file" id="rescueFoundPhoto" accept="image/*" capture="environment" required>
+                    <small class="field-help">A conclusão só será liberada com uma foto atual.</small>
+
+                    <label for="rescueDestinationType">Onde o pet ficará?</label>
+                    <select id="rescueDestinationType" onchange="alternarDestinoResgatePet()" required>
+                        <option value="">Selecione</option>
+                        <option value="PROFISSIONAL">Na casa/endereço do profissional</option>
+                        <option value="INSTITUICAO">Em uma instituição, ONG ou clínica</option>
+                    </select>
+
+                    <div id="rescueProfessionalDestination" class="rescue-destination-fields hidden">
+                        <label for="rescueProfessionalAddress">Endereço onde o profissional deixará o pet</label>
+                        <textarea id="rescueProfessionalAddress" placeholder="Rua, número, bairro, cidade e referência"></textarea>
+                    </div>
+
+                    <div id="rescueInstitutionDestination" class="rescue-destination-fields hidden">
+                        <label for="rescueInstitutionName">Nome da instituição</label>
+                        <input type="text" id="rescueInstitutionName" placeholder="ONG, clínica ou abrigo">
+
+                        <label for="rescueInstitutionAddress">Endereço da instituição</label>
+                        <textarea id="rescueInstitutionAddress" placeholder="Rua, número, bairro, cidade e referência"></textarea>
+                    </div>
+
+                    <label for="rescuePickupInstructions">Instruções para retirada</label>
+                    <textarea id="rescuePickupInstructions" placeholder="Horário, pessoa responsável, telefone ou orientações" required></textarea>
+
+                    <button class="btn" type="submit">Confirmar que o pet foi encontrado ✅</button>
+                </form>
+
+                <button class="btn secondary-btn" onclick="abrirPetsDesaparecidosPro()" type="button">Cancelar e voltar</button>
+            </main>
         </section>
 
         <!-- =====================================================
@@ -2534,6 +2562,40 @@
             </main>
 
         </section>
+
+
+        <!-- =====================================================
+             MODAL DE SUSPENSÃO ADMINISTRATIVA
+        ====================================================== -->
+        <div class="safe-modal hidden" id="adminSuspendModal" role="dialog" aria-modal="true" aria-labelledby="adminSuspendTitle">
+            <div class="safe-modal-card">
+                <button class="safe-modal-close" type="button" onclick="fecharModalSuspensaoAdmin()">×</button>
+                <h2 id="adminSuspendTitle">Suspender Conta</h2>
+                <p id="adminSuspendUserText">Escolha por quanto tempo o usuário ficará bloqueado.</p>
+                <input type="hidden" id="adminSuspendCpf">
+
+                <label for="adminSuspendDays">Quantidade de dias</label>
+                <input type="number" id="adminSuspendDays" min="1" max="365" value="7">
+
+                <label for="adminSuspendReason">Motivo da suspensão</label>
+                <textarea id="adminSuspendReason" placeholder="Informe o motivo que será mostrado ao usuário" required></textarea>
+
+                <button class="btn admin-danger-btn" type="button" onclick="confirmarSuspensaoAdmin()">Confirmar Suspensão</button>
+                <button class="btn secondary-btn" type="button" onclick="fecharModalSuspensaoAdmin()">Cancelar</button>
+            </div>
+        </div>
+
+        <!-- =====================================================
+             ESTADO DA CONTA — EXCLUÍDA OU SUSPENSA
+        ====================================================== -->
+        <div class="safe-modal hidden" id="accountStatusModal" role="alertdialog" aria-modal="true">
+            <div class="safe-modal-card account-status-card">
+                <div class="account-status-icon" id="accountStatusIcon">⚠️</div>
+                <h2 id="accountStatusTitle">Conta indisponível</h2>
+                <p id="accountStatusMessage"></p>
+                <button class="btn" type="button" onclick="encerrarSessaoPorStatus()">Voltar ao Login</button>
+            </div>
+        </div>
 
     </div>
 
