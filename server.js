@@ -371,7 +371,7 @@ async function garantirAdminNoBanco() {
             process.env.ADMIN_PHONE || "11977770000",
             "admin",
             "Safe Life Matriz",
-            process.env.ADMIN_PHOTO || "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=300&q=80"
+            process.env.ADMIN_PHOTO || "img/apenasumsiri.jpeg"
         ]
     );
 
