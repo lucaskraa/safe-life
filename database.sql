@@ -1,21 +1,16 @@
 -- =====================================================
--- SAFE LIFE
--- BANCO DE DADOS COMPLETO
--- PostgreSQL
--- Versão com:
--- Cidadão
--- Profissional
--- Administrador Master
--- CPF ADMIN: 45317828791
--- Chamados
--- Denúncias anônimas
--- Pets
--- Painel profissional
--- Área administrativa
+-- SAFE LIFE — BANCO DE DADOS COMPLETO
+-- PostgreSQL / Supabase
+-- Compatível com o server.js atualizado para Render
+--
+-- ATENÇÃO: este arquivo APAGA e recria as estruturas.
+-- Use-o na primeira instalação ou quando quiser reiniciar o banco.
 -- =====================================================
 
+BEGIN;
+
 -- =====================================================
--- LIMPEZA DO BANCO
+-- LIMPEZA CONTROLADA
 -- =====================================================
 
 DROP VIEW IF EXISTS view_chamados_profissionais CASCADE;
@@ -35,6 +30,8 @@ DROP TYPE IF EXISTS status_ocorrencia_enum CASCADE;
 DROP TYPE IF EXISTS prioridade_enum CASCADE;
 DROP TYPE IF EXISTS nivel_acesso_enum CASCADE;
 DROP TYPE IF EXISTS sexo_pet_enum CASCADE;
+
+DROP FUNCTION IF EXISTS atualizar_data_modificacao() CASCADE;
 
 -- =====================================================
 -- ENUMS
@@ -73,7 +70,7 @@ CREATE TYPE sexo_pet_enum AS ENUM (
 );
 
 -- =====================================================
--- FUNÇÃO PARA ATUALIZAR DATA AUTOMATICAMENTE
+-- FUNÇÃO DE ATUALIZAÇÃO AUTOMÁTICA
 -- =====================================================
 
 CREATE OR REPLACE FUNCTION atualizar_data_modificacao()
@@ -85,50 +82,32 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- =====================================================
--- TABELA: USUÁRIOS
+-- USUÁRIOS
 -- =====================================================
 
 CREATE TABLE usuarios (
-    id SERIAL PRIMARY KEY,
-
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     nome VARCHAR(200) NOT NULL,
-
     cpf VARCHAR(11) UNIQUE NOT NULL,
-
-    senha_hash VARCHAR(255),
-
-    email VARCHAR(255) UNIQUE,
-
-    telefone VARCHAR(30),
-
+    senha_hash VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    telefone VARCHAR(30) NOT NULL,
     tipo tipo_usuario_enum NOT NULL DEFAULT 'citizen',
-
     empresa VARCHAR(255),
-
     foto_perfil TEXT,
-
-    ativo BOOLEAN DEFAULT TRUE,
-
-    ultimo_login TIMESTAMP,
-
-    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ativo BOOLEAN NOT NULL DEFAULT TRUE,
+    ultimo_login TIMESTAMPTZ,
+    criado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT chk_usuario_cpf
         CHECK (cpf ~ '^[0-9]{11}$'),
 
     CONSTRAINT chk_usuario_email
-        CHECK (
-            email IS NULL
-            OR email ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'
-        ),
+        CHECK (email ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'),
 
     CONSTRAINT chk_empresa_funcionario
-        CHECK (
-            tipo <> 'professional'
-            OR empresa IS NOT NULL
-        )
+        CHECK (tipo <> 'professional' OR NULLIF(BTRIM(empresa), '') IS NOT NULL)
 );
 
 CREATE TRIGGER trg_usuarios_atualizado_em
@@ -137,33 +116,25 @@ FOR EACH ROW
 EXECUTE FUNCTION atualizar_data_modificacao();
 
 -- =====================================================
--- TABELA: EMPRESAS / BASES PARCEIRAS
+-- EMPRESAS / BASES / ONGS
 -- =====================================================
 
 CREATE TABLE empresas (
-    id SERIAL PRIMARY KEY,
-
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     nome VARCHAR(200) UNIQUE NOT NULL,
-
-    tipo VARCHAR(100) DEFAULT 'Empresa parceira',
-
+    tipo VARCHAR(100) NOT NULL DEFAULT 'Empresa parceira',
     cnpj VARCHAR(30),
-
     telefone VARCHAR(30),
-
     email VARCHAR(255),
-
     endereco TEXT,
-
-    ativo BOOLEAN DEFAULT TRUE,
-
-    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ativo BOOLEAN NOT NULL DEFAULT TRUE,
+    criado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT chk_empresa_email
         CHECK (
             email IS NULL
+            OR email = ''
             OR email ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'
         )
 );
@@ -174,39 +145,25 @@ FOR EACH ROW
 EXECUTE FUNCTION atualizar_data_modificacao();
 
 -- =====================================================
--- TABELA: FUNCIONÁRIOS
+-- FUNCIONÁRIOS
 -- =====================================================
 
 CREATE TABLE funcionarios (
-    id SERIAL PRIMARY KEY,
-
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     usuario_id INTEGER NOT NULL UNIQUE,
-
     cargo VARCHAR(100),
-
     empresa VARCHAR(255) NOT NULL,
-
-    nivel_acesso nivel_acesso_enum DEFAULT 'operador',
-
+    nivel_acesso nivel_acesso_enum NOT NULL DEFAULT 'operador',
     registro_profissional VARCHAR(80),
-
     especialidade VARCHAR(150),
-
     regiao_atendimento VARCHAR(200),
-
-    status_plantao VARCHAR(80) DEFAULT 'Disponível',
-
+    status_plantao VARCHAR(80) NOT NULL DEFAULT 'Disponível',
     veiculo VARCHAR(120),
-
     equipe VARCHAR(120),
-
     bio_profissional TEXT,
-
-    ativo BOOLEAN DEFAULT TRUE,
-
-    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ativo BOOLEAN NOT NULL DEFAULT TRUE,
+    criado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_funcionario_usuario
         FOREIGN KEY (usuario_id)
@@ -220,51 +177,31 @@ FOR EACH ROW
 EXECUTE FUNCTION atualizar_data_modificacao();
 
 -- =====================================================
--- TABELA: PETS
+-- PETS
 -- =====================================================
 
 CREATE TABLE pets (
-    id SERIAL PRIMARY KEY,
-
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     usuario_id INTEGER NOT NULL,
-
     nome VARCHAR(100) NOT NULL,
-
-    idade INTEGER DEFAULT 0,
-
-    especie VARCHAR(100) DEFAULT 'Animal',
-
+    idade INTEGER NOT NULL DEFAULT 0,
+    especie VARCHAR(100) NOT NULL DEFAULT 'Animal',
     raca VARCHAR(100),
-
-    sexo sexo_pet_enum DEFAULT 'NAO_INFORMADO',
-
+    sexo sexo_pet_enum NOT NULL DEFAULT 'NAO_INFORMADO',
     cor VARCHAR(100),
-
-    peso DECIMAL(10,2),
-
+    peso NUMERIC(10,2),
     localizacao TEXT,
-
     observacoes TEXT,
-
     foto TEXT,
-
-    desaparecido BOOLEAN DEFAULT FALSE,
-
-    status_pet VARCHAR(50) DEFAULT 'CADASTRADO',
-
+    desaparecido BOOLEAN NOT NULL DEFAULT FALSE,
+    status_pet VARCHAR(50) NOT NULL DEFAULT 'CADASTRADO',
     local_desaparecimento TEXT,
-
     detalhes_desaparecimento TEXT,
-
-    desaparecido_em TIMESTAMP,
-
-    encontrado_em TIMESTAMP,
-
-    ativo BOOLEAN DEFAULT TRUE,
-
-    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    desaparecido_em TIMESTAMPTZ,
+    encontrado_em TIMESTAMPTZ,
+    ativo BOOLEAN NOT NULL DEFAULT TRUE,
+    criado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_pet_usuario
         FOREIGN KEY (usuario_id)
@@ -275,60 +212,44 @@ CREATE TABLE pets (
         CHECK (idade >= 0),
 
     CONSTRAINT chk_pet_peso
-        CHECK (peso IS NULL OR peso >= 0)
+        CHECK (peso IS NULL OR peso >= 0),
+
+    CONSTRAINT chk_pet_status
+        CHECK (status_pet IN ('CADASTRADO', 'DESAPARECIDO', 'ENCONTRADO'))
 );
 
 CREATE TRIGGER trg_pets_atualizado_em
 BEFORE UPDATE ON pets
 FOR EACH ROW
-EXECUTE FUNCTION atualizar_data_modificacao();-- =====================================================
--- TABELA: OCORRÊNCIAS IDENTIFICADAS
+EXECUTE FUNCTION atualizar_data_modificacao();
+
+-- =====================================================
+-- OCORRÊNCIAS IDENTIFICADAS
 -- =====================================================
 
 CREATE TABLE ocorrencias (
-    id SERIAL PRIMARY KEY,
-
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     usuario_id INTEGER,
-
     tipo VARCHAR(150) NOT NULL DEFAULT 'Chamado Geral',
-
     categoria VARCHAR(100),
-
     assunto VARCHAR(200),
-
     opcao_escolhida VARCHAR(200),
-
     localizacao TEXT NOT NULL,
-
     detalhes TEXT NOT NULL,
-
     foto TEXT,
-
-    latitude DECIMAL(10,8),
-
-    longitude DECIMAL(11,8),
-
+    latitude NUMERIC(10,8),
+    longitude NUMERIC(11,8),
     endereco_completo TEXT,
-
     bairro VARCHAR(150),
-
     cidade VARCHAR(150),
-
     estado VARCHAR(100),
-
-    status status_ocorrencia_enum DEFAULT 'PENDENTE',
-
-    prioridade prioridade_enum DEFAULT 'NORMAL',
-
-    anonima BOOLEAN DEFAULT FALSE,
-
+    status status_ocorrencia_enum NOT NULL DEFAULT 'PENDENTE',
+    prioridade prioridade_enum NOT NULL DEFAULT 'NORMAL',
+    anonima BOOLEAN NOT NULL DEFAULT FALSE,
     atendente_id INTEGER,
-
-    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    concluido_em TIMESTAMP,
+    criado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    concluido_em TIMESTAMPTZ,
 
     CONSTRAINT fk_ocorrencia_usuario
         FOREIGN KEY (usuario_id)
@@ -338,7 +259,13 @@ CREATE TABLE ocorrencias (
     CONSTRAINT fk_ocorrencia_atendente
         FOREIGN KEY (atendente_id)
         REFERENCES funcionarios(id)
-        ON DELETE SET NULL
+        ON DELETE SET NULL,
+
+    CONSTRAINT chk_ocorrencia_latitude
+        CHECK (latitude IS NULL OR latitude BETWEEN -90 AND 90),
+
+    CONSTRAINT chk_ocorrencia_longitude
+        CHECK (longitude IS NULL OR longitude BETWEEN -180 AND 180)
 );
 
 CREATE TRIGGER trg_ocorrencias_atualizado_em
@@ -347,47 +274,35 @@ FOR EACH ROW
 EXECUTE FUNCTION atualizar_data_modificacao();
 
 -- =====================================================
--- TABELA: DENÚNCIAS ANÔNIMAS
+-- DENÚNCIAS ANÔNIMAS
 -- =====================================================
 
 CREATE TABLE denuncias_anonimas (
-    id SERIAL PRIMARY KEY,
-
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     tipo VARCHAR(150) NOT NULL DEFAULT 'Denúncia Anônima',
-
     categoria VARCHAR(100),
-
     assunto VARCHAR(200),
-
     opcao_escolhida VARCHAR(200),
-
     localizacao TEXT NOT NULL,
-
     detalhes TEXT NOT NULL,
-
     foto TEXT,
-
-    latitude DECIMAL(10,8),
-
-    longitude DECIMAL(11,8),
-
+    latitude NUMERIC(10,8),
+    longitude NUMERIC(11,8),
     endereco_completo TEXT,
-
     bairro VARCHAR(150),
-
     cidade VARCHAR(150),
-
     estado VARCHAR(100),
+    status status_ocorrencia_enum NOT NULL DEFAULT 'PENDENTE',
+    prioridade prioridade_enum NOT NULL DEFAULT 'ALTA',
+    criado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    concluido_em TIMESTAMPTZ,
 
-    status status_ocorrencia_enum DEFAULT 'PENDENTE',
+    CONSTRAINT chk_denuncia_latitude
+        CHECK (latitude IS NULL OR latitude BETWEEN -90 AND 90),
 
-    prioridade prioridade_enum DEFAULT 'ALTA',
-
-    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    concluido_em TIMESTAMP
+    CONSTRAINT chk_denuncia_longitude
+        CHECK (longitude IS NULL OR longitude BETWEEN -180 AND 180)
 );
 
 CREATE TRIGGER trg_denuncias_anonimas_atualizado_em
@@ -396,25 +311,18 @@ FOR EACH ROW
 EXECUTE FUNCTION atualizar_data_modificacao();
 
 -- =====================================================
--- TABELA: HISTÓRICO DAS OCORRÊNCIAS
+-- HISTÓRICO DAS OCORRÊNCIAS
 -- =====================================================
 
 CREATE TABLE historico_ocorrencias (
-    id SERIAL PRIMARY KEY,
-
-    ocorrencia_id INTEGER,
-
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    ocorrencia_id INTEGER NOT NULL,
     funcionario_id INTEGER,
-
     status_anterior status_ocorrencia_enum,
-
-    status_novo status_ocorrencia_enum,
-
-    acao VARCHAR(150),
-
+    status_novo status_ocorrencia_enum NOT NULL,
+    acao VARCHAR(150) NOT NULL,
     observacao TEXT,
-
-    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    criado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_historico_ocorrencia
         FOREIGN KEY (ocorrencia_id)
@@ -428,56 +336,39 @@ CREATE TABLE historico_ocorrencias (
 );
 
 -- =====================================================
--- ÍNDICES PARA MELHORAR BUSCAS
+-- ÍNDICES
 -- =====================================================
 
-CREATE INDEX idx_usuarios_cpf
-ON usuarios(cpf);
+CREATE INDEX idx_usuarios_tipo ON usuarios(tipo);
+CREATE INDEX idx_usuarios_ativo ON usuarios(ativo);
+CREATE INDEX idx_usuarios_criado_em ON usuarios(criado_em DESC);
 
-CREATE INDEX idx_usuarios_tipo
-ON usuarios(tipo);
+CREATE INDEX idx_empresas_ativo ON empresas(ativo);
 
-CREATE INDEX idx_usuarios_ativo
-ON usuarios(ativo);
+CREATE INDEX idx_funcionarios_empresa ON funcionarios(empresa);
+CREATE INDEX idx_funcionarios_ativo ON funcionarios(ativo);
+CREATE INDEX idx_funcionarios_status_plantao ON funcionarios(status_plantao);
 
-CREATE INDEX idx_empresas_nome
-ON empresas(nome);
+CREATE INDEX idx_pets_usuario_id ON pets(usuario_id);
+CREATE INDEX idx_pets_desaparecido ON pets(desaparecido) WHERE ativo = TRUE;
+CREATE INDEX idx_pets_status_pet ON pets(status_pet);
+CREATE INDEX idx_pets_criado_em ON pets(criado_em DESC);
 
-CREATE INDEX idx_empresas_ativo
-ON empresas(ativo);
+CREATE INDEX idx_ocorrencias_usuario_id ON ocorrencias(usuario_id);
+CREATE INDEX idx_ocorrencias_atendente_id ON ocorrencias(atendente_id);
+CREATE INDEX idx_ocorrencias_status ON ocorrencias(status);
+CREATE INDEX idx_ocorrencias_prioridade ON ocorrencias(prioridade);
+CREATE INDEX idx_ocorrencias_categoria ON ocorrencias(categoria);
+CREATE INDEX idx_ocorrencias_criado_em ON ocorrencias(criado_em DESC);
 
-CREATE INDEX idx_funcionarios_usuario_id
-ON funcionarios(usuario_id);
+CREATE INDEX idx_denuncias_status ON denuncias_anonimas(status);
+CREATE INDEX idx_denuncias_prioridade ON denuncias_anonimas(prioridade);
+CREATE INDEX idx_denuncias_categoria ON denuncias_anonimas(categoria);
+CREATE INDEX idx_denuncias_criado_em ON denuncias_anonimas(criado_em DESC);
 
-CREATE INDEX idx_funcionarios_empresa
-ON funcionarios(empresa);
-
-CREATE INDEX idx_pets_usuario_id
-ON pets(usuario_id);
-
-CREATE INDEX idx_pets_desaparecido
-ON pets(desaparecido);
-
-CREATE INDEX idx_ocorrencias_usuario_id
-ON ocorrencias(usuario_id);
-
-CREATE INDEX idx_ocorrencias_status
-ON ocorrencias(status);
-
-CREATE INDEX idx_ocorrencias_prioridade
-ON ocorrencias(prioridade);
-
-CREATE INDEX idx_ocorrencias_criado_em
-ON ocorrencias(criado_em);
-
-CREATE INDEX idx_denuncias_status
-ON denuncias_anonimas(status);
-
-CREATE INDEX idx_denuncias_prioridade
-ON denuncias_anonimas(prioridade);
-
-CREATE INDEX idx_denuncias_criado_em
-ON denuncias_anonimas(criado_em);
+CREATE INDEX idx_historico_ocorrencia_id ON historico_ocorrencias(ocorrencia_id);
+CREATE INDEX idx_historico_funcionario_id ON historico_ocorrencias(funcionario_id);
+CREATE INDEX idx_historico_criado_em ON historico_ocorrencias(criado_em DESC);
 
 -- =====================================================
 -- VIEW: USUÁRIOS COMPLETOS
@@ -497,7 +388,6 @@ SELECT
     u.ultimo_login,
     u.criado_em,
     u.atualizado_em,
-
     f.id AS funcionario_id,
     f.cargo,
     f.nivel_acesso,
@@ -509,10 +399,9 @@ SELECT
     f.equipe,
     f.bio_profissional,
     f.ativo AS funcionario_ativo
-
 FROM usuarios u
 LEFT JOIN funcionarios f
-ON f.usuario_id = u.id;
+    ON f.usuario_id = u.id;
 
 -- =====================================================
 -- VIEW: OCORRÊNCIAS COMPLETAS
@@ -521,6 +410,7 @@ ON f.usuario_id = u.id;
 CREATE VIEW view_ocorrencias_completas AS
 SELECT
     o.id,
+    o.usuario_id,
     o.tipo,
     o.categoria,
     o.assunto,
@@ -540,35 +430,32 @@ SELECT
     o.criado_em,
     o.atualizado_em,
     o.concluido_em,
-
     u.nome AS nome_usuario,
     u.cpf AS cpf_usuario,
     u.email AS email_usuario,
     u.telefone AS telefone_usuario,
     u.foto_perfil AS foto_usuario,
-
     f.id AS atendente_id,
     uf.nome AS nome_atendente,
     uf.cpf AS cpf_atendente,
     f.cargo AS cargo_atendente,
     f.empresa AS empresa_atendente
-
 FROM ocorrencias o
 LEFT JOIN usuarios u
-ON u.id = o.usuario_id
-
+    ON u.id = o.usuario_id
 LEFT JOIN funcionarios f
-ON f.id = o.atendente_id
-
+    ON f.id = o.atendente_id
 LEFT JOIN usuarios uf
-ON uf.id = f.usuario_id;-- =====================================================
--- VIEW: CHAMADOS PARA PROFISSIONAIS
+    ON uf.id = f.usuario_id;
+
+-- =====================================================
+-- VIEW: CHAMADOS DO PAINEL PROFISSIONAL
 -- =====================================================
 
 CREATE VIEW view_chamados_profissionais AS
 SELECT
     id,
-    'ocorrencia' AS origem,
+    'ocorrencia'::TEXT AS origem,
     tipo,
     categoria,
     assunto,
@@ -595,7 +482,7 @@ UNION ALL
 
 SELECT
     id,
-    'anonima' AS origem,
+    'anonima'::TEXT AS origem,
     tipo,
     categoria,
     assunto,
@@ -613,31 +500,23 @@ SELECT
     prioridade,
     TRUE AS anonima,
     criado_em,
-    'Anônimo' AS nome_usuario,
-    NULL AS cpf_usuario,
-    NULL AS foto_usuario
+    'Anônimo'::VARCHAR AS nome_usuario,
+    NULL::VARCHAR AS cpf_usuario,
+    NULL::TEXT AS foto_usuario
 FROM denuncias_anonimas;
 
 -- =====================================================
--- DADOS INICIAIS: EMPRESAS / BASES
+-- DADOS INICIAIS: EMPRESAS
 -- =====================================================
 
 INSERT INTO empresas
-(
-    nome,
-    tipo,
-    cnpj,
-    telefone,
-    email,
-    endereco,
-    ativo
-)
+(nome, tipo, cnpj, telefone, email, endereco, ativo)
 VALUES
 (
     'Safe Life Matriz',
     'Base Safe Life',
     '',
-    '(11) 97777-0000',
+    '(41) 97777-0000',
     'contato@safelife.com',
     'Base principal do sistema Safe Life',
     TRUE
@@ -646,7 +525,7 @@ VALUES
     'ONG Patas Livres',
     'ONG parceira',
     '',
-    '(11) 98888-0000',
+    '(41) 98888-0000',
     'contato@pataslivres.org',
     'Atendimento comunitário e resgate animal',
     TRUE
@@ -655,7 +534,7 @@ VALUES
     'Centro de Controle de Zoonoses',
     'Órgão público',
     '',
-    '(11) 3333-0000',
+    '(41) 3333-0000',
     'zoonoses@safelife.com',
     'Apoio em fiscalização e controle sanitário',
     TRUE
@@ -664,7 +543,7 @@ VALUES
     'Protetores Independentes Associados',
     'Protetores independentes',
     '',
-    '(11) 92222-0000',
+    '(41) 92222-0000',
     'protetores@safelife.com',
     'Rede de lares temporários e voluntários',
     TRUE
@@ -672,38 +551,31 @@ VALUES
 
 -- =====================================================
 -- DADOS INICIAIS: USUÁRIOS
+-- Senha das contas de teste: 123456
+-- Os hashes abaixo usam o mesmo formato scrypt do server.js.
+-- O admin será sincronizado com ADMIN_PASSWORD quando o servidor iniciar.
 -- =====================================================
 
 INSERT INTO usuarios
-(
-    nome,
-    cpf,
-    senha_hash,
-    email,
-    telefone,
-    tipo,
-    empresa,
-    foto_perfil,
-    ativo
-)
+(nome, cpf, senha_hash, email, telefone, tipo, empresa, foto_perfil, ativo)
 VALUES
 (
     'Vitor Chineque',
     '11111111111',
-    '123456',
+    'scrypt$35648d7fd60731ac9205183ec436c4e0$6a122be2c6771531791ff7de26b1d4fc59775e62cd03265070ea048881e782cd280567e6e76b3169a24adb5636b7dcf70589e2645133ee02be43f64b9ed78f7e',
     'vitor.chinequero@safelife.com',
-    '(11) 99999-0000',
+    '(41) 99999-0000',
     'citizen',
     NULL,
     'img/vitor-chineque.jpg',
     TRUE
 ),
 (
-    'Zeca do Santos',
+    'Zeca dos Santos',
     '99999999999',
-    '123456',
+    'scrypt$ae5d4f36ed0b35fb69e440c77d6f3978$5d02a0401490f6f62f97692d8e8f2f449dda23ef8cd4e90899818324a232e289737441c5c64999589d3579d6ad2f5fc7ab299be3986373e727fd2ed93b47858b',
     'zeca.dos.animais@safelife.com',
-    '(11) 98888-0000',
+    '(41) 98888-0000',
     'professional',
     'Safe Life Matriz',
     'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80',
@@ -712,9 +584,9 @@ VALUES
 (
     'Gustavo Siri',
     '45317828791',
-    '123456',
+    'scrypt$8feab15f9b71b8e65b7a18af374ded86$e059083684993f4287ffa67fbeee1bce8cc3d84d4a125760172941177a7f2bd77ab10a4fa09b942036785dd1b8b2459b61417e7bd04a60d0d04e84a6e84cc3d5',
     'gustavo.siriguejo@safelife.com',
-    '(11) 97777-0000',
+    '(41) 97777-0000',
     'admin',
     'Safe Life Matriz',
     'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=300&q=80',
@@ -722,7 +594,7 @@ VALUES
 );
 
 -- =====================================================
--- DADOS INICIAIS: FUNCIONÁRIO TESTE
+-- FUNCIONÁRIOS INICIAIS
 -- =====================================================
 
 INSERT INTO funcionarios
@@ -747,7 +619,7 @@ SELECT
     'operador',
     'SAFE-0001',
     'Resgate de rua',
-    'Centro e bairros próximos',
+    'Curitiba, Araucária e bairros próximos',
     'Disponível',
     'Carro de resgate',
     'Equipe Alpha',
@@ -755,10 +627,6 @@ SELECT
     TRUE
 FROM usuarios
 WHERE cpf = '99999999999';
-
--- =====================================================
--- DADOS INICIAIS: ADMIN COMO SUPERVISOR OPERACIONAL
--- =====================================================
 
 INSERT INTO funcionarios
 (
@@ -792,7 +660,7 @@ FROM usuarios
 WHERE cpf = '45317828791';
 
 -- =====================================================
--- DADOS INICIAIS: PET TESTE
+-- PET DE DEMONSTRAÇÃO
 -- =====================================================
 
 INSERT INTO pets
@@ -819,7 +687,7 @@ SELECT
     'MACHO',
     'Cinza',
     4.20,
-    'São Paulo - Zona Sul',
+    'Araucária - Paraná',
     'Pet cadastrado para demonstração do sistema.',
     'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=150&q=80',
     TRUE
@@ -827,7 +695,7 @@ FROM usuarios
 WHERE cpf = '11111111111';
 
 -- =====================================================
--- DADOS INICIAIS: OCORRÊNCIAS IDENTIFICADAS
+-- OCORRÊNCIAS DE DEMONSTRAÇÃO
 -- =====================================================
 
 INSERT INTO ocorrencias
@@ -857,14 +725,14 @@ SELECT
     'Animal na rua',
     'Animal na rua',
     'Rua das Flores - Centro',
-    'Cachorro assustado correndo próximo aos carros. Parece estar perdido e com risco de atropelamento.',
+    'Cachorro assustado próximo aos carros, aparentemente perdido e com risco de atropelamento.',
     'https://images.unsplash.com/photo-1558788353-f76d92427f16?auto=format&fit=crop&w=600&q=80',
-    -23.550520,
-    -46.633308,
-    'Rua das Flores - Centro - São Paulo - SP',
+    -25.593700,
+    -49.410300,
+    'Rua das Flores - Centro - Araucária - PR',
     'Centro',
-    'São Paulo',
-    'SP',
+    'Araucária',
+    'PR',
     'PENDENTE',
     'ALTA',
     FALSE
@@ -898,20 +766,22 @@ SELECT
     'Animal ferido',
     'Animal ferido',
     'Avenida Principal - Bairro Novo',
-    'Gato aparentemente ferido, parado na calçada, sem conseguir andar direito.',
+    'Gato aparentemente ferido, parado na calçada e sem conseguir andar direito.',
     'https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=600&q=80',
-    -23.551000,
-    -46.634000,
-    'Avenida Principal - Bairro Novo - São Paulo - SP',
+    -25.595000,
+    -49.412000,
+    'Avenida Principal - Bairro Novo - Araucária - PR',
     'Bairro Novo',
-    'São Paulo',
-    'SP',
+    'Araucária',
+    'PR',
     'PENDENTE',
     'CRITICA',
     FALSE
 FROM usuarios
-WHERE cpf = '11111111111';-- =====================================================
--- DADOS INICIAIS: DENÚNCIAS ANÔNIMAS
+WHERE cpf = '11111111111';
+
+-- =====================================================
+-- DENÚNCIAS ANÔNIMAS DE DEMONSTRAÇÃO
 -- =====================================================
 
 INSERT INTO denuncias_anonimas
@@ -939,14 +809,14 @@ VALUES
     'Sem água e comida',
     'Sem água e comida',
     'Rua Esperança - Jardim América',
-    'Cachorro preso no quintal aparentemente sem água e sem comida há alguns dias.',
+    'Cachorro preso no quintal, aparentemente sem água e sem comida há alguns dias.',
     'https://images.unsplash.com/photo-1583512603805-3cc6b41f3edb?auto=format&fit=crop&w=600&q=80',
-    -23.552000,
-    -46.635000,
-    'Rua Esperança - Jardim América - São Paulo - SP',
+    -25.596000,
+    -49.414000,
+    'Rua Esperança - Jardim América - Araucária - PR',
     'Jardim América',
-    'São Paulo',
-    'SP',
+    'Araucária',
+    'PR',
     'PENDENTE',
     'ALTA'
 ),
@@ -956,20 +826,21 @@ VALUES
     'Animal acorrentado',
     'Animal acorrentado',
     'Travessa das Palmeiras - Vila Verde',
-    'Animal fica acorrentado o dia inteiro, sem abrigo adequado contra chuva e sol.',
+    'Animal permanece acorrentado o dia inteiro, sem abrigo adequado contra chuva e sol.',
     'https://images.unsplash.com/photo-1596492784531-6e6eb5ea9993?auto=format&fit=crop&w=600&q=80',
-    -23.553000,
-    -46.636000,
-    'Travessa das Palmeiras - Vila Verde - São Paulo - SP',
+    -25.598000,
+    -49.416000,
+    'Travessa das Palmeiras - Vila Verde - Araucária - PR',
     'Vila Verde',
-    'São Paulo',
-    'SP',
+    'Araucária',
+    'PR',
     'PENDENTE',
     'ALTA'
 );
 
 -- =====================================================
 -- HISTÓRICO INICIAL
+-- Cada ocorrência recebe exatamente um registro de criação.
 -- =====================================================
 
 INSERT INTO historico_ocorrencias
@@ -983,50 +854,27 @@ INSERT INTO historico_ocorrencias
 )
 SELECT
     o.id,
-    f.id,
+    NULL,
     NULL,
     'PENDENTE',
     'Chamado criado',
     'Ocorrência registrada automaticamente pelo sistema.'
-FROM ocorrencias o
-LEFT JOIN funcionarios f
-ON f.empresa = 'Safe Life Matriz'
-LIMIT 2;
+FROM ocorrencias o;
+
+COMMIT;
 
 -- =====================================================
--- CONSULTAS DE TESTE
--- =====================================================
-
--- Ver todos os usuários:
--- SELECT * FROM view_usuarios_completos;
-
--- Ver todas as ocorrências identificadas:
--- SELECT * FROM view_ocorrencias_completas;
-
--- Ver chamados do painel profissional:
+-- TESTES OPCIONAIS
+-- Execute separadamente após concluir o script:
+--
+-- SELECT * FROM view_usuarios_completos ORDER BY id;
+-- SELECT * FROM view_ocorrencias_completas ORDER BY criado_em DESC;
 -- SELECT * FROM view_chamados_profissionais ORDER BY criado_em DESC;
-
--- Ver empresas:
--- SELECT * FROM empresas;
-
--- Ver funcionários:
--- SELECT * FROM funcionarios;
-
+-- SELECT COUNT(*) FROM usuarios;
+-- SELECT COUNT(*) FROM pets;
 -- =====================================================
+
 -- CONTAS DE TESTE
--- =====================================================
-
--- CIDADÃO:
--- CPF: 11111111111
--- Nome: Vitor Chineque
-
--- PROFISSIONAL:
--- CPF: 99999999999
--- Empresa: Safe Life Matriz
-
--- ADMINISTRADOR MASTER:
--- CPF: 45317828791
-
--- =====================================================
--- FIM DO BANCO SAFE LIFE
--- =====================================================
+-- Cidadão:     CPF 11111111111 | senha 123456
+-- Profissional: CPF 99999999999 | senha 123456
+-- Administrador: CPF 45317828791 | senha definida em ADMIN_PASSWORD no Render
