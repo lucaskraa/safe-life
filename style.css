@@ -4508,7 +4508,7 @@ html {
 }
 
 /* =============================================================
-   SAFE LIFE V19 — ESTILOS DO FRONTEND LIMPO
+   SAFE LIFE V20 — ESTILOS DO FRONTEND LIMPO
 ============================================================= */
 
 body:not(.safe-life-ready) #app {
@@ -4787,5 +4787,255 @@ button[aria-busy="true"] {
     .safe-v19-admin-user,
     .safe-v19-notification {
         align-items: flex-start;
+    }
+}
+/* =====================================================
+   SAFE LIFE V20.1 — RESTAURAÇÃO DE NAVEGAÇÃO E CARROSSEL
+===================================================== */
+
+#continuarBtn:not(.hidden) {
+    display: flex !important;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+}
+
+#continuarBtn.hidden {
+    display: none !important;
+}
+
+#welcomeCarouselImage.safe-life-carousel-changing {
+    opacity: 0.18;
+    transform: scale(1.015);
+}
+
+.carousel-slider {
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.carousel-slider-thumb {
+    margin-left: 0 !important;
+    transition:
+        transform 0.35s ease,
+        width 0.35s ease !important;
+    will-change: transform;
+}
+
+.carousel-screen-reader {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+.location-main > .btn {
+    flex-shrink: 0;
+}
+
+@media (max-width: 520px) {
+    .welcome-carousel-simple {
+        height: 280px;
+        min-height: 280px;
+        max-height: 280px;
+        border-radius: 30px;
+    }
+
+    #welcomeCarouselImage,
+    .welcome-carousel-simple img {
+        min-height: 280px;
+        max-height: 280px;
+    }
+}
+/* =====================================================
+   SAFE LIFE V20 — ONLINE FIRST / TEMPO REAL
+===================================================== */
+
+.safe-life-connection-bar {
+    position: fixed;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 99990;
+    min-width: min(92vw, 430px);
+    max-width: calc(100vw - 24px);
+    padding: 10px 14px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+        "dot text"
+        "dot sync";
+    column-gap: 10px;
+    align-items: center;
+    border: 1px solid rgba(36, 84, 214, 0.14);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 14px 38px rgba(15, 23, 42, 0.18);
+    backdrop-filter: blur(14px);
+    transition: opacity .25s ease, transform .25s ease, background .25s ease;
+}
+
+.safe-life-connection-bar span:nth-child(2) {
+    grid-area: text;
+    color: #0f172a;
+    font-size: 13px;
+    font-weight: 850;
+}
+
+.safe-life-connection-bar small {
+    grid-area: sync;
+    color: #64748b;
+    font-size: 11px;
+}
+
+.safe-life-connection-dot {
+    grid-area: dot;
+    width: 13px;
+    height: 13px;
+    border-radius: 999px;
+    background: #f59e0b;
+    box-shadow: 0 0 0 5px rgba(245, 158, 11, .14);
+}
+
+.safe-life-connection-bar.is-online .safe-life-connection-dot {
+    background: #10b981;
+    box-shadow: 0 0 0 5px rgba(16, 185, 129, .14);
+    animation: safeLifeOnlinePulse 1.8s ease-in-out infinite;
+}
+
+.safe-life-connection-bar.is-offline {
+    background: rgba(255, 247, 237, .98);
+    border-color: rgba(239, 68, 68, .25);
+}
+
+.safe-life-connection-bar.is-offline .safe-life-connection-dot {
+    background: #ef4444;
+    box-shadow: 0 0 0 5px rgba(239, 68, 68, .14);
+}
+
+@keyframes safeLifeOnlinePulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(.72); opacity: .65; }
+}
+
+.safe-life-live-panel,
+.safe-life-citizen-online {
+    width: 100%;
+    margin: 0 0 18px;
+    padding: 16px;
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    justify-content: space-between;
+    border-radius: 22px;
+    border: 1px solid rgba(16, 185, 129, .18);
+    background: linear-gradient(135deg, rgba(236, 253, 245, .98), rgba(239, 246, 255, .98));
+    box-shadow: 0 12px 30px rgba(15, 23, 42, .08);
+}
+
+.safe-life-live-panel > div:first-child,
+.safe-life-citizen-online > div {
+    min-width: 0;
+    flex: 1;
+}
+
+.safe-life-live-panel strong,
+.safe-life-citizen-online strong {
+    display: block;
+    color: #0f172a;
+}
+
+.safe-life-live-panel small,
+.safe-life-citizen-online small {
+    display: block;
+    margin-top: 3px;
+    color: #64748b;
+    line-height: 1.4;
+}
+
+.safe-life-live-pulse {
+    width: 13px;
+    height: 13px;
+    min-width: 13px;
+    border-radius: 999px;
+    background: #10b981;
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, .12);
+    animation: safeLifeOnlinePulse 1.8s ease-in-out infinite;
+}
+
+.safe-life-live-counter {
+    min-width: 80px;
+    padding: 10px 12px;
+    text-align: center;
+    border-radius: 17px;
+    background: #ffffff;
+}
+
+.safe-life-live-counter strong {
+    font-size: 22px;
+    color: #2454d6;
+}
+
+.safe-life-live-counter span {
+    display: block;
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.safe-life-live-refresh {
+    min-height: 42px;
+    padding: 10px 14px;
+    border: 0;
+    border-radius: 14px;
+    background: #2454d6;
+    color: #fff;
+    font-weight: 850;
+    cursor: pointer;
+}
+
+.safe-life-live-refresh:disabled {
+    opacity: .62;
+    cursor: wait;
+}
+
+.safe-life-citizen-online {
+    justify-content: flex-start;
+}
+
+.safe-life-realtime-flash {
+    animation: safeLifeRealtimeFlash .8s ease;
+}
+
+@keyframes safeLifeRealtimeFlash {
+    0% { box-shadow: 0 0 0 0 rgba(36, 84, 214, .42); }
+    100% { box-shadow: 0 0 0 24px rgba(36, 84, 214, 0); }
+}
+
+@media (max-width: 600px) {
+    .safe-life-connection-bar {
+        top: 7px;
+        min-width: calc(100vw - 14px);
+        max-width: calc(100vw - 14px);
+        border-radius: 15px;
+        padding: 8px 11px;
+    }
+
+    .safe-life-live-panel {
+        align-items: stretch;
+        flex-wrap: wrap;
+    }
+
+    .safe-life-live-panel > div:first-child {
+        flex-basis: calc(100% - 98px);
+    }
+
+    .safe-life-live-refresh {
+        width: 100%;
     }
 }
