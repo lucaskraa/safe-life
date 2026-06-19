@@ -46,6 +46,7 @@
         eventSource: null,
         fallbackTimer: null,
         sessionTimer: null,
+        adminPresenceTimer: null,
         refreshDebounce: null,
         realtimeReconnectTimer: null,
         realtimeConnected: false,
@@ -594,6 +595,11 @@
             window.clearInterval(state.sessionTimer);
             state.sessionTimer = null;
         }
+
+        if (state.adminPresenceTimer) {
+            window.clearInterval(state.adminPresenceTimer);
+            state.adminPresenceTimer = null;
+        }
     }
 
     function requireUser(expectedType) {
@@ -692,7 +698,12 @@
     }
 
     function startSessionWatcher() {
-        if (state.sessionTimer) window.clearInterval(state.sessionTimer);
+        if (state.sessionTimer) {
+            window.clearInterval(state.sessionTimer);
+        }
+
+        validateSession(false);
+
         state.sessionTimer = window.setInterval(function () {
             validateSession(false);
         }, 15000);
@@ -1159,7 +1170,26 @@
         }
     }
 
+    function avisarSaidaOnline() {
+        if (!state.token) return;
+
+        fetch(
+            API_BASE + "/api/auth/offline",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${state.token}`
+                },
+                body: "{}",
+                keepalive: true,
+                cache: "no-store"
+            }
+        ).catch(function () {});
+    }
+
     function logout() {
+        avisarSaidaOnline();
         clearSession();
         nextScreen("welcomeScreen");
         toast("Sessão encerrada.", "info");
@@ -2615,26 +2645,121 @@
         }
     }
 
+    function presenceLabel(user) {
+        if (user && user.onlineAgora === true) {
+            return {
+                className: "is-online",
+                text: "Online agora"
+            };
+        }
+
+        const rawDate =
+            user &&
+            (
+                user.ultimaAtividadeEm ||
+                user.ultima_atividade_em
+            );
+
+        if (!rawDate) {
+            return {
+                className: "is-offline",
+                text: "Nunca apareceu online"
+            };
+        }
+
+        const lastSeen = new Date(rawDate);
+        const seconds = Math.max(
+            0,
+            Math.floor((Date.now() - lastSeen.getTime()) / 1000)
+        );
+
+        let textValue = "Offline";
+
+        if (seconds < 60) {
+            textValue = `Offline • visto há ${seconds}s`;
+        } else if (seconds < 3600) {
+            textValue =
+                `Offline • visto há ${Math.floor(seconds / 60)} min`;
+        } else if (seconds < 86400) {
+            textValue =
+                `Offline • visto há ${Math.floor(seconds / 3600)} h`;
+        } else {
+            textValue =
+                `Offline • visto em ${lastSeen.toLocaleDateString("pt-BR")}`;
+        }
+
+        return {
+            className: "is-offline",
+            text: textValue
+        };
+    }
+
+    async function carregarUsuariosAdmin(silent) {
+        const container = byId("adminUsersList");
+
+        if (!container) return;
+
+        if (!silent) {
+            container.innerHTML =
+                '<div class="occurrence-card"><p>Carregando contas...</p></div>';
+        }
+
+        try {
+            const users = await api(
+                "/api/admin/users",
+                {},
+                30000
+            );
+
+            container.innerHTML =
+                Array.isArray(users) && users.length
+                    ? users.map(renderAdminUserCard).join("")
+                    : '<div class="occurrence-card"><p>Nenhuma conta cadastrada.</p></div>';
+        } catch (error) {
+            if (!silent) {
+                container.innerHTML =
+                    `<div class="occurrence-card"><p>${escapeHtml(error.message)}</p></div>`;
+            }
+        }
+    }
+
+    function iniciarAtualizacaoPresencaAdmin() {
+        if (state.adminPresenceTimer) {
+            window.clearInterval(state.adminPresenceTimer);
+        }
+
+        state.adminPresenceTimer = window.setInterval(function () {
+            const activeScreen =
+                document.querySelector(".screen.active");
+
+            if (
+                !state.user ||
+                state.user.type !== "admin" ||
+                !activeScreen ||
+                activeScreen.id !== "adminUsersScreen"
+            ) {
+                return;
+            }
+
+            carregarUsuariosAdmin(true);
+        }, 12000);
+    }
+
     async function abrirGerenciarUsuarios() {
         if (!requireUser("admin")) return;
+
         nextScreen("adminUsersScreen");
-        const container = byId("adminUsersList");
-        if (!container) return;
-        container.innerHTML = '<div class="occurrence-card"><p>Carregando contas...</p></div>';
-        try {
-            const users = await api("/api/admin/users", {}, 30000);
-            container.innerHTML = Array.isArray(users) && users.length
-                ? users.map(renderAdminUserCard).join("")
-                : '<div class="occurrence-card"><p>Nenhuma conta cadastrada.</p></div>';
-        } catch (error) {
-            container.innerHTML = `<div class="occurrence-card"><p>${escapeHtml(error.message)}</p></div>`;
-        }
+        iniciarAtualizacaoPresencaAdmin();
+        await carregarUsuariosAdmin(false);
     }
 
     function renderAdminUserCard(user) {
         const cpf = cleanCpf(user.cpf);
         const isMaster = cpf === ADMIN_CPF;
-        const deleted = Boolean(user.excluidaEm || user.excluida_em);
+        const deleted = Boolean(
+            user.excluidaEm ||
+            user.excluida_em
+        );
         const active = user.ativo !== false && !deleted;
         const rawName = String(user.nome || "Usuário");
         const displayName = escapeHtml(rawName);
@@ -2642,6 +2767,7 @@
             .replace(/\\/g, "\\\\")
             .replace(/'/g, "\\'")
             .replace(/[\r\n]+/g, " ");
+        const presence = presenceLabel(user);
 
         let statusText = "SUSPENSA";
 
@@ -2676,25 +2802,17 @@
                 `;
             }
 
-            if (!deleted) {
-                accountActions += `
-                    <button
-                        type="button"
-                        class="btn admin-danger-btn"
-                        onclick="excluirContaAdmin('${cpf}', '${jsName}')"
-                    >
-                        Excluir conta
-                    </button>
-                `;
-            }
-
             accountActions += `
                 <button
                     type="button"
-                    class="btn admin-permanent-danger-btn"
-                    onclick="excluirContaPermanentementeAdmin('${cpf}', '${jsName}')"
+                    class="btn admin-danger-btn"
+                    onclick="abrirExclusaoAdmin(
+                        '${cpf}',
+                        '${jsName}',
+                        ${deleted ? "true" : "false"}
+                    )"
                 >
-                    Excluir permanentemente
+                    Excluir
                 </button>
             `;
         }
@@ -2709,24 +2827,37 @@
                         alt="Foto de ${displayName}"
                     >
 
-                    <div>
-                        <h4>${displayName}</h4>
+                    <div class="admin-user-main-info">
+                        <div class="admin-user-title-row">
+                            <h4>${displayName}</h4>
+
+                            <span class="admin-presence-badge ${presence.className}">
+                                <span class="admin-presence-dot"></span>
+                                ${escapeHtml(presence.text)}
+                            </span>
+                        </div>
+
                         <p>
                             ${escapeHtml(user.type || user.tipo || "citizen")}
                             • CPF ${escapeHtml(formatCpf(user.cpf))}
                         </p>
+
                         <small>
                             ${escapeHtml(user.email || "Sem e-mail")}
                             •
-                            ${escapeHtml(formatPhone(user.telefone) || "Sem telefone")}
+                            ${escapeHtml(
+                                formatPhone(user.telefone) ||
+                                "Sem telefone"
+                            )}
                         </small>
+
                         <span class="safe-v19-status ${active ? "cadastrado" : "desaparecido"}">
-                            ${statusText}
+                            CONTA ${statusText}
                         </span>
                     </div>
                 </div>
 
-                <div class="safe-v19-actions">
+                <div class="safe-v19-actions admin-account-actions">
                     <button
                         type="button"
                         class="btn secondary-btn"
@@ -2862,6 +2993,68 @@
         } catch (error) {
             showError(error);
         }
+    }
+
+    function abrirExclusaoAdmin(cpf, nome, jaExcluida) {
+        setValue("adminDeleteCpf", cleanCpf(cpf));
+        setValue("adminDeleteName", nome || "Usuário");
+        setValue(
+            "adminDeleteWasDeleted",
+            jaExcluida ? "true" : "false"
+        );
+
+        text(
+            "adminDeleteUserText",
+            `Escolha como deseja excluir a conta de ${nome}.`
+        );
+
+        const reversibleButton =
+            byId("adminDeleteReversibleButton");
+
+        if (reversibleButton) {
+            reversibleButton.classList.toggle(
+                "hidden",
+                Boolean(jaExcluida)
+            );
+        }
+
+        const modal = byId("adminDeleteModal");
+
+        if (modal) {
+            modal.classList.remove("hidden");
+        }
+    }
+
+    function fecharModalExclusaoAdmin() {
+        const modal = byId("adminDeleteModal");
+
+        if (modal) {
+            modal.classList.add("hidden");
+        }
+
+        setValue("adminDeleteCpf", "");
+        setValue("adminDeleteName", "");
+        setValue("adminDeleteWasDeleted", "");
+    }
+
+    async function confirmarExclusaoReversivelAdmin() {
+        const cpf = cleanCpf(value("adminDeleteCpf"));
+        const nome = value("adminDeleteName") || "Usuário";
+
+        if (!cpf) return;
+
+        fecharModalExclusaoAdmin();
+        await excluirContaAdmin(cpf, nome);
+    }
+
+    async function confirmarExclusaoPermanenteAdmin() {
+        const cpf = cleanCpf(value("adminDeleteCpf"));
+        const nome = value("adminDeleteName") || "Usuário";
+
+        if (!cpf) return;
+
+        fecharModalExclusaoAdmin();
+        await excluirContaPermanentementeAdmin(cpf, nome);
     }
 
     async function excluirContaAdmin(cpf, nome) {
@@ -3315,6 +3508,10 @@
         salvarEdicaoUsuarioAdmin,
         abrirSuspensaoAdmin,
         fecharModalSuspensaoAdmin,
+        abrirExclusaoAdmin,
+        fecharModalExclusaoAdmin,
+        confirmarExclusaoReversivelAdmin,
+        confirmarExclusaoPermanenteAdmin,
         confirmarSuspensaoAdmin,
         reativarContaAdmin,
         excluirContaAdmin,
