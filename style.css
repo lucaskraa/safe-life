@@ -5411,3 +5411,158 @@ img[src=""], img:not([src]) { background: #eef2ff; }
         grid-template-columns: 1fr;
     }
 }
+/* =====================================================
+   SAFE LIFE V21.4 — ADMIN, PRESENÇA E EXCLUSÃO
+===================================================== */
+
+.admin-account-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px !important;
+    width: 100%;
+}
+
+.admin-account-actions .btn {
+    width: 100% !important;
+    min-height: 50px;
+    margin: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.admin-user-main-info {
+    min-width: 0;
+    flex: 1;
+}
+
+.admin-user-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.admin-user-title-row h4 {
+    margin: 0;
+}
+
+.admin-presence-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    width: fit-content;
+    max-width: 100%;
+    padding: 7px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 900;
+    line-height: 1.25;
+}
+
+.admin-presence-badge.is-online {
+    color: #047857;
+    background: rgba(16, 185, 129, 0.13);
+    border: 1px solid rgba(16, 185, 129, 0.24);
+}
+
+.admin-presence-badge.is-offline {
+    color: #64748b;
+    background: rgba(100, 116, 139, 0.10);
+    border: 1px solid rgba(100, 116, 139, 0.18);
+}
+
+.admin-presence-dot {
+    width: 9px;
+    height: 9px;
+    min-width: 9px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 0 4px rgba(100, 116, 139, 0.10);
+}
+
+.admin-presence-badge.is-online .admin-presence-dot {
+    animation: safeLifePresencePulse 1.8s ease-in-out infinite;
+}
+
+@keyframes safeLifePresencePulse {
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(0.76);
+        opacity: 0.58;
+    }
+}
+
+.admin-delete-modal-card {
+    width: min(100%, 540px);
+}
+
+.admin-delete-modal-icon {
+    width: 68px;
+    height: 68px;
+    margin: 0 auto 14px;
+    display: grid;
+    place-items: center;
+    border-radius: 22px;
+    background: rgba(220, 38, 38, 0.11);
+    font-size: 30px;
+}
+
+.admin-delete-modal-card > h2,
+.admin-delete-modal-card > p {
+    text-align: center;
+}
+
+.admin-delete-choice-list {
+    display: grid;
+    gap: 12px;
+    margin: 20px 0 14px;
+}
+
+.admin-delete-choice-list .btn {
+    width: 100% !important;
+    min-height: 78px;
+    margin: 0 !important;
+    padding: 15px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    text-align: center;
+}
+
+.admin-delete-choice-list .btn span {
+    font-size: 16px;
+    font-weight: 900;
+}
+
+.admin-delete-choice-list .btn small {
+    display: block;
+    max-width: 390px;
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.admin-delete-choice-list .btn.hidden {
+    display: none !important;
+}
+
+@media (max-width: 560px) {
+    .admin-account-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-user-title-row {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
