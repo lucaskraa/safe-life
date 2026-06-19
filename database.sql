@@ -68,6 +68,8 @@ CREATE TABLE IF NOT EXISTS usuarios (
     excluida_em TIMESTAMPTZ,
     session_version INTEGER NOT NULL DEFAULT 1,
     troca_senha_obrigatoria BOOLEAN NOT NULL DEFAULT FALSE,
+    ultima_atividade_em TIMESTAMPTZ,
+    online_ate TIMESTAMPTZ,
     ultimo_login TIMESTAMPTZ,
     criado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     atualizado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -83,6 +85,8 @@ ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS motivo_bloqueio TEXT;
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS excluida_em TIMESTAMPTZ;
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS session_version INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS troca_senha_obrigatoria BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ultima_atividade_em TIMESTAMPTZ;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS online_ate TIMESTAMPTZ;
 
 CREATE TABLE IF NOT EXISTS empresas (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -353,6 +357,7 @@ FOR EACH ROW EXECUTE FUNCTION atualizar_data_modificacao();
 CREATE INDEX IF NOT EXISTS idx_usuarios_tipo_ativo ON usuarios(tipo, ativo);
 CREATE INDEX IF NOT EXISTS idx_usuarios_bloqueado_ate ON usuarios(bloqueado_ate) WHERE bloqueado_ate IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_usuarios_excluida_em ON usuarios(excluida_em) WHERE excluida_em IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_usuarios_online_ate ON usuarios(online_ate DESC);
 CREATE INDEX IF NOT EXISTS idx_empresas_ativo_nome ON empresas(ativo, nome);
 CREATE INDEX IF NOT EXISTS idx_funcionarios_empresa_ativo ON funcionarios(empresa, ativo);
 CREATE INDEX IF NOT EXISTS idx_pets_usuario_status ON pets(usuario_id, status_pet, ativo);
