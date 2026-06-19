@@ -19,7 +19,7 @@
 
     <title>Safe Life</title>
 
-    <link rel="stylesheet" href="style.css?v=21.3.0">
+    <link rel="stylesheet" href="style.css?v=21.4.0">
 
 </head>
 
@@ -2244,8 +2244,8 @@
                     </h4>
 
                     <p>
-                        O administrador pode bloquear, reativar ou excluir contas.
-                        A exclusão remove a conta do app e mantém ocorrências como histórico sem usuário.
+                        O administrador pode suspender, reativar e excluir contas.
+                        A opção permanente só aparece depois que você abre a ação Excluir.
                     </p>
                 </div>
 
@@ -2745,6 +2745,75 @@
             </div>
         </div>
 
+
+        <!-- =====================================================
+             EXCLUSÃO DE CONTA PELO ADMINISTRADOR
+        ====================================================== -->
+        <div
+            class="safe-modal hidden"
+            id="adminDeleteModal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="adminDeleteTitle"
+        >
+            <div class="safe-modal-card admin-delete-modal-card">
+                <button
+                    class="safe-modal-close"
+                    type="button"
+                    onclick="fecharModalExclusaoAdmin()"
+                >
+                    ×
+                </button>
+
+                <div class="admin-delete-modal-icon">🗑️</div>
+
+                <h2 id="adminDeleteTitle">
+                    Excluir conta
+                </h2>
+
+                <p id="adminDeleteUserText">
+                    Escolha como deseja excluir esta conta.
+                </p>
+
+                <input type="hidden" id="adminDeleteCpf">
+                <input type="hidden" id="adminDeleteName">
+                <input type="hidden" id="adminDeleteWasDeleted">
+
+                <div class="admin-delete-choice-list">
+                    <button
+                        class="btn admin-danger-btn"
+                        id="adminDeleteReversibleButton"
+                        type="button"
+                        onclick="confirmarExclusaoReversivelAdmin()"
+                    >
+                        <span>Excluir conta</span>
+                        <small>
+                            Desativa a conta e ainda permite reativação pelo administrador.
+                        </small>
+                    </button>
+
+                    <button
+                        class="btn admin-permanent-danger-btn"
+                        type="button"
+                        onclick="confirmarExclusaoPermanenteAdmin()"
+                    >
+                        <span>Excluir permanentemente</span>
+                        <small>
+                            Apaga a conta do banco e libera o CPF para um novo cadastro.
+                        </small>
+                    </button>
+                </div>
+
+                <button
+                    class="btn secondary-btn"
+                    type="button"
+                    onclick="fecharModalExclusaoAdmin()"
+                >
+                    Cancelar
+                </button>
+            </div>
+        </div>
+
         <!-- =====================================================
              ESTADO DA CONTA — EXCLUÍDA OU SUSPENSA
         ====================================================== -->
@@ -2765,7 +2834,7 @@
         </div>
     </noscript>
 
-    <script src="script.js?v=21.3.0"></script>
+    <script src="script.js?v=21.4.0"></script>
 
 </body>
 </html>
