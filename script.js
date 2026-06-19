@@ -500,12 +500,33 @@
         ["regCpf", "cpfInput", "adminProCpf", "editProCpf"].forEach(function (id) {
             const field = byId(id);
             if (!field) return;
+
+            const usesFormattedCpf = id === "regCpf" || id === "cpfInput";
+
+            if (usesFormattedCpf) {
+                field.maxLength = 14;
+                field.removeAttribute("minlength");
+                field.removeAttribute("pattern");
+                field.placeholder = "000.000.000-00";
+            } else {
+                field.maxLength = 11;
+            }
+
+            if (field.dataset.safeLifeCpfMask === "true") return;
+            field.dataset.safeLifeCpfMask = "true";
+
             field.addEventListener("input", function () {
-                if (id === "editProCpf" || id === "adminProCpf") {
-                    field.value = cleanCpf(field.value);
-                } else {
-                    field.value = formatCpf(field.value);
-                }
+                field.value = usesFormattedCpf
+                    ? formatCpf(field.value)
+                    : cleanCpf(field.value);
+            });
+
+            field.addEventListener("paste", function () {
+                window.setTimeout(function () {
+                    field.value = usesFormattedCpf
+                        ? formatCpf(field.value)
+                        : cleanCpf(field.value);
+                }, 0);
             });
         });
 
@@ -618,7 +639,7 @@
         const company = value("regCompany");
 
         if (!nome) return window.alert("Informe o nome completo.");
-        if (cpf.length !== 11) return window.alert("Informe um CPF com 11 números.");
+        if (cpf.length !== 11) return window.alert(`Informe os 11 números do CPF. Você digitou ${cpf.length}.`);
         if (!isEmail(email)) return window.alert("Informe um e-mail válido.");
         if (telefone.replace(/\D/g, "").length < 10) return window.alert("Informe um telefone com DDD.");
         if (senha.length < 6) return window.alert("A senha precisa ter pelo menos 6 caracteres.");
@@ -658,7 +679,7 @@
         const cpf = cleanCpf(value("cpfInput"));
         const senha = value("loginPassword");
 
-        if (cpf.length !== 11) return window.alert("Informe um CPF com 11 números.");
+        if (cpf.length !== 11) return window.alert(`Informe os 11 números do CPF. Você digitou ${cpf.length}.`);
         if (!senha) return window.alert("Informe a senha.");
         if (role === "professional" && !company) return window.alert("Selecione a empresa/base.");
 
