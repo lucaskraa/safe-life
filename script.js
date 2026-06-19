@@ -13,7 +13,10 @@
     const FALLBACK_USER_PHOTO = "img/pequenochinique.jpeg";
     const FALLBACK_PRO_PHOTO = "img/corredorzeca.jpeg";
     const FALLBACK_ADMIN_PHOTO = "img/apenasumsiri.jpeg";
-    const FALLBACK_PET_PHOTO = "https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=800&q=80";
+    const FALLBACK_DOG_PHOTO = "img/default-dog.svg";
+    const FALLBACK_CAT_PHOTO = "img/default-cat.svg";
+    const FALLBACK_BIRD_PHOTO = "img/default-bird.svg";
+    const FALLBACK_PET_PHOTO = FALLBACK_DOG_PHOTO;
 
     const state = {
         user: null,
@@ -35,6 +38,8 @@
         pendingAvatar: "",
         pendingProfessionalAvatar: "",
         pendingAdminAvatar: "",
+        pendingAdminUserAvatar: "",
+        adminEditingUser: null,
         eventSource: null,
         fallbackTimer: null,
         sessionTimer: null,
@@ -161,10 +166,63 @@
 
     function safeImage(input, fallback) {
         const source = String(input || "").trim();
-        if (source.startsWith("data:image/") || source.startsWith("https://") || source.startsWith("http://") || source.startsWith("img/")) {
+        if (source.startsWith("data:image/") || source.startsWith("https://") || source.startsWith("http://") || source.startsWith("img/") || source.startsWith("/img/")) {
             return source;
         }
         return fallback;
+    }
+
+    function defaultPetPhoto(species) {
+        const normalized = String(species || "").toLowerCase();
+        if (normalized.includes("gato") || normalized.includes("felino")) return FALLBACK_CAT_PHOTO;
+        if (normalized.includes("ave") || normalized.includes("pássaro") || normalized.includes("passaro") || normalized.includes("calopsita") || normalized.includes("papagaio")) return FALLBACK_BIRD_PHOTO;
+        return FALLBACK_DOG_PHOTO;
+    }
+
+    function defaultUserPhoto(user) {
+        const cpf = cleanCpf(user && user.cpf);
+        if (cpf === ADMIN_CPF) return FALLBACK_ADMIN_PHOTO;
+        if (cpf === "99999999999" || (user && (user.type === "professional" || user.tipo === "professional"))) return FALLBACK_PRO_PHOTO;
+        return FALLBACK_USER_PHOTO;
+    }
+
+    function setImageSource(image, source, fallback) {
+        if (!image) return;
+        const safeFallback = fallback || FALLBACK_USER_PHOTO;
+        image.dataset.fallback = safeFallback;
+        image.src = safeImage(source, safeFallback);
+        image.onerror = function () {
+            image.onerror = null;
+            image.src = safeFallback;
+        };
+    }
+
+    function safeResetForm(formOrId) {
+        const form = typeof formOrId === "string" ? byId(formOrId) : formOrId;
+        if (form && typeof form.reset === "function") {
+            form.reset();
+            return true;
+        }
+        return false;
+    }
+
+    function formFromEvent(event, fallbackId) {
+        const candidate = event && (event.currentTarget || event.target);
+        if (candidate && candidate.tagName === "FORM") return candidate;
+        return fallbackId ? byId(fallbackId) : null;
+    }
+
+    function optionIcon(option) {
+        const value = String(option || "").toLowerCase();
+        if (value.includes("ferido") || value.includes("atropelado")) return "🩹";
+        if (value.includes("maus") || value.includes("acorrentado")) return "🚨";
+        if (value.includes("abandono") || value.includes("abandonada")) return "🏠";
+        if (value.includes("água") || value.includes("comida")) return "🥣";
+        if (value.includes("preso") || value.includes("perigoso") || value.includes("risco")) return "⚠️";
+        if (value.includes("rua")) return "🐾";
+        if (value.includes("transporte")) return "🚑";
+        if (value.includes("criação")) return "🔎";
+        return "🐶";
     }
 
     function dateTime(input) {
@@ -335,7 +393,7 @@
             type,
             tipo: type,
             company: user.company || user.empresa || "Nenhum",
-            foto: user.foto || user.foto_perfil || ""
+            foto: user.foto || user.foto_perfil || defaultUserPhoto({ ...user, type })
         };
     }
 
@@ -530,7 +588,7 @@
             });
         });
 
-        ["regPhone", "editPhone", "editProPhone", "editAdminPhone", "adminCompanyPhone", "adminProPhone"].forEach(function (id) {
+        ["regPhone", "editPhone", "editProPhone", "editAdminPhone", "adminCompanyPhone", "adminProPhone", "adminEditUserPhone"].forEach(function (id) {
             const field = byId(id);
             if (!field) return;
             field.addEventListener("input", function () {
@@ -717,14 +775,17 @@
         const container = byId(containerId);
         if (!container) return;
         container.innerHTML = options.map(function (option) {
-            return `<button class="quick-option-btn" type="button" data-option="${escapeHtml(option)}">${escapeHtml(option)}</button>`;
+            const icon = optionIcon(option);
+            return `<button class="quick-option-btn" type="button" data-option="${escapeHtml(option)}" aria-pressed="false"><span class="quick-option-icon">${icon}</span><span class="quick-option-label">${escapeHtml(option)}</span><span class="quick-option-check">✓</span></button>`;
         }).join("");
         container.querySelectorAll(".quick-option-btn").forEach(function (button) {
             button.addEventListener("click", function () {
                 container.querySelectorAll(".quick-option-btn").forEach(function (item) {
                     item.classList.remove("selected");
+                    item.setAttribute("aria-pressed", "false");
                 });
                 button.classList.add("selected");
+                button.setAttribute("aria-pressed", "true");
                 setValue(hiddenId, button.dataset.option || "");
             });
         });
@@ -748,7 +809,7 @@
     function openPetForm() {
         if (!requireUser("citizen")) return;
         const form = byId("petForm");
-        if (form) form.reset();
+        safeResetForm(form);
         setValue("petLocation", state.gps.enderecoCompleto || value("userFullAddress"));
         nextScreen("scrPetForm");
     }
@@ -756,7 +817,7 @@
     function abrirPetDesaparecido() {
         if (!requireUser("citizen")) return;
         const form = byId("missingPetForm");
-        if (form) form.reset();
+        safeResetForm(form);
         setValue("missingPetLastSeen", state.gps.enderecoCompleto || value("userFullAddress"));
         nextScreen("scrMissingPetForm");
     }
@@ -791,7 +852,8 @@
         const selected = value("selectedQuickOption");
         const location = value("formLocation");
         const details = value("formDetails");
-        const submit = event.currentTarget.querySelector('button[type="submit"]');
+        const form = formFromEvent(event, "citizenForm");
+        const submit = form ? form.querySelector('button[type="submit"]') : null;
 
         if (!selected) return window.alert("Escolha o problema.");
         if (!location) return window.alert("Informe a localização.");
@@ -824,7 +886,7 @@
 
             text("confirmMsg", "Seu chamado foi enviado para os profissionais disponíveis.");
             nextScreen("confirmationScreen");
-            event.currentTarget.reset();
+            safeResetForm(form);
             setValue("selectedQuickOption", "");
         } catch (error) {
             showError(error, "Não foi possível enviar o chamado.");
@@ -837,7 +899,8 @@
     async function registrarPet(event) {
         event.preventDefault();
         if (!requireUser("citizen") || state.busy.has("pet")) return;
-        const submit = event.currentTarget.querySelector('button[type="submit"]');
+        const form = formFromEvent(event, "petForm");
+        const submit = form ? form.querySelector('button[type="submit"]') : null;
 
         const nome = value("petName");
         const especie = value("petSpecies");
@@ -872,8 +935,9 @@
             }, 65000);
 
             toast("Pet cadastrado com sucesso.", "success");
-            event.currentTarget.reset();
-            nextScreen("menuScreen");
+            safeResetForm(form);
+            text("confirmMsg", "Pet cadastrado e salvo na sua conta. Ele já está disponível nos painéis online.");
+            nextScreen("confirmationScreen");
         } catch (error) {
             showError(error, "Não foi possível cadastrar o pet.");
         } finally {
@@ -885,7 +949,8 @@
     async function registrarPetDesaparecido(event) {
         event.preventDefault();
         if (!requireUser("citizen") || state.busy.has("missing-pet")) return;
-        const submit = event.currentTarget.querySelector('button[type="submit"]');
+        const form = formFromEvent(event, "missingPetForm");
+        const submit = form ? form.querySelector('button[type="submit"]') : null;
 
         const nome = value("missingPetName");
         const especie = value("missingPetSpecies");
@@ -926,8 +991,9 @@
             }, 65000);
 
             toast("Alerta de pet desaparecido publicado.", "success");
-            event.currentTarget.reset();
-            nextScreen("menuScreen");
+            safeResetForm(form);
+            text("confirmMsg", "Alerta publicado. Os profissionais receberam o pet desaparecido no painel online.");
+            nextScreen("confirmationScreen");
         } catch (error) {
             showError(error, "Não foi possível publicar o alerta.");
         } finally {
@@ -939,7 +1005,8 @@
     async function registrarAcaoAnonima(event) {
         event.preventDefault();
         if (state.busy.has("anonymous")) return;
-        const submit = event.currentTarget.querySelector('button[type="submit"]');
+        const form = formFromEvent(event, "anonForm");
+        const submit = form ? form.querySelector('button[type="submit"]') : null;
         const selected = value("selectedAnonOption");
         const location = value("anonLocation");
         const details = value("anonDetails");
@@ -970,7 +1037,7 @@
             }, 65000);
             text("confirmMsg", "Sua denúncia anônima foi enviada com segurança.");
             nextScreen("confirmationScreen");
-            event.currentTarget.reset();
+            safeResetForm(form);
             setValue("selectedAnonOption", "");
         } catch (error) {
             showError(error, "Não foi possível enviar a denúncia.");
@@ -1083,7 +1150,7 @@
         setValue("editEmail", user.email);
         setValue("editPhone", formatPhone(user.telefone));
         const avatar = byId("profileAvatar");
-        if (avatar) avatar.src = safeImage(user.foto, FALLBACK_USER_PHOTO);
+        setImageSource(avatar, user.foto, defaultUserPhoto(user));
 
         await Promise.allSettled([loadCitizenPets(), loadCitizenNotifications()]);
     }
@@ -1108,7 +1175,7 @@
         const status = String(pet.status_pet || (pet.desaparecido ? "DESAPARECIDO" : "CADASTRADO")).toUpperCase();
         return `
             <article class="safe-v19-pet-card ${status === "DESAPARECIDO" ? "is-missing" : ""}">
-                <img src="${escapeHtml(safeImage(pet.foto, FALLBACK_PET_PHOTO))}" alt="Foto de ${escapeHtml(pet.nome)}">
+                <img src="${escapeHtml(safeImage(pet.foto, defaultPetPhoto(pet.especie)))}" alt="Foto de ${escapeHtml(pet.nome)}" onerror="this.onerror=null;this.src='${defaultPetPhoto(pet.especie)}'">
                 <div>
                     <h4>${escapeHtml(pet.nome || "Pet")}</h4>
                     <p>${escapeHtml(pet.especie || "Animal")} • ${escapeHtml(pet.raca || "SRD")}</p>
@@ -1142,7 +1209,7 @@
             }
             section.innerHTML = `<h4>🔔 Notificações</h4><div class="safe-v19-notification-list">${notifications.slice(0, 12).map(function (item) {
                 return `<article class="safe-v19-notification">
-                    ${item.foto ? `<img src="${escapeHtml(safeImage(item.foto, FALLBACK_PET_PHOTO))}" alt="Foto da atualização">` : ""}
+                    ${item.foto ? `<img src="${escapeHtml(safeImage(item.foto, defaultPetPhoto(item.especie)))}" alt="Foto da atualização">` : ""}
                     <div><strong>${escapeHtml(item.title || item.titulo || "Atualização")}</strong><p>${escapeHtml(item.message || item.mensagem || "")}</p><small>${escapeHtml(dateTime(item.createdAt || item.criado_em))}</small></div>
                 </article>`;
             }).join("")}</div>`;
@@ -1194,7 +1261,7 @@
         text("proWelcomeName", user.nome || "Profissional");
         text("proCompanyName", user.company || "Safe Life");
         const avatar = byId("proAvatar");
-        if (avatar) avatar.src = safeImage(user.foto, FALLBACK_PRO_PHOTO);
+        setImageSource(avatar, user.foto, defaultUserPhoto(user));
         const adminButton = byId("btnVoltarAdminFromPro");
         if (adminButton) adminButton.style.display = user.type === "admin" ? "block" : "none";
 
@@ -1261,7 +1328,8 @@
                 "missing_pet_resolved",
                 "user_notification",
                 "account_status",
-                "admin_changed"
+                "admin_changed",
+                "profile_updated"
             ].forEach(function (eventName) {
                 state.eventSource.addEventListener(eventName, function (event) {
                     consumeRealtimeEnvelope(event, true);
@@ -1384,6 +1452,18 @@
             else if (active?.id === "adminCompaniesScreen") await abrirEmpresasAdmin();
             else if (active?.id === "adminReportScreen") await abrirRelatorioAdmin();
             if (notify) toast("Dados administrativos atualizados.", "info");
+            return;
+        }
+
+        if (type === "profile_updated" && payload.user) {
+            if (cleanCpf(payload.user.cpf) === cleanCpf(state.user?.cpf)) {
+                state.user = normalizeUser(payload.user);
+                localStorage.setItem(STORAGE_USER, JSON.stringify(state.user));
+                window.usuarioLogado = state.user;
+            }
+            if (state.user?.type === "admin" && document.querySelector(".screen.active")?.id === "adminUsersScreen") {
+                await abrirGerenciarUsuarios();
+            }
         }
     }
 
@@ -1569,7 +1649,7 @@
             state.registeredPets = Array.isArray(pets) ? pets : [];
             container.innerHTML = state.registeredPets.length
                 ? `<div class="safe-v19-pet-grid">${state.registeredPets.map(function (pet) {
-                    return `<article class="safe-v19-pet-card"><img src="${escapeHtml(safeImage(pet.foto, FALLBACK_PET_PHOTO))}" alt="Foto do pet"><div><h4>${escapeHtml(pet.nome)}</h4><p>${escapeHtml(pet.especie || "Animal")} • ${escapeHtml(pet.raca || "SRD")}</p><small><strong>Dono:</strong> ${escapeHtml(pet.nome_dono || "Não informado")}</small><small><strong>Telefone:</strong> ${escapeHtml(formatPhone(pet.telefone_dono) || "Não informado")}</small></div></article>`;
+                    return `<article class="safe-v19-pet-card"><img src="${escapeHtml(safeImage(pet.foto, defaultPetPhoto(pet.especie)))}" alt="Foto do pet" onerror="this.onerror=null;this.src='${defaultPetPhoto(pet.especie)}'"><div><h4>${escapeHtml(pet.nome)}</h4><p>${escapeHtml(pet.especie || "Animal")} • ${escapeHtml(pet.raca || "SRD")}</p><small><strong>Dono:</strong> ${escapeHtml(pet.nome_dono || "Não informado")}</small><small><strong>Telefone:</strong> ${escapeHtml(formatPhone(pet.telefone_dono) || "Não informado")}</small></div></article>`;
                 }).join("")}</div>`
                 : '<div class="occurrence-card"><p>Nenhum pet cadastrado normalmente.</p></div>';
         } catch (error) {
@@ -1589,7 +1669,7 @@
             container.innerHTML = state.missingPets.length
                 ? state.missingPets.map(function (pet) {
                     return `<article class="safe-v19-missing-card">
-                        <div class="safe-v19-pet-head"><img src="${escapeHtml(safeImage(pet.foto, FALLBACK_PET_PHOTO))}" alt="Foto de ${escapeHtml(pet.nome)}"><div><h4>🚨 ${escapeHtml(pet.nome || "Pet")}</h4><p>${escapeHtml(pet.especie || "Animal")} • ${escapeHtml(pet.raca || "SRD")}</p><span class="safe-v19-status desaparecido">DESAPARECIDO</span></div></div>
+                        <div class="safe-v19-pet-head"><img src="${escapeHtml(safeImage(pet.foto, defaultPetPhoto(pet.especie)))}" alt="Foto de ${escapeHtml(pet.nome)}" onerror="this.onerror=null;this.src='${defaultPetPhoto(pet.especie)}'"><div><h4>🚨 ${escapeHtml(pet.nome || "Pet")}</h4><p>${escapeHtml(pet.especie || "Animal")} • ${escapeHtml(pet.raca || "SRD")}</p><span class="safe-v19-status desaparecido">DESAPARECIDO</span></div></div>
                         <div class="safe-v19-data"><strong>Dono:</strong> ${escapeHtml(pet.nome_dono || "Não informado")}</div>
                         <div class="safe-v19-data"><strong>Telefone:</strong> ${escapeHtml(formatPhone(pet.telefone_dono) || "Não informado")}</div>
                         <div class="safe-v19-data"><strong>Último local visto:</strong> ${escapeHtml(pet.local_desaparecimento || "Não informado")}</div>
@@ -1610,10 +1690,10 @@
         setValue("rescuePetId", pet.id);
         const summary = byId("rescuePetSummary");
         if (summary) {
-            summary.innerHTML = `<div class="safe-v19-pet-head"><img src="${escapeHtml(safeImage(pet.foto, FALLBACK_PET_PHOTO))}" alt="Foto do pet"><div><h4>${escapeHtml(pet.nome || "Pet")}</h4><p>${escapeHtml(pet.especie || "Animal")} • Último local: ${escapeHtml(pet.local_desaparecimento || "Não informado")}</p></div></div>`;
+            summary.innerHTML = `<div class="safe-v19-pet-head"><img src="${escapeHtml(safeImage(pet.foto, defaultPetPhoto(pet.especie)))}" alt="Foto do pet" onerror="this.onerror=null;this.src='${defaultPetPhoto(pet.especie)}'"><div><h4>${escapeHtml(pet.nome || "Pet")}</h4><p>${escapeHtml(pet.especie || "Animal")} • Último local: ${escapeHtml(pet.local_desaparecimento || "Não informado")}</p></div></div>`;
         }
         const form = byId("petRescueCompletionForm");
-        if (form) form.reset();
+        safeResetForm(form);
         setValue("rescuePetId", pet.id);
         alternarDestinoResgatePet();
         nextScreen("petRescueCompletionScreen");
@@ -1630,7 +1710,8 @@
     async function concluirResgatePet(event) {
         event.preventDefault();
         if (!requireUser("professional") || state.busy.has("pet-rescue")) return;
-        const submit = event.currentTarget.querySelector('button[type="submit"]');
+        const form = formFromEvent(event, "petRescueCompletionForm");
+        const submit = form ? form.querySelector('button[type="submit"]') : null;
         const petId = Number(value("rescuePetId"));
         const destinationType = value("rescueDestinationType");
         const professionalAddress = value("rescueProfessionalAddress");
@@ -1663,7 +1744,7 @@
                 })
             }, 65000);
             toast(response.message || "Resgate concluído e tutor notificado.", "success");
-            event.currentTarget.reset();
+            safeResetForm(form);
             state.selectedRescuePet = null;
             await abrirPetsDesaparecidosPro();
         } catch (error) {
@@ -1693,7 +1774,7 @@
         setValue("editProTeam", user.equipe || "");
         setValue("editProBio", user.bioProfissional || "");
         const avatar = byId("professionalProfileAvatar");
-        if (avatar) avatar.src = safeImage(user.foto, FALLBACK_PRO_PHOTO);
+        setImageSource(avatar, user.foto, defaultUserPhoto(user));
         nextScreen("professionalProfile");
     }
 
@@ -1746,7 +1827,7 @@
         text("adminWelcomeName", user.nome || "Administrador");
         text("adminCpfText", `CPF: ${formatCpf(user.cpf)}`);
         const avatar = byId("adminAvatar");
-        if (avatar) avatar.src = safeImage(user.foto, FALLBACK_ADMIN_PHOTO);
+        setImageSource(avatar, user.foto, defaultUserPhoto(user));
         try {
             const summary = await api("/api/dashboard/resumo", {}, 25000);
             Object.entries(summary || {}).forEach(function ([key, item]) {
@@ -1767,7 +1848,7 @@
         setValue("editAdminEmail", user.email);
         setValue("editAdminPhone", formatPhone(user.telefone));
         const avatar = byId("adminProfileAvatar");
-        if (avatar) avatar.src = safeImage(user.foto, FALLBACK_ADMIN_PHOTO);
+        setImageSource(avatar, user.foto, defaultUserPhoto(user));
         nextScreen("adminProfileScreen");
     }
 
@@ -1950,9 +2031,88 @@
         const active = user.ativo !== false && !deleted;
         const displayName = escapeHtml(user.nome || "Usuário");
         return `<article class="safe-v19-admin-card ${active ? "" : "is-blocked"}">
-            <div class="safe-v19-admin-user"><img src="${escapeHtml(safeImage(user.foto, user.type === "professional" ? FALLBACK_PRO_PHOTO : FALLBACK_USER_PHOTO))}" alt="Foto"><div><h4>${displayName}</h4><p>${escapeHtml(user.type || user.tipo || "citizen")} • CPF ${escapeHtml(formatCpf(user.cpf))}</p><small>${escapeHtml(user.email || "Sem e-mail")} • ${escapeHtml(formatPhone(user.telefone) || "Sem telefone")}</small><span class="safe-v19-status ${active ? "cadastrado" : "desaparecido"}">${deleted ? "EXCLUÍDA" : active ? "ATIVA" : "SUSPENSA"}</span></div></div>
-            ${isMaster ? "" : `<div class="safe-v19-actions">${active ? `<button type="button" class="btn secondary-btn" onclick="abrirSuspensaoAdmin('${cleanCpf(user.cpf)}', '${displayName.replace(/'/g, "&#39;")}')">Suspender</button>` : `<button type="button" class="btn" onclick="reativarContaAdmin('${cleanCpf(user.cpf)}')">Reativar</button>`}<button type="button" class="btn admin-danger-btn" onclick="excluirContaAdmin('${cleanCpf(user.cpf)}', '${displayName.replace(/'/g, "&#39;")}')">Excluir conta</button></div>`}
+            <div class="safe-v19-admin-user"><img src="${escapeHtml(safeImage(user.foto, defaultUserPhoto(user)))}" data-fallback="${escapeHtml(defaultUserPhoto(user))}" onerror="this.onerror=null;this.src=this.dataset.fallback" alt="Foto de ${displayName}"><div><h4>${displayName}</h4><p>${escapeHtml(user.type || user.tipo || "citizen")} • CPF ${escapeHtml(formatCpf(user.cpf))}</p><small>${escapeHtml(user.email || "Sem e-mail")} • ${escapeHtml(formatPhone(user.telefone) || "Sem telefone")}</small><span class="safe-v19-status ${active ? "cadastrado" : "desaparecido"}">${deleted ? "EXCLUÍDA" : active ? "ATIVA" : "SUSPENSA"}</span></div></div>
+            <div class="safe-v19-actions"><button type="button" class="btn secondary-btn" onclick="abrirEdicaoUsuarioAdmin('${cleanCpf(user.cpf)}')">Editar dados</button>${isMaster ? "" : `${active ? `<button type="button" class="btn secondary-btn" onclick="abrirSuspensaoAdmin('${cleanCpf(user.cpf)}', '${displayName.replace(/'/g, "&#39;")}')">Suspender</button>` : `<button type="button" class="btn" onclick="reativarContaAdmin('${cleanCpf(user.cpf)}')">Reativar</button>`}<button type="button" class="btn admin-danger-btn" onclick="excluirContaAdmin('${cleanCpf(user.cpf)}', '${displayName.replace(/'/g, "&#39;")}')">Excluir conta</button>`}</div>
         </article>`;
+    }
+
+
+    async function abrirEdicaoUsuarioAdmin(cpf) {
+        if (!requireUser("admin")) return;
+        try {
+            const user = await api(`/api/admin/users/${encodeURIComponent(cleanCpf(cpf))}`, {}, 25000);
+            state.adminEditingUser = normalizeUser(user);
+            state.pendingAdminUserAvatar = "";
+            setValue("adminEditUserCpfOriginal", state.adminEditingUser.cpf);
+            setValue("adminEditUserName", state.adminEditingUser.nome);
+            setValue("adminEditUserEmail", state.adminEditingUser.email);
+            setValue("adminEditUserPhone", formatPhone(state.adminEditingUser.telefone));
+            await loadCompanies(false);
+            const companySelect = byId("adminEditUserCompany");
+            if (companySelect) {
+                companySelect.innerHTML = '<option value="">Sem empresa</option>' + state.companies.map(function (company) {
+                    return `<option value="${escapeHtml(company.nome)}">${escapeHtml(company.nome)}</option>`;
+                }).join("");
+                companySelect.value = state.adminEditingUser.company === "Nenhum" ? "" : state.adminEditingUser.company || "";
+                companySelect.disabled = state.adminEditingUser.type !== "professional";
+            }
+            setImageSource(byId("adminEditUserAvatar"), state.adminEditingUser.foto, defaultUserPhoto(state.adminEditingUser));
+            const modal = byId("adminEditUserModal");
+            if (modal) modal.classList.remove("hidden");
+        } catch (error) {
+            showError(error, "Não foi possível abrir os dados do usuário.");
+        }
+    }
+
+    function fecharEdicaoUsuarioAdmin() {
+        const modal = byId("adminEditUserModal");
+        if (modal) modal.classList.add("hidden");
+        state.adminEditingUser = null;
+        state.pendingAdminUserAvatar = "";
+        const photo = byId("adminEditUserPhoto");
+        if (photo) photo.value = "";
+    }
+
+    function atualizarFotoUsuarioAdmin(input) {
+        const file = input && input.files ? input.files[0] : null;
+        if (!file) return;
+        compressImage(file, 720, 0.78).then(function (data) {
+            state.pendingAdminUserAvatar = data;
+            setImageSource(byId("adminEditUserAvatar"), data, defaultUserPhoto(state.adminEditingUser));
+        }).catch(showError);
+    }
+
+    async function salvarEdicaoUsuarioAdmin() {
+        if (!requireUser("admin") || !state.adminEditingUser || state.busy.has("admin-user-edit")) return;
+        const cpf = cleanCpf(value("adminEditUserCpfOriginal"));
+        const nome = value("adminEditUserName");
+        const email = value("adminEditUserEmail");
+        const telefone = formatPhone(value("adminEditUserPhone"));
+        if (!nome || !isEmail(email)) return window.alert("Informe nome e e-mail válidos.");
+        const modal = byId("adminEditUserModal");
+        const button = modal ? modal.querySelector('button[onclick="salvarEdicaoUsuarioAdmin()"]') : null;
+        state.busy.add("admin-user-edit");
+        setBusy(button, true, "Salvando...");
+        try {
+            const response = await api(`/api/users/${encodeURIComponent(cpf)}`, {
+                method: "PUT",
+                body: JSON.stringify({
+                    nome,
+                    email,
+                    telefone,
+                    foto: state.pendingAdminUserAvatar || null,
+                    company: value("adminEditUserCompany") || null
+                })
+            }, 45000);
+            toast(response.message || "Usuário atualizado.", "success");
+            fecharEdicaoUsuarioAdmin();
+            await abrirGerenciarUsuarios();
+        } catch (error) {
+            showError(error, "Não foi possível atualizar o usuário.");
+        } finally {
+            state.busy.delete("admin-user-edit");
+            setBusy(button, false);
+        }
     }
 
     function abrirSuspensaoAdmin(cpf, nome) {
@@ -2268,6 +2428,16 @@
     }
 
     function installGlobalErrorHandling() {
+        document.addEventListener("error", function (event) {
+            const image = event.target;
+            if (image && image.tagName === "IMG") {
+                const fallback = image.dataset.fallback || FALLBACK_USER_PHOTO;
+                if (image.src !== fallback) {
+                    image.onerror = null;
+                    image.src = fallback;
+                }
+            }
+        }, true);
         window.addEventListener("error", function (event) {
             console.error("Erro global Safe Life:", event.error || event.message);
         });
@@ -2366,6 +2536,10 @@
         abrirCadastroProfissionalAdmin,
         cadastrarProfissionalAdmin,
         abrirGerenciarUsuarios,
+        abrirEdicaoUsuarioAdmin,
+        fecharEdicaoUsuarioAdmin,
+        atualizarFotoUsuarioAdmin,
+        salvarEdicaoUsuarioAdmin,
         abrirSuspensaoAdmin,
         fecharModalSuspensaoAdmin,
         confirmarSuspensaoAdmin,
