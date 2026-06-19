@@ -1,10 +1,26 @@
 -- =============================================================
--- SAFE LIFE V20 — BANCO COMPLETO ONLINE FIRST DE PRODUÇÃO / SUPABASE
--- Atualização segura: não apaga contas, pets ou chamados reais.
+-- SAFE LIFE V21.5 — BANCO COMPLETO ONLINE / SUPABASE
+-- Atualização idempotente: preserva dados reais e adiciona tudo que estiver faltando.
 -- Pode ser executado no SQL Editor do Supabase.
 -- =============================================================
 
 BEGIN;
+
+-- =============================================================
+-- CONTAS PRINCIPAIS CRIADAS EM UMA INSTALAÇÃO NOVA
+-- Senha inicial das três contas: 123456
+--
+-- Gustavo/Admin: 45317828791
+-- Vitor/Cidadão: 11111111111
+-- Zeca/Profissional: 99999999999
+--
+-- No Render, ADMIN_PASSWORD substitui a senha do administrador
+-- quando o servidor inicia.
+--
+-- Este arquivo NÃO remove todas as contas do banco.
+-- A limpeza das contas de teste permanece em um arquivo separado.
+-- =============================================================
+
 
 -- =============================================================
 -- TIPOS
@@ -299,6 +315,134 @@ CREATE TABLE IF NOT EXISTS tentativas_login (
 );
 
 -- =============================================================
+-- COMPATIBILIDADE COM INSTALAÇÕES ANTIGAS
+-- =============================================================
+
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS tipo tipo_usuario_enum NOT NULL DEFAULT 'citizen';
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS empresa VARCHAR(255);
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS foto_perfil TEXT;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ativo BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS bloqueado_em TIMESTAMPTZ;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS bloqueado_ate TIMESTAMPTZ;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS bloqueado_por INTEGER;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS motivo_bloqueio TEXT;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS excluida_em TIMESTAMPTZ;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS session_version INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS troca_senha_obrigatoria BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ultima_atividade_em TIMESTAMPTZ;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS online_ate TIMESTAMPTZ;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS ultimo_login TIMESTAMPTZ;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS criado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+ALTER TABLE empresas ADD COLUMN IF NOT EXISTS tipo VARCHAR(100) NOT NULL DEFAULT 'Empresa parceira';
+ALTER TABLE empresas ADD COLUMN IF NOT EXISTS cnpj VARCHAR(30);
+ALTER TABLE empresas ADD COLUMN IF NOT EXISTS telefone VARCHAR(30);
+ALTER TABLE empresas ADD COLUMN IF NOT EXISTS email VARCHAR(255);
+ALTER TABLE empresas ADD COLUMN IF NOT EXISTS endereco TEXT;
+ALTER TABLE empresas ADD COLUMN IF NOT EXISTS ativo BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE empresas ADD COLUMN IF NOT EXISTS criado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE empresas ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+ALTER TABLE funcionarios ADD COLUMN IF NOT EXISTS nivel_acesso nivel_acesso_enum NOT NULL DEFAULT 'operador';
+ALTER TABLE funcionarios ADD COLUMN IF NOT EXISTS cargo VARCHAR(100);
+ALTER TABLE funcionarios ADD COLUMN IF NOT EXISTS empresa VARCHAR(255);
+ALTER TABLE funcionarios ADD COLUMN IF NOT EXISTS registro_profissional VARCHAR(80);
+ALTER TABLE funcionarios ADD COLUMN IF NOT EXISTS especialidade VARCHAR(150);
+ALTER TABLE funcionarios ADD COLUMN IF NOT EXISTS regiao_atendimento VARCHAR(200);
+ALTER TABLE funcionarios ADD COLUMN IF NOT EXISTS status_plantao VARCHAR(80) NOT NULL DEFAULT 'Disponível';
+ALTER TABLE funcionarios ADD COLUMN IF NOT EXISTS veiculo VARCHAR(120);
+ALTER TABLE funcionarios ADD COLUMN IF NOT EXISTS equipe VARCHAR(120);
+ALTER TABLE funcionarios ADD COLUMN IF NOT EXISTS bio_profissional TEXT;
+ALTER TABLE funcionarios ADD COLUMN IF NOT EXISTS ativo BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE funcionarios ADD COLUMN IF NOT EXISTS criado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE funcionarios ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+ALTER TABLE pets ADD COLUMN IF NOT EXISTS sexo sexo_pet_enum NOT NULL DEFAULT 'NAO_INFORMADO';
+ALTER TABLE pets ADD COLUMN IF NOT EXISTS idade INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE pets ADD COLUMN IF NOT EXISTS especie VARCHAR(100) NOT NULL DEFAULT 'Animal';
+ALTER TABLE pets ADD COLUMN IF NOT EXISTS raca VARCHAR(100);
+ALTER TABLE pets ADD COLUMN IF NOT EXISTS cor VARCHAR(100);
+ALTER TABLE pets ADD COLUMN IF NOT EXISTS peso NUMERIC(10,2);
+ALTER TABLE pets ADD COLUMN IF NOT EXISTS localizacao TEXT;
+ALTER TABLE pets ADD COLUMN IF NOT EXISTS observacoes TEXT;
+ALTER TABLE pets ADD COLUMN IF NOT EXISTS foto TEXT;
+ALTER TABLE pets ADD COLUMN IF NOT EXISTS desaparecido BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE pets ADD COLUMN IF NOT EXISTS status_pet VARCHAR(50) NOT NULL DEFAULT 'CADASTRADO';
+ALTER TABLE pets ADD COLUMN IF NOT EXISTS local_desaparecimento TEXT;
+ALTER TABLE pets ADD COLUMN IF NOT EXISTS detalhes_desaparecimento TEXT;
+ALTER TABLE pets ADD COLUMN IF NOT EXISTS desaparecido_em TIMESTAMPTZ;
+ALTER TABLE pets ADD COLUMN IF NOT EXISTS encontrado_em TIMESTAMPTZ;
+ALTER TABLE pets ADD COLUMN IF NOT EXISTS ativo BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE pets ADD COLUMN IF NOT EXISTS criado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE pets ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS tipo VARCHAR(150) NOT NULL DEFAULT 'Chamado Geral';
+ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS localizacao TEXT NOT NULL DEFAULT 'Não informado';
+ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS detalhes TEXT NOT NULL DEFAULT 'Não informado';
+ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS status status_ocorrencia_enum NOT NULL DEFAULT 'PENDENTE';
+ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS prioridade prioridade_enum NOT NULL DEFAULT 'NORMAL';
+ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS categoria VARCHAR(100);
+ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS assunto VARCHAR(200);
+ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS opcao_escolhida VARCHAR(200);
+ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS foto TEXT;
+ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS latitude NUMERIC(10,8);
+ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS longitude NUMERIC(11,8);
+ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS endereco_completo TEXT;
+ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS bairro VARCHAR(150);
+ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS cidade VARCHAR(150);
+ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS estado VARCHAR(100);
+ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS anonima BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS atendente_id INTEGER;
+ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS criado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS concluido_em TIMESTAMPTZ;
+
+ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS tipo VARCHAR(150) NOT NULL DEFAULT 'Denúncia Anônima';
+ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS localizacao TEXT NOT NULL DEFAULT 'Não informado';
+ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS detalhes TEXT NOT NULL DEFAULT 'Não informado';
+ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS status status_ocorrencia_enum NOT NULL DEFAULT 'PENDENTE';
+ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS prioridade prioridade_enum NOT NULL DEFAULT 'ALTA';
+ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS categoria VARCHAR(100);
+ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS assunto VARCHAR(200);
+ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS opcao_escolhida VARCHAR(200);
+ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS foto TEXT;
+ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS latitude NUMERIC(10,8);
+ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS longitude NUMERIC(11,8);
+ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS endereco_completo TEXT;
+ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS bairro VARCHAR(150);
+ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS cidade VARCHAR(150);
+ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS estado VARCHAR(100);
+ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS criado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS concluido_em TIMESTAMPTZ;
+
+UPDATE usuarios
+SET
+    ativo = COALESCE(ativo, TRUE),
+    session_version = GREATEST(COALESCE(session_version, 1), 1),
+    troca_senha_obrigatoria = COALESCE(troca_senha_obrigatoria, FALSE),
+    criado_em = COALESCE(criado_em, CURRENT_TIMESTAMP),
+    atualizado_em = COALESCE(atualizado_em, CURRENT_TIMESTAMP);
+
+UPDATE funcionarios
+SET
+    status_plantao = COALESCE(NULLIF(BTRIM(status_plantao), ''), 'Disponível'),
+    ativo = COALESCE(ativo, TRUE),
+    criado_em = COALESCE(criado_em, CURRENT_TIMESTAMP),
+    atualizado_em = COALESCE(atualizado_em, CURRENT_TIMESTAMP);
+
+UPDATE pets
+SET
+    idade = GREATEST(COALESCE(idade, 0), 0),
+    especie = COALESCE(NULLIF(BTRIM(especie), ''), 'Animal'),
+    desaparecido = COALESCE(desaparecido, FALSE),
+    status_pet = COALESCE(NULLIF(BTRIM(status_pet), ''), 'CADASTRADO'),
+    ativo = COALESCE(ativo, TRUE),
+    criado_em = COALESCE(criado_em, CURRENT_TIMESTAMP),
+    atualizado_em = COALESCE(atualizado_em, CURRENT_TIMESTAMP);
+
+-- =============================================================
 -- RELACIONAMENTO DO BLOQUEIO COM O ADMINISTRADOR
 -- =============================================================
 
@@ -311,6 +455,20 @@ BEGIN
         ADD CONSTRAINT fk_usuarios_bloqueado_por
         FOREIGN KEY (bloqueado_por)
         REFERENCES usuarios(id)
+        ON DELETE SET NULL;
+    END IF;
+END;
+$$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'fk_ocorrencias_atendente'
+    ) THEN
+        ALTER TABLE ocorrencias
+        ADD CONSTRAINT fk_ocorrencias_atendente
+        FOREIGN KEY (atendente_id)
+        REFERENCES funcionarios(id)
         ON DELETE SET NULL;
     END IF;
 END;
@@ -360,6 +518,34 @@ CREATE INDEX IF NOT EXISTS idx_usuarios_excluida_em ON usuarios(excluida_em) WHE
 CREATE INDEX IF NOT EXISTS idx_usuarios_online_ate ON usuarios(online_ate DESC);
 CREATE INDEX IF NOT EXISTS idx_empresas_ativo_nome ON empresas(ativo, nome);
 CREATE INDEX IF NOT EXISTS idx_funcionarios_empresa_ativo ON funcionarios(empresa, ativo);
+CREATE INDEX IF NOT EXISTS idx_funcionarios_usuario ON funcionarios(usuario_id);
+CREATE INDEX IF NOT EXISTS idx_funcionarios_registro_busca
+ON funcionarios (LOWER(BTRIM(registro_profissional)))
+WHERE registro_profissional IS NOT NULL
+  AND BTRIM(registro_profissional) <> '';
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM (
+            SELECT LOWER(BTRIM(registro_profissional))
+            FROM funcionarios
+            WHERE registro_profissional IS NOT NULL
+              AND BTRIM(registro_profissional) <> ''
+            GROUP BY LOWER(BTRIM(registro_profissional))
+            HAVING COUNT(*) > 1
+        ) duplicados
+    ) THEN
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_funcionarios_registro_profissional_unico
+        ON funcionarios (LOWER(BTRIM(registro_profissional)))
+        WHERE registro_profissional IS NOT NULL
+          AND BTRIM(registro_profissional) <> '';
+    ELSE
+        RAISE NOTICE 'Há identificações funcionais duplicadas. O índice único será criado após a correção desses registros.';
+    END IF;
+END;
+$$;
 CREATE INDEX IF NOT EXISTS idx_pets_usuario_status ON pets(usuario_id, status_pet, ativo);
 CREATE INDEX IF NOT EXISTS idx_pets_desaparecidos_reais ON pets(desaparecido_em DESC) WHERE desaparecido = TRUE AND ativo = TRUE;
 CREATE INDEX IF NOT EXISTS idx_ocorrencias_fila ON ocorrencias(status, prioridade, criado_em DESC);
@@ -399,6 +585,13 @@ SELECT
     u.motivo_bloqueio,
     u.excluida_em,
     u.session_version,
+    u.troca_senha_obrigatoria,
+    u.ultima_atividade_em,
+    u.online_ate,
+    (
+        u.online_ate IS NOT NULL
+        AND u.online_ate > CURRENT_TIMESTAMP
+    ) AS online_agora,
     u.ultimo_login,
     u.criado_em,
     u.atualizado_em,
@@ -565,7 +758,35 @@ ON CONFLICT (cpf) DO UPDATE SET
     foto_perfil = COALESCE(NULLIF(usuarios.foto_perfil, ''), EXCLUDED.foto_perfil),
     empresa = EXCLUDED.empresa,
     tipo = EXCLUDED.tipo,
-    excluida_em = NULL;
+    ativo = TRUE,
+    excluida_em = NULL,
+    bloqueado_em = NULL,
+    bloqueado_ate = NULL,
+    bloqueado_por = NULL,
+    motivo_bloqueio = NULL,
+    troca_senha_obrigatoria = FALSE,
+    session_version = GREATEST(COALESCE(usuarios.session_version, 1), 1),
+    atualizado_em = CURRENT_TIMESTAMP;
+
+
+-- Reparo idempotente das três contas principais.
+-- Não altera senha, e-mail, telefone ou foto personalizada já existente.
+UPDATE usuarios
+SET
+    ativo = TRUE,
+    excluida_em = NULL,
+    bloqueado_em = NULL,
+    bloqueado_ate = NULL,
+    bloqueado_por = NULL,
+    motivo_bloqueio = NULL,
+    troca_senha_obrigatoria = FALSE,
+    session_version = GREATEST(COALESCE(session_version, 1), 1),
+    atualizado_em = CURRENT_TIMESTAMP
+WHERE cpf IN ('45317828791', '11111111111', '99999999999');
+
+UPDATE usuarios SET tipo = 'admin', empresa = 'Safe Life Matriz' WHERE cpf = '45317828791';
+UPDATE usuarios SET tipo = 'citizen', empresa = NULL WHERE cpf = '11111111111';
+UPDATE usuarios SET tipo = 'professional', empresa = 'Safe Life Matriz' WHERE cpf = '99999999999';
 
 INSERT INTO funcionarios
 (usuario_id, cargo, empresa, nivel_acesso, registro_profissional, especialidade, regiao_atendimento, status_plantao, veiculo, equipe, bio_profissional, ativo)
@@ -585,8 +806,15 @@ SELECT
 FROM usuarios u
 WHERE u.cpf = '99999999999'
 ON CONFLICT (usuario_id) DO UPDATE SET
+    cargo = EXCLUDED.cargo,
     empresa = EXCLUDED.empresa,
-    ativo = TRUE;
+    nivel_acesso = EXCLUDED.nivel_acesso,
+    registro_profissional = COALESCE(NULLIF(BTRIM(funcionarios.registro_profissional), ''), EXCLUDED.registro_profissional),
+    especialidade = COALESCE(NULLIF(BTRIM(funcionarios.especialidade), ''), EXCLUDED.especialidade),
+    regiao_atendimento = COALESCE(NULLIF(BTRIM(funcionarios.regiao_atendimento), ''), EXCLUDED.regiao_atendimento),
+    status_plantao = EXCLUDED.status_plantao,
+    ativo = TRUE,
+    atualizado_em = CURRENT_TIMESTAMP;
 
 INSERT INTO funcionarios
 (usuario_id, cargo, empresa, nivel_acesso, registro_profissional, especialidade, regiao_atendimento, status_plantao, veiculo, equipe, bio_profissional, ativo)
@@ -606,42 +834,18 @@ SELECT
 FROM usuarios u
 WHERE u.cpf = '45317828791'
 ON CONFLICT (usuario_id) DO UPDATE SET
+    cargo = EXCLUDED.cargo,
+    empresa = EXCLUDED.empresa,
     nivel_acesso = 'administrador',
-    ativo = TRUE;
+    registro_profissional = COALESCE(NULLIF(BTRIM(funcionarios.registro_profissional), ''), EXCLUDED.registro_profissional),
+    especialidade = COALESCE(NULLIF(BTRIM(funcionarios.especialidade), ''), EXCLUDED.especialidade),
+    regiao_atendimento = COALESCE(NULLIF(BTRIM(funcionarios.regiao_atendimento), ''), EXCLUDED.regiao_atendimento),
+    status_plantao = EXCLUDED.status_plantao,
+    ativo = TRUE,
+    atualizado_em = CURRENT_TIMESTAMP;
 
--- =============================================================
--- LIMPEZA EXCLUSIVA DOS REGISTROS DE DEMONSTRAÇÃO
--- Não remove denúncias reais diferentes destes exemplos.
--- =============================================================
-
-DELETE FROM historico_ocorrencias
-WHERE ocorrencia_id IN (
-    SELECT id FROM ocorrencias
-    WHERE
-        (LOWER(COALESCE(assunto, '')) = 'animal na rua' AND LOWER(COALESCE(localizacao, '')) LIKE 'rua das flores%')
-        OR (LOWER(COALESCE(assunto, '')) = 'animal ferido' AND LOWER(COALESCE(localizacao, '')) LIKE 'avenida principal%')
-        OR COALESCE(foto, '') LIKE '%photo-1558788353-f76d92427f16%'
-        OR COALESCE(foto, '') LIKE '%photo-1574158622682-e40e69881006%'
-);
-
-DELETE FROM ocorrencias
-WHERE
-    (LOWER(COALESCE(assunto, '')) = 'animal na rua' AND LOWER(COALESCE(localizacao, '')) LIKE 'rua das flores%')
-    OR (LOWER(COALESCE(assunto, '')) = 'animal ferido' AND LOWER(COALESCE(localizacao, '')) LIKE 'avenida principal%')
-    OR COALESCE(foto, '') LIKE '%photo-1558788353-f76d92427f16%'
-    OR COALESCE(foto, '') LIKE '%photo-1574158622682-e40e69881006%';
-
-DELETE FROM denuncias_anonimas
-WHERE
-    (LOWER(COALESCE(assunto, '')) = 'sem água e comida' AND LOWER(COALESCE(localizacao, '')) LIKE 'rua esperança%')
-    OR (LOWER(COALESCE(assunto, '')) = 'animal acorrentado' AND LOWER(COALESCE(localizacao, '')) LIKE 'travessa das palmeiras%')
-    OR COALESCE(foto, '') LIKE '%photo-1583512603805-3cc6b41f3edb%'
-    OR COALESCE(foto, '') LIKE '%photo-1596492784531-6e6eb5ea9993%';
-
-DELETE FROM pets
-WHERE usuario_id = (SELECT id FROM usuarios WHERE cpf = '11111111111')
-  AND nome = 'Ademir'
-  AND LOWER(COALESCE(observacoes, '')) LIKE '%demonstração%';
+-- A limpeza de contas e dados de teste fica em arquivo separado.
+-- Este banco completo não apaga ocorrências, pets ou usuários reais.
 
 -- =============================================================
 -- PROTEÇÃO CONTRA ACESSO DIRETO PELA API PÚBLICA DO SUPABASE
@@ -676,6 +880,13 @@ REVOKE ALL ON TABLE bloqueios_conta FROM anon, authenticated;
 REVOKE ALL ON TABLE auditoria_seguranca FROM anon, authenticated;
 REVOKE ALL ON TABLE tentativas_login FROM anon, authenticated;
 
+REVOKE ALL ON TABLE view_usuarios_completos FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON TABLE view_ocorrencias_completas FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON TABLE view_chamados_profissionais FROM PUBLIC, anon, authenticated;
+
+REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon, authenticated;
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated;
+
 -- Limpa eventos antigos sem tocar nos dados reais do aplicativo.
 DELETE FROM eventos_tempo_real
 WHERE criado_em < CURRENT_TIMESTAMP - INTERVAL '7 days';
@@ -683,17 +894,10 @@ WHERE criado_em < CURRENT_TIMESTAMP - INTERVAL '7 days';
 COMMIT;
 
 SELECT
-    'Safe Life V20 Online instalado com segurança' AS resultado,
-    (SELECT COUNT(*) FROM usuarios WHERE excluida_em IS NULL) AS usuarios_ativos_no_banco,
+    'Safe Life V21.5 completo instalado com segurança' AS resultado,
+    (SELECT COUNT(*) FROM usuarios WHERE excluida_em IS NULL AND ativo = TRUE) AS usuarios_ativos_no_banco,
+    (SELECT COUNT(*) FROM empresas WHERE ativo = TRUE) AS empresas_ativas,
+    (SELECT COUNT(*) FROM funcionarios WHERE ativo = TRUE) AS profissionais_ativos,
     (SELECT COUNT(*) FROM pets WHERE ativo = TRUE) AS pets_reais,
     (SELECT COUNT(*) FROM ocorrencias) AS ocorrencias_reais,
     (SELECT COUNT(*) FROM notificacoes) AS notificacoes;
-
-
-CREATE INDEX IF NOT EXISTS idx_funcionarios_usuario
-ON funcionarios(usuario_id);
-
-CREATE UNIQUE INDEX IF NOT EXISTS idx_funcionarios_registro_profissional_unico
-ON funcionarios (LOWER(BTRIM(registro_profissional)))
-WHERE registro_profissional IS NOT NULL
-  AND BTRIM(registro_profissional) <> '';
