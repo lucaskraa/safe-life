@@ -19,20 +19,12 @@
 
     <title>Safe Life</title>
 
-    <link rel="stylesheet" href="style.css?v=20.0.0">
+    <link rel="stylesheet" href="style.css?v=20.1.0">
 
 </head>
 
 <body>
-
-
-    <div id="safeLifeConnectionBar" class="safe-life-connection-bar is-connecting" role="status" aria-live="polite">
-        <span id="safeLifeConnectionDot" class="safe-life-connection-dot"></span>
-        <span id="safeLifeConnectionText">Conectando ao servidor...</span>
-        <small id="safeLifeLastSync">Ainda não sincronizado</small>
-    </div>
-
-    <div
+<div
         id="toast"
         role="status"
         aria-live="polite"
@@ -659,16 +651,7 @@
             </header>
 
             <main>
-
-                <section class="safe-life-citizen-online" id="citizenOnlineSummary">
-                    <span class="safe-life-live-pulse"></span>
-                    <div>
-                        <strong>Conectado à rede Safe Life</strong>
-                        <small id="citizenRealtimeText">Você receberá atualizações do atendimento nesta tela.</small>
-                    </div>
-                </section>
-
-                <div class="action-buttons citizen-menu-grid">
+<div class="action-buttons citizen-menu-grid">
 
                 <button
                     class="btn emergency"
@@ -1342,22 +1325,7 @@
                     </button>
 
                 </div>
-
-
-                <section class="safe-life-live-panel" aria-label="Status online do plantão">
-                    <div>
-                        <span class="safe-life-live-pulse"></span>
-                        <strong id="proRealtimeStatus">Plantão conectado</strong>
-                        <small id="proRealtimeDetail">Aguardando novos chamados em tempo real</small>
-                    </div>
-                    <div class="safe-life-live-counter">
-                        <strong id="proNewEventCount">0</strong>
-                        <span>novos alertas</span>
-                    </div>
-                    <button type="button" class="safe-life-live-refresh" onclick="atualizarPainelProfissionalAgora()">Atualizar agora</button>
-                </section>
-
-                <div class="professional-stats">
+<div class="professional-stats">
 
                     <div class="stat-card">
                         <strong id="statTotal">0</strong>
@@ -2657,7 +2625,7 @@
         </div>
     </noscript>
 
-    <script src="script.js?v=20.0.0"></script>
+    <script src="script.js?v=20.1.0"></script>
 
 </body>
 </html>
