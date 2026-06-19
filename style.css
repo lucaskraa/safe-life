@@ -5061,3 +5061,85 @@ button[aria-busy="true"] {
 body {
     padding-top: 0 !important;
 }
+
+/* =====================================================
+   SAFE LIFE V21 — FORMULÁRIOS, OPÇÕES E PERFIS
+===================================================== */
+.quick-options-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px !important;
+    margin: 12px 0 24px;
+}
+.quick-option-btn {
+    position: relative;
+    min-height: 112px;
+    padding: 18px 14px !important;
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    border: 2px solid rgba(37, 84, 214, .14) !important;
+    border-radius: 24px !important;
+    background: linear-gradient(145deg, rgba(255,255,255,.98), rgba(239,244,255,.98)) !important;
+    color: #15213a !important;
+    font: inherit;
+    font-weight: 800 !important;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: 0 12px 28px rgba(37,84,214,.09);
+    transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+.quick-option-btn:hover, .quick-option-btn:focus-visible {
+    transform: translateY(-3px);
+    border-color: rgba(37,84,214,.55) !important;
+    box-shadow: 0 18px 34px rgba(37,84,214,.16);
+    outline: none;
+}
+.quick-option-btn.selected {
+    border-color: #2454d6 !important;
+    background: linear-gradient(145deg, #2454d6, #486cff) !important;
+    color: #fff !important;
+    box-shadow: 0 18px 35px rgba(37,84,214,.28);
+}
+.quick-option-icon { font-size: 28px; line-height: 1; }
+.quick-option-label { line-height: 1.25; }
+.quick-option-check {
+    position: absolute;
+    right: 12px; top: 10px;
+    width: 25px; height: 25px;
+    display: grid; place-items: center;
+    border-radius: 50%;
+    background: rgba(255,255,255,.22);
+    opacity: 0;
+}
+.quick-option-btn.selected .quick-option-check { opacity: 1; }
+.pet-location-card {
+    width: min(100%, 720px);
+    margin-inline: auto;
+    text-align: center;
+    padding: 22px !important;
+}
+.pet-location-card label { text-align: center; }
+.pet-location-card input { width: 100%; text-align: center; }
+.pet-location-card .pet-location-btn {
+    width: min(100%, 380px) !important;
+    margin: 14px auto 0 !important;
+}
+.admin-edit-user-card { max-height: 92vh; overflow-y: auto; }
+.admin-edit-avatar-wrap {
+    display: grid; justify-items: center; gap: 12px; margin-bottom: 18px;
+}
+.admin-edit-avatar-wrap img {
+    width: 104px; height: 104px; object-fit: cover; border-radius: 30px;
+    border: 4px solid #2454d6; background: #eef2ff;
+}
+.admin-edit-photo-button { position: relative; overflow: hidden; width: auto !important; padding-inline: 22px !important; }
+.admin-edit-photo-button input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+img[src=""], img:not([src]) { background: #eef2ff; }
+@media (max-width: 560px) {
+    .quick-options-grid { grid-template-columns: 1fr 1fr; gap: 10px !important; }
+    .quick-option-btn { min-height: 104px; padding: 14px 10px !important; border-radius: 20px !important; font-size: 13px; }
+    .quick-option-icon { font-size: 24px; }
+}
