@@ -1,23 +1,32 @@
--- SAFE LIFE V21 — CORREÇÕES DE PERFIS E FOTOS PADRÃO
--- NÃO APAGA CONTAS, PETS, OCORRÊNCIAS OU DENÚNCIAS.
+-- =====================================================
+-- SAFE LIFE V21.3
+-- PROFISSIONAIS CRIADOS SOMENTE PELO ADMINISTRADOR
+-- NÃO APAGA CONTAS, PETS OU OCORRÊNCIAS.
+-- =====================================================
 
 BEGIN;
 
-UPDATE usuarios
-SET foto_perfil = 'img/pequenochinique.jpeg'
-WHERE cpf = '11111111111'
-  AND COALESCE(TRIM(foto_perfil), '') = '';
+ALTER TABLE usuarios
+ADD COLUMN IF NOT EXISTS troca_senha_obrigatoria
+BOOLEAN NOT NULL DEFAULT FALSE;
 
-UPDATE usuarios
-SET foto_perfil = 'img/corredorzeca.jpeg'
-WHERE cpf = '99999999999'
-  AND COALESCE(TRIM(foto_perfil), '') = '';
+ALTER TABLE funcionarios
+ADD COLUMN IF NOT EXISTS registro_profissional VARCHAR(80);
 
+CREATE UNIQUE INDEX IF NOT EXISTS
+idx_funcionarios_registro_profissional_unico
+ON funcionarios (LOWER(BTRIM(registro_profissional)))
+WHERE registro_profissional IS NOT NULL
+  AND BTRIM(registro_profissional) <> '';
+
+-- Profissionais antigos continuam entrando com a senha atual.
 UPDATE usuarios
-SET foto_perfil = 'img/apenasumsiri.jpeg'
-WHERE cpf = '45317828791'
-  AND COALESCE(TRIM(foto_perfil), '') = '';
+SET troca_senha_obrigatoria = FALSE
+WHERE tipo = 'professional'
+  AND troca_senha_obrigatoria IS NULL;
 
 COMMIT;
 
-SELECT 'Migração V21 concluída sem apagar dados' AS resultado;
+SELECT
+    'Safe Life V21.3 instalado: profissionais somente pelo admin'
+    AS resultado;
