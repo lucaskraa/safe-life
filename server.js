@@ -7,7 +7,7 @@ const { Pool } = require("pg");
 
 const app = express();
 
-const SAFE_LIFE_VERSION = "21.3.0";
+const SAFE_LIFE_VERSION = "21.4.0";
 const PORT = Number(process.env.PORT) || 3000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 const IS_PRODUCTION = NODE_ENV === "production";
@@ -348,6 +348,19 @@ function detalhesErro(erro) {
 function usuarioSeguro(usuario) {
     if (!usuario) return null;
 
+    const onlineAte = usuario.online_ate
+        ? new Date(usuario.online_ate)
+        : null;
+
+    const onlineAgora =
+        typeof usuario.online_agora === "boolean"
+            ? usuario.online_agora
+            : Boolean(
+                onlineAte &&
+                !Number.isNaN(onlineAte.getTime()) &&
+                onlineAte.getTime() > Date.now()
+            );
+
     return {
         id: usuario.id,
         nome: usuario.nome,
@@ -364,6 +377,9 @@ function usuarioSeguro(usuario) {
         excluidaEm: usuario.excluida_em || null,
         sessionVersion: Number(usuario.session_version || 1),
         mustChangePassword: Boolean(usuario.troca_senha_obrigatoria),
+        onlineAgora,
+        ultimaAtividadeEm: usuario.ultima_atividade_em || null,
+        onlineAte: usuario.online_ate || null,
         cargo: usuario.cargo || null,
         nivelAcesso: usuario.nivel_acesso || null,
         registroProfissional: usuario.registro_profissional || null,
@@ -1396,7 +1412,10 @@ app.post("/api/auth/login", async (req, res) => {
             await pool.query(
                 `
                 UPDATE usuarios
-                SET ultimo_login = CURRENT_TIMESTAMP
+                SET
+                    ultimo_login = CURRENT_TIMESTAMP,
+                    ultima_atividade_em = CURRENT_TIMESTAMP,
+                    online_ate = CURRENT_TIMESTAMP + INTERVAL '45 seconds'
                 WHERE cpf = $1
                 `,
                 [ADMIN_CPF]
@@ -1453,7 +1472,10 @@ app.post("/api/auth/login", async (req, res) => {
         await pool.query(
             `
             UPDATE usuarios
-            SET ultimo_login = CURRENT_TIMESTAMP
+            SET
+                ultimo_login = CURRENT_TIMESTAMP,
+                ultima_atividade_em = CURRENT_TIMESTAMP,
+                online_ate = CURRENT_TIMESTAMP + INTERVAL '45 seconds'
             WHERE id = $1
             `,
             [usuario.id]
@@ -1600,6 +1622,26 @@ app.get("/api/auth/session-status", async (req, res) => {
             });
         }
 
+        const presenceResult = await pool.query(
+            `
+            UPDATE usuarios
+            SET
+                ultima_atividade_em = CURRENT_TIMESTAMP,
+                online_ate = CURRENT_TIMESTAMP + INTERVAL '45 seconds'
+            WHERE id = $1
+            RETURNING ultima_atividade_em, online_ate
+            `,
+            [usuario.id]
+        );
+
+        if (presenceResult.rows[0]) {
+            usuario.ultima_atividade_em =
+                presenceResult.rows[0].ultima_atividade_em;
+            usuario.online_ate =
+                presenceResult.rows[0].online_ate;
+            usuario.online_agora = true;
+        }
+
         return res.status(200).json({
             ok: true,
             user: usuarioSeguro(usuario)
@@ -1609,6 +1651,33 @@ app.get("/api/auth/session-status", async (req, res) => {
             error: "Erro ao verificar a sessão.",
             details: detalhesErro(erro)
         });
+    }
+});
+
+
+app.post("/api/auth/offline", async (req, res) => {
+    try {
+        const payload =
+            validarTokenSessao(extrairBearerToken(req));
+
+        if (!payload) {
+            return res.status(204).end();
+        }
+
+        await pool.query(
+            `
+            UPDATE usuarios
+            SET
+                ultima_atividade_em = CURRENT_TIMESTAMP,
+                online_ate = CURRENT_TIMESTAMP
+            WHERE cpf = $1
+            `,
+            [limparCpf(payload.cpf)]
+        );
+
+        return res.status(204).end();
+    } catch (_) {
+        return res.status(204).end();
     }
 });
 
@@ -1951,6 +2020,10 @@ app.get("/api/admin/users", verificarAdmin, async (req, res) => {
             `
             SELECT
                 u.*,
+                (
+                    u.online_ate IS NOT NULL
+                    AND u.online_ate > CURRENT_TIMESTAMP
+                ) AS online_agora,
                 f.cargo,
                 f.nivel_acesso,
                 f.registro_profissional,
