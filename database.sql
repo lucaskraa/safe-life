@@ -555,7 +555,7 @@ VALUES
 )
 ON CONFLICT (cpf) DO UPDATE SET
     nome = EXCLUDED.nome,
-    foto_perfil = EXCLUDED.foto_perfil,
+    foto_perfil = COALESCE(NULLIF(usuarios.foto_perfil, ''), EXCLUDED.foto_perfil),
     empresa = EXCLUDED.empresa,
     tipo = EXCLUDED.tipo,
     excluida_em = NULL;
