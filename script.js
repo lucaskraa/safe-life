@@ -537,8 +537,11 @@
          */
         window.setTimeout(function () {
             startSessionWatcher();
-            startRealtimeConnection();
-            prepareRealtimeAlerts();
+
+            if (state.user?.mustChangePassword !== true) {
+                startRealtimeConnection();
+                prepareRealtimeAlerts();
+            }
         }, 0);
     }
 
@@ -551,7 +554,12 @@
             cpf: cleanCpf(user.cpf),
             type,
             tipo: type,
-            company: user.company || user.empresa || "Nenhum"
+            company: user.company || user.empresa || "Nenhum",
+            mustChangePassword: Boolean(
+                user.mustChangePassword ??
+                user.trocaSenhaObrigatoria ??
+                user.troca_senha_obrigatoria
+            )
         };
 
         normalized.foto = resolveUserPhoto(
@@ -594,6 +602,13 @@
             nextScreen("loginScreen");
             return false;
         }
+
+        if (state.user.mustChangePassword === true) {
+            toast("Crie sua senha definitiva antes de continuar.", "warning");
+            nextScreen("firstPasswordChangeScreen");
+            return false;
+        }
+
         if (expectedType && state.user.type !== expectedType && state.user.type !== "admin") {
             toast("Seu perfil não possui acesso a esta área.", "warning");
             return false;
@@ -613,7 +628,7 @@
         target.classList.add("active");
         window.scrollTo({ top: 0, behavior: "auto" });
 
-        if (screenId === "registerScreen" || screenId === "loginScreen") {
+        if (screenId === "loginScreen") {
             loadCompanies(false);
         }
     }
@@ -625,6 +640,11 @@
         }
 
         const type = normalizeAccountType(state.user.type || state.user.tipo);
+
+        if (state.user.mustChangePassword === true) {
+            nextScreen("firstPasswordChangeScreen");
+            return;
+        }
 
         if (type === "admin") {
             nextScreen("adminDashboard");
@@ -653,6 +673,10 @@
                 state.user = normalizeUser(response.user);
                 localStorage.setItem(STORAGE_USER, JSON.stringify(state.user));
                 window.usuarioLogado = state.user;
+
+                if (state.user.mustChangePassword === true) {
+                    routeByUser();
+                }
             }
             return true;
         } catch (error) {
@@ -728,6 +752,62 @@
         const context = canvas.getContext("2d", { alpha: false });
         context.drawImage(image, 0, 0, width, height);
         return canvas.toDataURL("image/jpeg", quality || 0.78);
+    }
+
+    function readFileAsDataUrl(file) {
+        return new Promise(function (resolve, reject) {
+            const reader = new FileReader();
+
+            reader.onload = function () {
+                resolve(String(reader.result || ""));
+            };
+
+            reader.onerror = function () {
+                reject(new Error("Não foi possível ler o arquivo enviado."));
+            };
+
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function prepareRequiredEvidence(file) {
+        if (!file) {
+            throw new Error("Envie obrigatoriamente uma imagem ou um vídeo.");
+        }
+
+        const type = String(file.type || "").toLowerCase();
+
+        if (type.startsWith("image/")) {
+            return {
+                data: await compressImage(file, 1100, 0.78),
+                kind: "image",
+                mimeType: "image/jpeg",
+                originalName: file.name || "imagem.jpg"
+            };
+        }
+
+        if (type.startsWith("video/")) {
+            const maxVideoBytes = 9 * 1024 * 1024;
+
+            if (file.size > maxVideoBytes) {
+                throw new Error("O vídeo deve ter no máximo 9 MB.");
+            }
+
+            const data = await readFileAsDataUrl(file);
+
+            if (!data.startsWith("data:video/")) {
+                throw new Error("O arquivo escolhido não é um vídeo válido.");
+            }
+
+            return {
+                data,
+                kind: "video",
+                mimeType: type,
+                originalName: file.name || "video"
+            };
+        }
+
+        throw new Error("Escolha uma imagem ou um vídeo válido.");
     }
 
     function installMasks() {
@@ -833,24 +913,42 @@
 
     function populateCompanySelects() {
         if (!state.companies.length) return;
-        const ids = ["regCompany", "loginCompany", "editProCompany", "adminProCompany"];
+        const ids = ["loginCompany", "editProCompany", "adminProCompany"];
+
         ids.forEach(function (id) {
             const select = byId(id);
             if (!select) return;
+
             const current = select.value;
-            select.innerHTML = state.companies.map(function (company) {
-                return `<option value="${escapeHtml(company.nome)}">${escapeHtml(company.nome)}</option>`;
-            }).join("");
-            if (current && Array.from(select.options).some(function (option) { return option.value === current; })) {
+            const placeholder = id === "adminProCompany"
+                ? `<option value="">Selecione uma empresa cadastrada</option>`
+                : "";
+
+            select.innerHTML =
+                placeholder +
+                state.companies.map(function (company) {
+                    return `<option value="${escapeHtml(company.nome)}">${escapeHtml(company.nome)}</option>`;
+                }).join("");
+
+            if (
+                current &&
+                Array.from(select.options).some(function (option) {
+                    return option.value === current;
+                })
+            ) {
                 select.value = current;
+            } else if (id === "adminProCompany") {
+                select.value = "";
             }
         });
     }
 
     function toggleRegCompanyField() {
         const wrapper = byId("companyRegWrapper");
-        if (!wrapper) return;
-        wrapper.classList.toggle("hidden", value("regType") !== "professional");
+        if (wrapper) {
+            wrapper.classList.add("hidden");
+            wrapper.style.display = "none";
+        }
     }
 
     function toggleLoginCompanyField() {
@@ -869,8 +967,8 @@
         const telefone = formatPhone(value("regPhone"));
         const senha = value("regPassword");
         const confirmacao = value("regPasswordConfirm");
-        const type = value("regType") || "citizen";
-        const company = value("regCompany");
+        const type = "citizen";
+        const company = null;
 
         if (!nome) return window.alert("Informe o nome completo.");
         if (cpf.length !== 11) return window.alert(`Informe os 11 números do CPF. Você digitou ${cpf.length}.`);
@@ -878,7 +976,6 @@
         if (telefone.replace(/\D/g, "").length < 10) return window.alert("Informe um telefone com DDD.");
         if (senha.length < 6) return window.alert("A senha precisa ter pelo menos 6 caracteres.");
         if (senha !== confirmacao) return window.alert("As senhas não são iguais.");
-        if (type === "professional" && !company) return window.alert("Selecione a empresa/base.");
 
         state.busy.add("register");
         setBusy(button, true, "Criando conta...");
@@ -891,18 +988,26 @@
 
             const response = await api("/api/auth/register", {
                 method: "POST",
-                body: JSON.stringify({ nome, cpf, email, telefone, senha, type, company, foto })
+                body: JSON.stringify({
+                    nome,
+                    cpf,
+                    email,
+                    telefone,
+                    senha,
+                    type: "citizen",
+                    foto
+                })
             }, 65000);
 
             const registeredUser = {
                 ...(response.user || {}),
-                type: response.user?.type || response.user?.tipo || type,
-                tipo: response.user?.tipo || response.user?.type || type,
+                type: "citizen",
+                tipo: "citizen",
                 cpf: response.user?.cpf || cpf,
                 nome: response.user?.nome || nome,
                 email: response.user?.email || email,
                 telefone: response.user?.telefone || telefone,
-                company: response.user?.company || response.user?.empresa || company || "Nenhum"
+                company: "Nenhum"
             };
 
             saveSession(registeredUser, response.token);
@@ -932,9 +1037,7 @@
             }
 
             toast(
-                type === "professional"
-                    ? "Conta criada. Abrindo o painel profissional."
-                    : "Conta criada. Abrindo a Central Safe Life.",
+                "Conta de cidadão criada. Abrindo a Central Safe Life.",
                 "success"
             );
         } catch (error) {
@@ -977,6 +1080,81 @@
             }
         } finally {
             state.busy.delete("login");
+            setBusy(button, false);
+        }
+    }
+
+    function strongProfessionalPassword(password) {
+        const value = String(password || "");
+
+        return (
+            value.length >= 8 &&
+            /[a-z]/.test(value) &&
+            /[A-Z]/.test(value) &&
+            /\d/.test(value)
+        );
+    }
+
+    async function trocarSenhaTemporaria() {
+        if (!state.user || !state.token) {
+            nextScreen("loginScreen");
+            return;
+        }
+
+        if (state.busy.has("first-password-change")) return;
+
+        const button = document.querySelector(
+            '#firstPasswordChangeScreen button[onclick="trocarSenhaTemporaria()"]'
+        );
+
+        const newPassword = value("firstNewPassword");
+        const confirmation = value("firstNewPasswordConfirm");
+
+        if (!strongProfessionalPassword(newPassword)) {
+            return window.alert(
+                "A nova senha precisa ter pelo menos 8 caracteres, " +
+                "com letra maiúscula, letra minúscula e número."
+            );
+        }
+
+        if (newPassword !== confirmation) {
+            return window.alert("As duas senhas não são iguais.");
+        }
+
+        state.busy.add("first-password-change");
+        setBusy(button, true, "Salvando nova senha...");
+
+        try {
+            const response = await api(
+                "/api/auth/change-temporary-password",
+                {
+                    method: "POST",
+                    body: JSON.stringify({
+                        newPassword,
+                        confirmation
+                    })
+                },
+                45000
+            );
+
+            saveSession(response.user, response.token);
+
+            setValue("firstNewPassword", "");
+            setValue("firstNewPasswordConfirm", "");
+
+            routeByUser();
+
+            toast(
+                "Senha definitiva criada. Acesso profissional liberado.",
+                "success"
+            );
+        } catch (error) {
+            showError(
+                error,
+                "Não foi possível alterar a senha temporária."
+            );
+        } finally {
+            state.busy.delete("first-password-change");
             setBusy(button, false);
         }
     }
@@ -1071,18 +1249,28 @@
         const form = formFromEvent(event, "citizenForm");
         const submit = form ? form.querySelector('button[type="submit"]') : null;
 
+        const fileInput = byId("formFile");
+        const evidenceFile =
+            fileInput && fileInput.files
+                ? fileInput.files[0]
+                : null;
+
         if (!selected) return window.alert("Escolha o problema.");
         if (!location) return window.alert("Informe a localização.");
         if (!details) return window.alert("Descreva o que está acontecendo.");
+        if (!evidenceFile) {
+            return window.alert("Envie obrigatoriamente uma imagem ou um vídeo da situação.");
+        }
 
         state.busy.add("occurrence");
-        setBusy(submit, true, "Enviando chamado...");
+        setBusy(submit, true, "Preparando imagem ou vídeo...");
 
         try {
-            const fileInput = byId("formFile");
-            const foto = fileInput && fileInput.files && fileInput.files[0]
-                ? await compressImage(fileInput.files[0], 1100, 0.78)
-                : "";
+            const evidence = await prepareRequiredEvidence(evidenceFile);
+
+            if (submit) {
+                submit.textContent = "Enviando chamado...";
+            }
 
             await api("/api/ocorrencias", {
                 method: "POST",
@@ -1094,11 +1282,14 @@
                     opcaoEscolhida: selected,
                     localizacao: location,
                     detalhes: details,
-                    foto,
+                    foto: evidence.data,
+                    midiaTipo: evidence.kind,
+                    midiaMimeType: evidence.mimeType,
+                    midiaNome: evidence.originalName,
                     gps: currentGps(),
                     prioridade: config.prioridade
                 })
-            }, 65000);
+            }, 90000);
 
             text("confirmMsg", "Seu chamado foi enviado para os profissionais disponíveis.");
             nextScreen("confirmationScreen");
@@ -1227,16 +1418,28 @@
         const location = value("anonLocation");
         const details = value("anonDetails");
 
+        const fileInput = byId("anonFile");
+        const evidenceFile =
+            fileInput && fileInput.files
+                ? fileInput.files[0]
+                : null;
+
         if (!selected) return window.alert("Escolha o problema.");
         if (!location || !details) return window.alert("Informe o local e a descrição.");
+        if (!evidenceFile) {
+            return window.alert("Envie obrigatoriamente uma imagem ou um vídeo da denúncia.");
+        }
 
         state.busy.add("anonymous");
-        setBusy(submit, true, "Enviando denúncia...");
+        setBusy(submit, true, "Preparando imagem ou vídeo...");
+
         try {
-            const fileInput = byId("anonFile");
-            const foto = fileInput && fileInput.files && fileInput.files[0]
-                ? await compressImage(fileInput.files[0], 1100, 0.78)
-                : "";
+            const evidence = await prepareRequiredEvidence(evidenceFile);
+
+            if (submit) {
+                submit.textContent = "Enviando denúncia...";
+            }
+
             await api("/api/ocorrencias/anonima", {
                 method: "POST",
                 body: JSON.stringify({
@@ -1246,11 +1449,14 @@
                     opcaoEscolhida: selected,
                     localizacao: location,
                     detalhes: details,
-                    foto,
+                    foto: evidence.data,
+                    midiaTipo: evidence.kind,
+                    midiaMimeType: evidence.mimeType,
+                    midiaNome: evidence.originalName,
                     gps: currentGps(),
                     prioridade: selected.toLowerCase().includes("maus") ? "ALTA" : "NORMAL"
                 })
-            }, 65000);
+            }, 90000);
             text("confirmMsg", "Sua denúncia anônima foi enviada com segurança.");
             nextScreen("confirmationScreen");
             safeResetForm(form);
@@ -1503,6 +1709,11 @@
     function startRealtimeConnection() {
         stopRealtimeConnection();
 
+        if (state.user?.mustChangePassword === true) {
+            state.realtimeConnected = false;
+            return;
+        }
+
         if (!state.user || !state.token) {
             updateConnectionState(navigator.onLine ? "connecting" : "offline");
             return;
@@ -1726,8 +1937,55 @@
         });
     }
 
-    function occurrencePhoto(item) {
-        return safeImage(item.foto, "");
+    function occurrenceMedia(item) {
+        const source = String(
+            item && (item.foto || item.midia || item.media) || ""
+        ).trim();
+
+        if (
+            source.startsWith("data:image/") ||
+            source.startsWith("data:video/") ||
+            source.startsWith("https://") ||
+            source.startsWith("http://")
+        ) {
+            return source;
+        }
+
+        return "";
+    }
+
+    function occurrenceMediaMarkup(item) {
+        const media = occurrenceMedia(item);
+
+        if (!media) return "";
+
+        const explicitType = String(
+            item && (item.midia_tipo || item.midiaTipo || "") || ""
+        ).toLowerCase();
+
+        const isVideo =
+            media.startsWith("data:video/") ||
+            explicitType === "video";
+
+        if (isVideo) {
+            return `<video
+                class="safe-v19-occurrence-video"
+                controls
+                playsinline
+                preload="metadata"
+                src="${escapeHtml(media)}"
+            >
+                Seu navegador não conseguiu reproduzir o vídeo.
+            </video>`;
+        }
+
+        return `<img
+            class="safe-v19-occurrence-photo"
+            src="${escapeHtml(media)}"
+            data-fallback="${escapeHtml(FALLBACK_DOG_PHOTO)}"
+            onerror="this.onerror=null;this.src=this.dataset.fallback"
+            alt="Imagem enviada na ocorrência"
+        >`;
     }
 
     function occurrenceCard(item, compact) {
@@ -1742,7 +2000,7 @@
             },
             item.foto_usuario
         );
-        const photo = occurrencePhoto(item);
+        const mediaMarkup = occurrenceMediaMarkup(item);
         const status = String(item.status || "PENDENTE").toUpperCase();
         const priority = String(item.prioridade || "NORMAL").toUpperCase();
         return `<article class="safe-v19-occurrence-card priority-${priority.toLowerCase()}">
@@ -1753,7 +2011,7 @@
             </div>
             <div class="safe-v19-data"><strong>Endereço:</strong> ${escapeHtml(item.endereco_completo || item.localizacao || "Não informado")}</div>
             <div class="safe-v19-data"><strong>Descrição:</strong> ${escapeHtml(item.detalhes || "Sem descrição")}</div>
-            ${photo ? `<img class="safe-v19-occurrence-photo" src="${escapeHtml(photo)}" data-fallback="${escapeHtml(FALLBACK_DOG_PHOTO)}" onerror="this.onerror=null;this.src=this.dataset.fallback" alt="Foto da ocorrência">` : ""}
+            ${mediaMarkup}
             ${compact ? "" : `<div class="safe-v19-actions">
                 <button type="button" class="btn secondary-btn" ${status === "EM_ATENDIMENTO" ? "disabled" : ""} onclick="atualizarChamado('${escapeHtml(origin)}', ${Number(item.id)}, 'EM_ATENDIMENTO')">Em atendimento</button>
                 <button type="button" class="btn" onclick="atualizarChamado('${escapeHtml(origin)}', ${Number(item.id)}, 'CONCLUIDA')">Concluir</button>
@@ -2184,51 +2442,176 @@
 
     async function abrirCadastroProfissionalAdmin() {
         if (!requireUser("admin")) return;
-        await loadCompanies(false);
+
+        const result = byId("adminTemporaryCredentialResult");
+        if (result) result.classList.add("hidden");
+
+        await loadCompanies(true);
         nextScreen("adminProfessionalCreateScreen");
     }
 
     async function cadastrarProfissionalAdmin() {
         if (!requireUser("admin") || state.busy.has("pro-create")) return;
-        const button = document.querySelector('#adminProfessionalCreateScreen button[onclick="cadastrarProfissionalAdmin()"]');
-        const senha = value("adminProPassword");
-        const confirmacao = value("adminProPasswordConfirm");
+
+        const button = document.querySelector(
+            '#adminProfessionalCreateScreen button[onclick="cadastrarProfissionalAdmin()"]'
+        );
+
         const cpf = cleanCpf(value("adminProCpf"));
-        if (!value("adminProName") || cpf.length !== 11 || !isEmail(value("adminProEmail")) || !value("adminProCompany")) {
-            return window.alert("Preencha nome, CPF, e-mail e empresa corretamente.");
+        const company = value("adminProCompany");
+        const employeeId = value("adminProEmployeeId").trim();
+
+        if (!value("adminProName")) {
+            return window.alert("Informe o nome completo do profissional.");
         }
-        if (senha.length < 6 || senha !== confirmacao) return window.alert("Informe duas senhas iguais com pelo menos 6 caracteres.");
+
+        if (cpf.length !== 11) {
+            return window.alert("Informe um CPF com exatamente 11 números.");
+        }
+
+        if (!isEmail(value("adminProEmail"))) {
+            return window.alert("Informe um e-mail válido.");
+        }
+
+        if (formatPhone(value("adminProPhone")).replace(/\D/g, "").length < 10) {
+            return window.alert("Informe um telefone com DDD.");
+        }
+
+        if (!company) {
+            return window.alert("Selecione uma empresa cadastrada.");
+        }
+
+        if (!employeeId) {
+            return window.alert(
+                "Informe a identificação funcional ou matrícula da empresa."
+            );
+        }
 
         state.busy.add("pro-create");
         setBusy(button, true, "Criando profissional...");
+
         try {
-            const response = await api("/api/admin/profissionais", {
-                method: "POST",
-                body: JSON.stringify({
-                    nome: value("adminProName"),
-                    cpf,
-                    email: value("adminProEmail"),
-                    telefone: formatPhone(value("adminProPhone")),
-                    senha,
-                    company: value("adminProCompany"),
-                    profissional: {
-                        cargo: value("adminProRole"),
-                        especialidade: value("adminProSpecialty"),
-                        regiaoAtendimento: value("adminProRegion"),
-                        veiculo: value("adminProVehicle"),
-                        statusPlantao: value("adminProShiftStatus"),
-                        equipe: value("adminProTeam")
-                    }
-                })
-            }, 45000);
-            toast(response.message || "Profissional criado.", "success");
-            ["adminProName", "adminProCpf", "adminProEmail", "adminProPhone", "adminProPassword", "adminProPasswordConfirm", "adminProRegion", "adminProTeam"].forEach(function (id) { setValue(id, ""); });
-            await abrirGerenciarUsuarios();
+            const photoInput = byId("adminProPhoto");
+            const foto =
+                photoInput &&
+                photoInput.files &&
+                photoInput.files[0]
+                    ? await compressImage(
+                        photoInput.files[0],
+                        720,
+                        0.78
+                    )
+                    : "";
+
+            const response = await api(
+                "/api/admin/profissionais",
+                {
+                    method: "POST",
+                    body: JSON.stringify({
+                        nome: value("adminProName"),
+                        cpf,
+                        email: value("adminProEmail"),
+                        telefone: formatPhone(value("adminProPhone")),
+                        company,
+                        foto,
+                        profissional: {
+                            registroProfissional: employeeId,
+                            cargo: value("adminProRole"),
+                            especialidade: value("adminProSpecialty"),
+                            regiaoAtendimento: value("adminProRegion"),
+                            veiculo: value("adminProVehicle"),
+                            statusPlantao: value("adminProShiftStatus"),
+                            equipe: value("adminProTeam")
+                        }
+                    })
+                },
+                60000
+            );
+
+            text(
+                "adminTemporaryCredentialCpf",
+                formatCpf(response.user?.cpf || cpf)
+            );
+
+            text(
+                "adminTemporaryCredentialPassword",
+                response.senhaTemporaria || "Não retornada"
+            );
+
+            text(
+                "adminTemporaryCredentialEmployeeId",
+                response.identificacaoFuncional || employeeId
+            );
+
+            const result = byId("adminTemporaryCredentialResult");
+
+            if (result) {
+                result.classList.remove("hidden");
+                result.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center"
+                });
+            }
+
+            [
+                "adminProName",
+                "adminProCpf",
+                "adminProEmail",
+                "adminProPhone",
+                "adminProEmployeeId",
+                "adminProRegion",
+                "adminProTeam"
+            ].forEach(function (id) {
+                setValue(id, "");
+            });
+
+            if (photoInput) {
+                photoInput.value = "";
+            }
+
+            const companySelect = byId("adminProCompany");
+            if (companySelect) companySelect.value = "";
+
+            toast(
+                response.message ||
+                "Profissional criado com senha temporária.",
+                "success"
+            );
         } catch (error) {
-            showError(error, "Não foi possível criar o profissional.");
+            showError(
+                error,
+                "Não foi possível criar o profissional."
+            );
         } finally {
             state.busy.delete("pro-create");
             setBusy(button, false);
+        }
+    }
+
+    async function copiarCredenciaisTemporariasAdmin() {
+        const cpf = byId("adminTemporaryCredentialCpf")?.textContent || "";
+        const password =
+            byId("adminTemporaryCredentialPassword")?.textContent || "";
+        const employeeId =
+            byId("adminTemporaryCredentialEmployeeId")?.textContent || "";
+
+        const content = [
+            "Safe Life — acesso profissional",
+            `CPF: ${cpf}`,
+            `Senha temporária: ${password}`,
+            `Identificação funcional: ${employeeId}`,
+            "",
+            "No primeiro login será obrigatório criar uma nova senha."
+        ].join("\n");
+
+        try {
+            await navigator.clipboard.writeText(content);
+            toast("Credenciais copiadas.", "success");
+        } catch (_) {
+            window.prompt(
+                "Copie as credenciais abaixo:",
+                content
+            );
         }
     }
 
@@ -2249,14 +2632,113 @@
     }
 
     function renderAdminUserCard(user) {
-        const isMaster = cleanCpf(user.cpf) === ADMIN_CPF;
+        const cpf = cleanCpf(user.cpf);
+        const isMaster = cpf === ADMIN_CPF;
         const deleted = Boolean(user.excluidaEm || user.excluida_em);
         const active = user.ativo !== false && !deleted;
-        const displayName = escapeHtml(user.nome || "Usuário");
-        return `<article class="safe-v19-admin-card ${active ? "" : "is-blocked"}">
-            <div class="safe-v19-admin-user"><img src="${escapeHtml(resolveUserPhoto(user, user.foto))}" data-fallback="${escapeHtml(defaultUserPhoto(user))}" onerror="this.onerror=null;this.src=this.dataset.fallback" alt="Foto de ${displayName}"><div><h4>${displayName}</h4><p>${escapeHtml(user.type || user.tipo || "citizen")} • CPF ${escapeHtml(formatCpf(user.cpf))}</p><small>${escapeHtml(user.email || "Sem e-mail")} • ${escapeHtml(formatPhone(user.telefone) || "Sem telefone")}</small><span class="safe-v19-status ${active ? "cadastrado" : "desaparecido"}">${deleted ? "EXCLUÍDA" : active ? "ATIVA" : "SUSPENSA"}</span></div></div>
-            <div class="safe-v19-actions"><button type="button" class="btn secondary-btn" onclick="abrirEdicaoUsuarioAdmin('${cleanCpf(user.cpf)}')">Editar dados</button>${isMaster ? "" : `${active ? `<button type="button" class="btn secondary-btn" onclick="abrirSuspensaoAdmin('${cleanCpf(user.cpf)}', '${displayName.replace(/'/g, "&#39;")}')">Suspender</button>` : `<button type="button" class="btn" onclick="reativarContaAdmin('${cleanCpf(user.cpf)}')">Reativar</button>`}<button type="button" class="btn admin-danger-btn" onclick="excluirContaAdmin('${cleanCpf(user.cpf)}', '${displayName.replace(/'/g, "&#39;")}')">Excluir conta</button>`}</div>
-        </article>`;
+        const rawName = String(user.nome || "Usuário");
+        const displayName = escapeHtml(rawName);
+        const jsName = rawName
+            .replace(/\\/g, "\\\\")
+            .replace(/'/g, "\\'")
+            .replace(/[\r\n]+/g, " ");
+
+        let statusText = "SUSPENSA";
+
+        if (deleted) {
+            statusText = "EXCLUÍDA";
+        } else if (active) {
+            statusText = "ATIVA";
+        }
+
+        let accountActions = "";
+
+        if (!isMaster) {
+            if (active) {
+                accountActions += `
+                    <button
+                        type="button"
+                        class="btn secondary-btn"
+                        onclick="abrirSuspensaoAdmin('${cpf}', '${jsName}')"
+                    >
+                        Suspender
+                    </button>
+                `;
+            } else {
+                accountActions += `
+                    <button
+                        type="button"
+                        class="btn"
+                        onclick="reativarContaAdmin('${cpf}')"
+                    >
+                        Reativar
+                    </button>
+                `;
+            }
+
+            if (!deleted) {
+                accountActions += `
+                    <button
+                        type="button"
+                        class="btn admin-danger-btn"
+                        onclick="excluirContaAdmin('${cpf}', '${jsName}')"
+                    >
+                        Excluir conta
+                    </button>
+                `;
+            }
+
+            accountActions += `
+                <button
+                    type="button"
+                    class="btn admin-permanent-danger-btn"
+                    onclick="excluirContaPermanentementeAdmin('${cpf}', '${jsName}')"
+                >
+                    Excluir permanentemente
+                </button>
+            `;
+        }
+
+        return `
+            <article class="safe-v19-admin-card ${active ? "" : "is-blocked"}">
+                <div class="safe-v19-admin-user">
+                    <img
+                        src="${escapeHtml(resolveUserPhoto(user, user.foto))}"
+                        data-fallback="${escapeHtml(defaultUserPhoto(user))}"
+                        onerror="this.onerror=null;this.src=this.dataset.fallback"
+                        alt="Foto de ${displayName}"
+                    >
+
+                    <div>
+                        <h4>${displayName}</h4>
+                        <p>
+                            ${escapeHtml(user.type || user.tipo || "citizen")}
+                            • CPF ${escapeHtml(formatCpf(user.cpf))}
+                        </p>
+                        <small>
+                            ${escapeHtml(user.email || "Sem e-mail")}
+                            •
+                            ${escapeHtml(formatPhone(user.telefone) || "Sem telefone")}
+                        </small>
+                        <span class="safe-v19-status ${active ? "cadastrado" : "desaparecido"}">
+                            ${statusText}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="safe-v19-actions">
+                    <button
+                        type="button"
+                        class="btn secondary-btn"
+                        onclick="abrirEdicaoUsuarioAdmin('${cpf}')"
+                    >
+                        Editar dados
+                    </button>
+
+                    ${accountActions}
+                </div>
+            </article>
+        `;
     }
 
 
@@ -2395,6 +2877,56 @@
             await abrirGerenciarUsuarios();
         } catch (error) {
             showError(error);
+        }
+    }
+
+    async function excluirContaPermanentementeAdmin(cpf, nome) {
+        const normalizedCpf = cleanCpf(cpf);
+
+        if (normalizedCpf === ADMIN_CPF) {
+            return window.alert("A conta principal do administrador não pode ser excluída.");
+        }
+
+        const typed = window.prompt(
+            `Esta ação apagará permanentemente a conta de ${nome}, incluindo os pets e dados dependentes.\n\nDigite EXCLUIR para continuar:`
+        );
+
+        if (typed == null) return;
+
+        if (String(typed).trim().toUpperCase() !== "EXCLUIR") {
+            return window.alert("Exclusão cancelada. Era necessário digitar EXCLUIR.");
+        }
+
+        const confirmed = window.confirm(
+            `Última confirmação: excluir permanentemente ${nome}?\n\nA conta será removida do banco e não poderá ser reativada.`
+        );
+
+        if (!confirmed) return;
+
+        try {
+            const response = await api(
+                `/api/admin/accounts/${normalizedCpf}/permanent`,
+                {
+                    method: "DELETE",
+                    body: JSON.stringify({
+                        confirmacao: "EXCLUIR"
+                    })
+                },
+                60000
+            );
+
+            toast(
+                response.message ||
+                "Conta removida permanentemente do banco.",
+                "success"
+            );
+
+            await abrirGerenciarUsuarios();
+        } catch (error) {
+            showError(
+                error,
+                "Não foi possível excluir permanentemente a conta."
+            );
         }
     }
 
@@ -2774,6 +3306,8 @@
         excluirEmpresaAdmin,
         abrirCadastroProfissionalAdmin,
         cadastrarProfissionalAdmin,
+        copiarCredenciaisTemporariasAdmin,
+        trocarSenhaTemporaria,
         abrirGerenciarUsuarios,
         abrirEdicaoUsuarioAdmin,
         fecharEdicaoUsuarioAdmin,
@@ -2784,6 +3318,7 @@
         confirmarSuspensaoAdmin,
         reativarContaAdmin,
         excluirContaAdmin,
+        excluirContaPermanentementeAdmin,
         abrirContasSuspeitas,
         abrirRelatorioAdmin,
         abrirRelatorioPlantao,
