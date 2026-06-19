@@ -7,7 +7,7 @@ const { Pool } = require("pg");
 
 const app = express();
 
-const SAFE_LIFE_VERSION = "20.0";
+const SAFE_LIFE_VERSION = "21.3.0";
 const PORT = Number(process.env.PORT) || 3000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 const IS_PRODUCTION = NODE_ENV === "production";
@@ -149,6 +149,54 @@ function validarEmail(email) {
 }
 
 
+function validarMidiaObrigatoria(valor) {
+    const media = String(valor || "").trim();
+
+    if (!media) {
+        return {
+            ok: false,
+            error: "Envie obrigatoriamente uma imagem ou um vídeo."
+        };
+    }
+
+    const match = media.match(
+        /^data:(image\/[a-z0-9.+-]+|video\/[a-z0-9.+-]+);base64,([a-z0-9+/=\r\n]+)$/i
+    );
+
+    if (!match) {
+        return {
+            ok: false,
+            error: "A comprovação precisa ser uma imagem ou vídeo válido enviado pelo aplicativo."
+        };
+    }
+
+    const mimeType = String(match[1] || "").toLowerCase();
+    const base64 = String(match[2] || "").replace(/\s+/g, "");
+    const approximateBytes = Math.floor((base64.length * 3) / 4);
+    const kind = mimeType.startsWith("video/") ? "video" : "image";
+    const maxBytes = kind === "video"
+        ? 9 * 1024 * 1024
+        : 8 * 1024 * 1024;
+
+    if (approximateBytes <= 0 || approximateBytes > maxBytes) {
+        return {
+            ok: false,
+            error: kind === "video"
+                ? "O vídeo deve ter no máximo 9 MB."
+                : "A imagem processada ficou muito grande."
+        };
+    }
+
+    return {
+        ok: true,
+        media,
+        kind,
+        mimeType,
+        approximateBytes
+    };
+}
+
+
 function hashSenha(senha) {
     const senhaTexto = String(senha || "");
     const salt = crypto.randomBytes(16).toString("hex");
@@ -174,6 +222,29 @@ function hashSenhaAsync(senha) {
             );
         });
     });
+}
+
+function gerarSenhaTemporariaProfissional() {
+    const caracteres = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+    const bytes = crypto.randomBytes(10);
+    let senha = "SL-";
+
+    for (let index = 0; index < bytes.length; index += 1) {
+        senha += caracteres[bytes[index] % caracteres.length];
+    }
+
+    return senha;
+}
+
+function validarSenhaProfissionalForte(senha) {
+    const valor = String(senha || "");
+
+    return (
+        valor.length >= 8 &&
+        /[a-z]/.test(valor) &&
+        /[A-Z]/.test(valor) &&
+        /\d/.test(valor)
+    );
 }
 
 function senhaEstaHasheada(senhaHash) {
@@ -292,6 +363,7 @@ function usuarioSeguro(usuario) {
         motivoBloqueio: usuario.motivo_bloqueio || null,
         excluidaEm: usuario.excluida_em || null,
         sessionVersion: Number(usuario.session_version || 1),
+        mustChangePassword: Boolean(usuario.troca_senha_obrigatoria),
         cargo: usuario.cargo || null,
         nivelAcesso: usuario.nivel_acesso || null,
         registroProfissional: usuario.registro_profissional || null,
@@ -659,6 +731,22 @@ async function verificarSessaoUsuario(req, res, next) {
         if (Number(payload.sv || 1) !== Number(usuario.session_version || 1)) {
             return res.status(401).json({ error: "Sessão expirada ou revogada.", code: "SESSION_REVOKED" });
         }
+
+        const isPasswordChangeRoute =
+            String(req.originalUrl || "").includes(
+                "/api/auth/change-temporary-password"
+            );
+
+        if (
+            usuario.troca_senha_obrigatoria === true &&
+            !isPasswordChangeRoute
+        ) {
+            return res.status(428).json({
+                error: "Crie sua senha definitiva antes de acessar o sistema.",
+                code: "PASSWORD_CHANGE_REQUIRED"
+            });
+        }
+
         req.auth = payload;
         req.usuarioAutenticado = usuario;
         return next();
@@ -967,6 +1055,13 @@ async function handleRealtimeStream(req, res) {
         });
     }
 
+    if (user.troca_senha_obrigatoria === true) {
+        return res.status(428).json({
+            error: "Crie sua senha definitiva antes de acessar o canal online.",
+            code: "PASSWORD_CHANGE_REQUIRED"
+        });
+    }
+
     if (Number(payload.sv || 1) !== Number(user.session_version || 1)) {
         return res.status(401).json({
             error: "Sessão revogada.",
@@ -1076,7 +1171,6 @@ app.post("/api/auth/register", async (req, res) => {
             telefone,
             type,
             role,
-            company,
             foto,
             senha,
             password
@@ -1086,8 +1180,17 @@ app.post("/api/auth/register", async (req, res) => {
         const cpfLimpo = limparCpf(cpf);
         const emailLimpo = limparTexto(email).toLowerCase();
         const telefoneLimpo = limparTexto(telefone);
-        const tipoConta = String(type || role || "citizen").toLowerCase();
+        const tipoSolicitado = String(type || role || "citizen").toLowerCase();
         const senhaInformada = String(senha || password || "");
+
+        if (tipoSolicitado !== "citizen") {
+            return res.status(403).json({
+                error:
+                    "O cadastro público é exclusivo para cidadãos. " +
+                    "Profissionais devem ser cadastrados pelo administrador.",
+                code: "PROFESSIONAL_ADMIN_ONLY"
+            });
+        }
 
         if (!nomeLimpo) {
             return res.status(400).json({
@@ -1110,18 +1213,6 @@ app.post("/api/auth/register", async (req, res) => {
         if (!telefoneLimpo) {
             return res.status(400).json({
                 error: "Informe o telefone/WhatsApp."
-            });
-        }
-
-        if (!["citizen", "professional"].includes(tipoConta)) {
-            return res.status(400).json({
-                error: "Tipo de conta inválido."
-            });
-        }
-
-        if (tipoConta === "professional" && !company) {
-            return res.status(400).json({
-                error: "Selecione a empresa/base do profissional."
             });
         }
 
@@ -1157,7 +1248,6 @@ app.post("/api/auth/register", async (req, res) => {
         }
 
         const senhaHash = await hashSenhaAsync(senhaInformada);
-
         let fotoFinal = limparTexto(foto || "");
 
         if (
@@ -1168,13 +1258,11 @@ app.post("/api/auth/register", async (req, res) => {
             fotoFinal = "";
         }
 
-        /*
-         * Impede payload enorme no perfil. O navegador já comprime,
-         * mas o servidor também limita por segurança.
-         */
         if (fotoFinal.length > 1400000) {
             return res.status(413).json({
-                error: "A foto de perfil ficou muito grande. Escolha uma imagem menor."
+                error:
+                    "A foto de perfil ficou muito grande. " +
+                    "Escolha uma imagem menor."
             });
         }
 
@@ -1193,10 +1281,11 @@ app.post("/api/auth/register", async (req, res) => {
                 tipo,
                 empresa,
                 foto_perfil,
-                ativo
+                ativo,
+                troca_senha_obrigatoria
             )
             VALUES
-            ($1,$2,$3,$4,$5,$6,$7,$8,TRUE)
+            ($1,$2,$3,$4,$5,'citizen',NULL,$6,TRUE,FALSE)
             RETURNING *
             `,
             [
@@ -1205,47 +1294,16 @@ app.post("/api/auth/register", async (req, res) => {
                 senhaHash,
                 emailLimpo,
                 telefoneLimpo,
-                tipoConta,
-                tipoConta === "professional"
-                    ? limparTexto(company)
-                    : null,
                 fotoFinal || null
             ]
         );
-
-        const novoUsuario = usuarioResult.rows[0];
-
-        if (tipoConta === "professional") {
-            await client.query(
-                `
-                INSERT INTO funcionarios
-                (
-                    usuario_id,
-                    cargo,
-                    empresa,
-                    nivel_acesso,
-                    status_plantao,
-                    ativo
-                )
-                VALUES
-                ($1,$2,$3,$4,$5,TRUE)
-                `,
-                [
-                    novoUsuario.id,
-                    "Agente Operacional",
-                    limparTexto(company),
-                    "operador",
-                    "Disponível"
-                ]
-            );
-        }
 
         await client.query("COMMIT");
         transactionStarted = false;
 
         const usuarioCompleto =
             (await buscarUsuarioPorCpf(cpfLimpo)) ||
-            novoUsuario;
+            usuarioResult.rows[0];
 
         const token = criarTokenSessao(usuarioCompleto);
 
@@ -1255,13 +1313,13 @@ app.post("/api/auth/register", async (req, res) => {
             payload: {
                 action: "USER_REGISTERED",
                 userId: usuarioCompleto.id,
-                userType: usuarioCompleto.tipo,
+                userType: "citizen",
                 name: usuarioCompleto.nome
             }
         }).catch(() => {});
 
         return res.status(201).json({
-            message: "Conta criada com sucesso.",
+            message: "Conta de cidadão criada com sucesso.",
             token,
             user: usuarioSeguro(usuarioCompleto)
         });
@@ -1272,14 +1330,14 @@ app.post("/api/auth/register", async (req, res) => {
             } catch (_) {}
         }
 
-        console.error("❌ Erro no cadastro:", erro);
+        console.error("❌ Erro no cadastro público:", erro);
 
         const conflito = erro.code === "23505";
 
         return res.status(conflito ? 409 : 500).json({
             error: conflito
                 ? "CPF ou e-mail já cadastrado."
-                : "Erro ao cadastrar usuário.",
+                : "Erro ao cadastrar cidadão.",
             details: detalhesErro(erro)
         });
     } finally {
@@ -1417,6 +1475,99 @@ app.post("/api/auth/login", async (req, res) => {
     }
 });
 
+
+app.post(
+    "/api/auth/change-temporary-password",
+    verificarSessaoUsuario,
+    async (req, res) => {
+        try {
+            const usuario = req.usuarioAutenticado;
+            const newPassword = String(req.body?.newPassword || "");
+            const confirmation = String(req.body?.confirmation || "");
+
+            if (usuario.tipo !== "professional") {
+                return res.status(403).json({
+                    error:
+                        "Esta troca obrigatória é exclusiva para contas profissionais.",
+                    code: "PROFESSIONAL_ONLY"
+                });
+            }
+
+            if (usuario.troca_senha_obrigatoria !== true) {
+                return res.status(409).json({
+                    error:
+                        "Esta conta não possui uma senha temporária pendente.",
+                    code: "PASSWORD_CHANGE_NOT_REQUIRED"
+                });
+            }
+
+            if (newPassword !== confirmation) {
+                return res.status(400).json({
+                    error: "As duas senhas não são iguais."
+                });
+            }
+
+            if (!validarSenhaProfissionalForte(newPassword)) {
+                return res.status(400).json({
+                    error:
+                        "A senha precisa ter pelo menos 8 caracteres, " +
+                        "com letra maiúscula, letra minúscula e número."
+                });
+            }
+
+            if (verificarSenha(newPassword, usuario.senha_hash)) {
+                return res.status(400).json({
+                    error:
+                        "A senha definitiva precisa ser diferente da senha temporária."
+                });
+            }
+
+            const result = await pool.query(
+                `
+                UPDATE usuarios
+                SET
+                    senha_hash = $1,
+                    troca_senha_obrigatoria = FALSE,
+                    session_version = session_version + 1,
+                    atualizado_em = CURRENT_TIMESTAMP
+                WHERE id = $2
+                RETURNING *
+                `,
+                [
+                    await hashSenhaAsync(newPassword),
+                    usuario.id
+                ]
+            );
+
+            const atualizado =
+                (await buscarUsuarioPorCpf(usuario.cpf)) ||
+                result.rows[0];
+
+            const token = criarTokenSessao(atualizado);
+
+            await registrarAuditoria({
+                usuarioAlvoId: atualizado.id,
+                acao: "SENHA_TEMPORARIA_SUBSTITUIDA",
+                detalhes: {
+                    tipo: atualizado.tipo
+                },
+                req
+            });
+
+            return res.status(200).json({
+                message:
+                    "Senha definitiva criada. Acesso profissional liberado.",
+                token,
+                user: usuarioSeguro(atualizado)
+            });
+        } catch (erro) {
+            return res.status(500).json({
+                error: "Erro ao substituir a senha temporária.",
+                details: detalhesErro(erro)
+            });
+        }
+    }
+);
 
 app.get("/api/auth/session-status", async (req, res) => {
     try {
@@ -1983,8 +2134,6 @@ app.post("/api/admin/profissionais", verificarAdmin, async (req, res) => {
             telefone,
             company,
             foto,
-            senha,
-            password,
             profissional = {},
             cargo,
             registroProfissional,
@@ -1994,14 +2143,17 @@ app.post("/api/admin/profissionais", verificarAdmin, async (req, res) => {
             veiculo,
             equipe,
             bioProfissional
-        } = req.body;
+        } = req.body || {};
 
         const cpfLimpo = limparCpf(cpf);
-        const senhaInformada = String(senha || password || "");
-        const senhaFinal = senhaInformada || cpfLimpo;
+        const emailLimpo = limparTexto(email).toLowerCase();
+        const telefoneLimpo = limparTexto(telefone);
 
         const dadosProfissionais = {
-            cargo: profissional.cargo || cargo || "Agente Operacional",
+            cargo:
+                profissional.cargo ||
+                cargo ||
+                "Agente Operacional",
             registro:
                 profissional.registro ||
                 profissional.registroProfissional ||
@@ -2021,8 +2173,14 @@ app.post("/api/admin/profissionais", verificarAdmin, async (req, res) => {
                 profissional.statusPlantao ||
                 statusPlantao ||
                 "Disponível",
-            veiculo: profissional.veiculo || veiculo || "Veículo de apoio",
-            equipe: profissional.equipe || equipe || "Equipe Safe Life",
+            veiculo:
+                profissional.veiculo ||
+                veiculo ||
+                "Veículo de apoio",
+            equipe:
+                profissional.equipe ||
+                equipe ||
+                "Equipe Safe Life",
             bio:
                 profissional.observacoes ||
                 profissional.bioProfissional ||
@@ -2030,9 +2188,23 @@ app.post("/api/admin/profissionais", verificarAdmin, async (req, res) => {
                 ""
         };
 
-        if (!nome || !cpfLimpo || !email || !telefone || !company) {
+        if (
+            !nome ||
+            !cpfLimpo ||
+            !emailLimpo ||
+            !telefoneLimpo ||
+            !company
+        ) {
             return res.status(400).json({
-                error: "Preencha nome, CPF, e-mail, telefone e empresa."
+                error:
+                    "Preencha nome, CPF, e-mail, telefone e empresa."
+            });
+        }
+
+        if (!dadosProfissionais.registro) {
+            return res.status(400).json({
+                error:
+                    "A identificação funcional ou matrícula da empresa é obrigatória."
             });
         }
 
@@ -2048,25 +2220,87 @@ app.post("/api/admin/profissionais", verificarAdmin, async (req, res) => {
             });
         }
 
-        if (!validarEmail(email)) {
+        if (!validarEmail(emailLimpo)) {
             return res.status(400).json({
                 error: "E-mail inválido."
             });
         }
 
-        if (senhaInformada && senhaInformada.length < 6) {
+        const empresaResult = await client.query(
+            `
+            SELECT id, nome
+            FROM empresas
+            WHERE LOWER(nome) = LOWER($1)
+              AND ativo = TRUE
+            LIMIT 1
+            `,
+            [limparTexto(company)]
+        );
+
+        if (empresaResult.rows.length === 0) {
             return res.status(400).json({
-                error: "A senha precisa ter pelo menos 6 caracteres."
+                error:
+                    "A empresa selecionada não está cadastrada ou está inativa."
             });
         }
 
-        const existe = await buscarUsuarioPorCpf(cpfLimpo);
+        const empresa = empresaResult.rows[0];
 
-        if (existe) {
+        const duplicado = await client.query(
+            `
+            SELECT
+                EXISTS(
+                    SELECT 1
+                    FROM usuarios
+                    WHERE cpf = $1
+                       OR LOWER(email) = LOWER($2)
+                ) AS usuario_duplicado,
+                EXISTS(
+                    SELECT 1
+                    FROM funcionarios
+                    WHERE LOWER(BTRIM(registro_profissional)) =
+                          LOWER(BTRIM($3))
+                ) AS registro_duplicado
+            `,
+            [
+                cpfLimpo,
+                emailLimpo,
+                limparTexto(dadosProfissionais.registro)
+            ]
+        );
+
+        if (duplicado.rows[0].usuario_duplicado) {
             return res.status(409).json({
-                error: "Este CPF já está cadastrado."
+                error: "CPF ou e-mail já cadastrado."
             });
         }
+
+        if (duplicado.rows[0].registro_duplicado) {
+            return res.status(409).json({
+                error:
+                    "Esta identificação funcional já pertence a outro profissional."
+            });
+        }
+
+        let fotoFinal = limparTexto(foto || "");
+
+        if (
+            fotoFinal &&
+            !fotoFinal.startsWith("data:image/") &&
+            !/^https?:\/\//i.test(fotoFinal)
+        ) {
+            fotoFinal = "";
+        }
+
+        if (fotoFinal.length > 1400000) {
+            return res.status(413).json({
+                error:
+                    "A foto do profissional ficou muito grande."
+            });
+        }
+
+        const senhaTemporaria =
+            gerarSenhaTemporariaProfissional();
 
         await client.query("BEGIN");
 
@@ -2082,20 +2316,21 @@ app.post("/api/admin/profissionais", verificarAdmin, async (req, res) => {
                 tipo,
                 empresa,
                 foto_perfil,
-                ativo
+                ativo,
+                troca_senha_obrigatoria
             )
             VALUES
-            ($1,$2,$3,$4,$5,'professional',$6,$7,TRUE)
+            ($1,$2,$3,$4,$5,'professional',$6,$7,TRUE,TRUE)
             RETURNING *
             `,
             [
                 limparTexto(nome),
                 cpfLimpo,
-                await hashSenhaAsync(senhaFinal),
-                limparTexto(email).toLowerCase(),
-                limparTexto(telefone),
-                limparTexto(company),
-                foto || "img/vitor-chineque.jpg"
+                await hashSenhaAsync(senhaTemporaria),
+                emailLimpo,
+                telefoneLimpo,
+                empresa.nome,
+                fotoFinal || null
             ]
         );
 
@@ -2124,7 +2359,7 @@ app.post("/api/admin/profissionais", verificarAdmin, async (req, res) => {
             [
                 usuario.id,
                 limparTexto(dadosProfissionais.cargo),
-                limparTexto(company),
+                empresa.nome,
                 "operador",
                 limparTexto(dadosProfissionais.registro),
                 limparTexto(dadosProfissionais.especialidade),
@@ -2138,24 +2373,51 @@ app.post("/api/admin/profissionais", verificarAdmin, async (req, res) => {
 
         await client.query("COMMIT");
 
-        const usuarioCompleto = await buscarUsuarioPorCpf(cpfLimpo);
+        const usuarioCompleto =
+            await buscarUsuarioPorCpf(cpfLimpo);
+
+        await registrarAuditoria({
+            administradorId: req.admin.id,
+            usuarioAlvoId: usuario.id,
+            acao: "PROFISSIONAL_CADASTRADO",
+            detalhes: {
+                empresa: empresa.nome,
+                registroProfissional:
+                    limparTexto(dadosProfissionais.registro)
+            },
+            req
+        });
+
+        await publishRealtimeEvent({
+            audience: "ADMINS",
+            type: "admin_changed",
+            payload: {
+                action: "professional_created",
+                userId: usuario.id,
+                company: empresa.nome
+            }
+        });
 
         return res.status(201).json({
-            message: senhaInformada
-                ? "Profissional cadastrado pelo administrador com sucesso."
-                : "Profissional cadastrado. O CPF foi definido como senha temporária.",
-            senhaTemporaria: !senhaInformada,
+            message:
+                "Profissional cadastrado. Entregue a senha temporária e a identificação ao funcionário.",
+            senhaTemporaria,
+            identificacaoFuncional:
+                limparTexto(dadosProfissionais.registro),
+            trocaSenhaObrigatoria: true,
             user: usuarioSeguro(usuarioCompleto || usuario)
         });
     } catch (erro) {
         try {
             await client.query("ROLLBACK");
-        } catch (_) {
-            // A transação pode não ter sido iniciada.
-        }
+        } catch (_) {}
 
-        return res.status(500).json({
-            error: "Erro ao cadastrar profissional pelo administrador.",
+        const conflito = erro.code === "23505";
+
+        return res.status(conflito ? 409 : 500).json({
+            error: conflito
+                ? "CPF, e-mail ou identificação funcional já cadastrados."
+                : "Erro ao cadastrar profissional pelo administrador.",
             details: detalhesErro(erro)
         });
     } finally {
@@ -2318,35 +2580,158 @@ app.delete("/api/admin/empresas/:id", verificarAdmin, async (req, res) => {
     }
 });
 
-app.delete("/api/admin/users/:cpf/permanent", verificarAdmin, async (req, res) => {
+async function excluirContaPermanentemente(req, res) {
+    const client = await pool.connect();
+
     try {
         const cpfLimpo = limparCpf(req.params.cpf);
+        const confirmacao = String(req.body?.confirmacao || "")
+            .trim()
+            .toUpperCase();
 
         if (cpfLimpo === ADMIN_CPF) {
-            return res.status(403).json({ error: "A conta master não pode ser excluída." });
+            return res.status(403).json({
+                error: "A conta principal do administrador não pode ser excluída."
+            });
         }
 
-        const result = await pool.query(
+        if (confirmacao !== "EXCLUIR") {
+            return res.status(400).json({
+                error: "Confirmação inválida. Digite EXCLUIR para apagar permanentemente."
+            });
+        }
+
+        await client.query("BEGIN");
+
+        const usuarioResult = await client.query(
             `
-            DELETE FROM usuarios
+            SELECT id, nome, cpf, email, tipo
+            FROM usuarios
             WHERE cpf = $1
-            RETURNING *
+            FOR UPDATE
             `,
             [cpfLimpo]
         );
 
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: "Usuário não encontrado." });
+        if (usuarioResult.rows.length === 0) {
+            await client.query("ROLLBACK");
+
+            return res.status(404).json({
+                error: "Conta não encontrada ou já excluída permanentemente."
+            });
         }
 
-        return res.status(200).json({ message: "Conta excluída permanentemente." });
-    } catch (erro) {
-        return res.status(500).json({
-            error: "Erro ao excluir conta.",
-            details: erro.message
+        const usuario = usuarioResult.rows[0];
+
+        /*
+         * resgates_pets usa ON DELETE RESTRICT para o funcionário.
+         * Como a exclusão é permanente, os registros dependentes do
+         * profissional também são removidos antes da conta.
+         */
+        const funcionarios = await client.query(
+            `
+            SELECT id
+            FROM funcionarios
+            WHERE usuario_id = $1
+            `,
+            [usuario.id]
+        );
+
+        const funcionarioIds = funcionarios.rows.map((row) => Number(row.id));
+
+        if (funcionarioIds.length > 0) {
+            await client.query(
+                `
+                DELETE FROM resgates_pets
+                WHERE funcionario_id = ANY($1::int[])
+                `,
+                [funcionarioIds]
+            );
+        }
+
+        const deleteResult = await client.query(
+            `
+            DELETE FROM usuarios
+            WHERE id = $1
+            RETURNING id
+            `,
+            [usuario.id]
+        );
+
+        if (deleteResult.rows.length === 0) {
+            throw new Error("A conta não pôde ser removida.");
+        }
+
+        await client.query("COMMIT");
+
+        /*
+         * A sessão conectada recebe o aviso mesmo após o registro ter
+         * sido removido. Nas próximas validações o login deixa de existir.
+         */
+        deliverRealtimeEvent({
+            id: Date.now(),
+            audience: "USER",
+            audienceId: usuario.id,
+            type: "account_status",
+            payload: {
+                code: "ACCOUNT_PERMANENTLY_DELETED",
+                message: "Sua conta foi excluída permanentemente pelo administrador."
+            },
+            sentAt: new Date().toISOString()
         });
+
+        await registrarAuditoria({
+            administradorId: req.admin.id,
+            usuarioAlvoId: null,
+            acao: "CONTA_EXCLUIDA_PERMANENTEMENTE",
+            detalhes: {
+                usuarioId: usuario.id,
+                nome: usuario.nome,
+                cpf: usuario.cpf,
+                email: usuario.email,
+                tipo: usuario.tipo
+            },
+            req
+        });
+
+        await publishRealtimeEvent({
+            audience: "ADMINS",
+            type: "admin_changed",
+            payload: {
+                action: "account_permanently_deleted",
+                cpf: usuario.cpf
+            }
+        });
+
+        return res.status(200).json({
+            message: "Conta excluída permanentemente do banco. Não é possível reativá-la.",
+            cpf: usuario.cpf
+        });
+    } catch (erro) {
+        try {
+            await client.query("ROLLBACK");
+        } catch (_) {}
+
+        return res.status(500).json({
+            error: "Erro ao excluir permanentemente a conta.",
+            details: detalhesErro(erro)
+        });
+    } finally {
+        client.release();
     }
-});
+}
+
+app.delete(
+    "/api/admin/users/:cpf/permanent",
+    verificarAdmin,
+    excluirContaPermanentemente
+);
+
+app.delete(
+    "/api/admin/accounts/:cpf/permanent",
+    verificarAdmin,
+    excluirContaPermanentemente
+);
 
 /* =====================================================
    PETS
@@ -2783,6 +3168,15 @@ app.post("/api/ocorrencias", async (req, res) => {
             });
         }
 
+        const midiaValidada = validarMidiaObrigatoria(foto);
+
+        if (!midiaValidada.ok) {
+            return res.status(400).json({
+                error: midiaValidada.error,
+                code: "EVIDENCE_REQUIRED"
+            });
+        }
+
         let usuario = null;
 
         if (usuarioCpf) {
@@ -2830,7 +3224,7 @@ app.post("/api/ocorrencias", async (req, res) => {
                 limparTexto(opcaoEscolhida || assunto),
                 limparTexto(localizacao),
                 limparTexto(detalhes),
-                foto || null,
+                midiaValidada.media,
                 gpsLimpo.latitude,
                 gpsLimpo.longitude,
                 gpsLimpo.enderecoCompleto || localizacao,
@@ -2845,7 +3239,8 @@ app.post("/api/ocorrencias", async (req, res) => {
             origin: "ocorrencia",
             id: result.rows[0].id,
             priority: result.rows[0].prioridade,
-            category: result.rows[0].categoria
+            category: result.rows[0].categoria,
+            mediaType: midiaValidada.kind
         });
 
         return res.status(201).json({
@@ -2965,6 +3360,15 @@ app.post("/api/ocorrencias/anonima", async (req, res) => {
             });
         }
 
+        const midiaValidada = validarMidiaObrigatoria(foto);
+
+        if (!midiaValidada.ok) {
+            return res.status(400).json({
+                error: midiaValidada.error,
+                code: "EVIDENCE_REQUIRED"
+            });
+        }
+
         const gpsLimpo = montarGps(gps);
 
         const result = await pool.query(
@@ -2997,7 +3401,7 @@ app.post("/api/ocorrencias/anonima", async (req, res) => {
                 limparTexto(opcaoEscolhida || assunto),
                 limparTexto(localizacao),
                 limparTexto(detalhes),
-                foto || null,
+                midiaValidada.media,
                 gpsLimpo.latitude,
                 gpsLimpo.longitude,
                 gpsLimpo.enderecoCompleto || localizacao,
@@ -3012,7 +3416,8 @@ app.post("/api/ocorrencias/anonima", async (req, res) => {
             origin: "anonima",
             id: result.rows[0].id,
             priority: result.rows[0].prioridade,
-            category: result.rows[0].categoria
+            category: result.rows[0].categoria,
+            mediaType: midiaValidada.kind
         });
 
         return res.status(201).json({
