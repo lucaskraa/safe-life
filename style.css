@@ -5039,3 +5039,25 @@ button[aria-busy="true"] {
         width: 100%;
     }
 }
+/* =====================================================
+   SAFE LIFE V20.1 — TEMPO REAL SEM STATUS VISÍVEL
+   O sistema continua online, mas sem barra, horário ou
+   mensagens de sincronização ocupando a interface.
+===================================================== */
+
+#safeLifeConnectionBar,
+.safe-life-connection-bar,
+#citizenOnlineSummary,
+.safe-life-citizen-online,
+.safe-life-live-panel,
+#proRealtimeStatus,
+#proRealtimeDetail,
+#safeLifeLastSync,
+#safeLifeConnectionText,
+#safeLifeConnectionDot {
+    display: none !important;
+}
+
+body {
+    padding-top: 0 !important;
+}
