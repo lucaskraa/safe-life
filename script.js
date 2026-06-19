@@ -261,34 +261,14 @@
     }
 
     function updateConnectionState(mode, message) {
-        const bar = byId("safeLifeConnectionBar");
-        const label = byId("safeLifeConnectionText");
-        const lastSync = byId("safeLifeLastSync");
-
-        if (bar) {
-            bar.classList.remove("is-online", "is-offline", "is-connecting");
-            bar.classList.add(mode === "online" ? "is-online" : mode === "offline" ? "is-offline" : "is-connecting");
-        }
-
-        if (label) {
-            label.textContent = message || (mode === "online" ? "Servidor conectado" : mode === "offline" ? "Sem conexão" : "Conectando ao servidor...");
-        }
-
-        if (state.lastSyncAt && lastSync) {
-            lastSync.textContent = `Última sincronização: ${state.lastSyncAt.toLocaleTimeString("pt-BR")}`;
-        } else if (lastSync) {
-            lastSync.textContent = "Ainda não sincronizado";
-        }
-
-        const proStatus = byId("proRealtimeStatus");
-        const proDetail = byId("proRealtimeDetail");
-        if (proStatus) proStatus.textContent = mode === "online" ? "Plantão conectado" : mode === "offline" ? "Plantão sem conexão" : "Conectando plantão";
-        if (proDetail) proDetail.textContent = message || "Aguardando eventos do servidor";
+        state.connectionMode = mode;
+        state.connectionMessage = message || "";
     }
 
     function markSynced(message) {
         state.lastSyncAt = new Date();
-        updateConnectionState("online", message || "Dados sincronizados em tempo real");
+        state.connectionMode = "online";
+        state.connectionMessage = message || "";
     }
 
     function prepareRealtimeAlerts() {
@@ -1317,7 +1297,7 @@
                 } else if (state.user.type === "admin") {
                     await validateSession(false);
                 }
-                markSynced("Sincronização de segurança concluída");
+                markSynced();
             } catch (_) {}
         }, state.user.type === "professional" ? 2500 : 5000);
     }
@@ -1347,7 +1327,7 @@
         const envelope = parseRealtimeEnvelope(event);
         const type = event.type || envelope.type || "message";
         const payload = envelope.payload || {};
-        markSynced("Atualização recebida agora");
+        markSynced();
 
         if (["new_occurrence", "new_missing_pet"].includes(type) && state.user?.type === "professional") {
             state.realtimeNewCount += 1;
@@ -1369,12 +1349,6 @@
             realtimeAlert(payload.title || "Atualização do atendimento", payload.message || "Seu chamado recebeu uma atualização.");
             toast(payload.title || "Seu chamado recebeu uma atualização.", "success");
             await loadCitizenNotifications();
-            const box = byId("citizenOnlineSummary");
-            if (box) {
-                box.classList.remove("safe-life-realtime-flash");
-                void box.offsetWidth;
-                box.classList.add("safe-life-realtime-flash");
-            }
             return;
         }
 
@@ -1393,13 +1367,12 @@
     }
 
     async function atualizarPainelProfissionalAgora() {
-        const button = document.querySelector(".safe-life-live-refresh");
+        const button = null;
         setBusy(button, true, "Atualizando...");
         try {
             state.realtimeNewCount = 0;
             text("proNewEventCount", 0);
             await scheduleProfessionalRefresh(false, true);
-            toast("Painel sincronizado com o servidor.", "success");
         } finally {
             setBusy(button, false);
         }
