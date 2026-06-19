@@ -1,5 +1,5 @@
 -- =============================================================
--- SAFE LIFE V19 — BANCO COMPLETO DE PRODUÇÃO / SUPABASE
+-- SAFE LIFE V20 — BANCO COMPLETO ONLINE FIRST DE PRODUÇÃO / SUPABASE
 -- Atualização segura: não apaga contas, pets ou chamados reais.
 -- Pode ser executado no SQL Editor do Supabase.
 -- =============================================================
@@ -220,6 +220,21 @@ CREATE TABLE IF NOT EXISTS notificacoes (
 );
 
 -- =============================================================
+-- EVENTOS DURÁVEIS DE TEMPO REAL
+-- Permite recuperar eventos perdidos após reconexão ou reinício.
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS eventos_tempo_real (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    audiencia VARCHAR(30) NOT NULL DEFAULT 'ALL',
+    usuario_id INTEGER REFERENCES usuarios(id) ON DELETE CASCADE,
+    tipo_evento VARCHAR(80) NOT NULL,
+    payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+    criado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_evento_audiencia CHECK (audiencia IN ('ALL', 'PROFESSIONALS', 'ADMINS', 'USER'))
+);
+
+-- =============================================================
 -- RESGATE DE PET DESAPARECIDO
 -- =============================================================
 
@@ -345,6 +360,8 @@ CREATE INDEX IF NOT EXISTS idx_ocorrencias_usuario_status ON ocorrencias(usuario
 CREATE INDEX IF NOT EXISTS idx_denuncias_fila ON denuncias_anonimas(status, prioridade, criado_em DESC);
 CREATE INDEX IF NOT EXISTS idx_notificacoes_usuario_data ON notificacoes(usuario_id, criado_em DESC);
 CREATE INDEX IF NOT EXISTS idx_notificacoes_nao_lidas ON notificacoes(usuario_id, lida) WHERE lida = FALSE;
+CREATE INDEX IF NOT EXISTS idx_eventos_tempo_real_audiencia_id ON eventos_tempo_real(audiencia, usuario_id, id);
+CREATE INDEX IF NOT EXISTS idx_eventos_tempo_real_data ON eventos_tempo_real(criado_em DESC);
 CREATE INDEX IF NOT EXISTS idx_resgates_pet ON resgates_pets(pet_id, concluido_em DESC);
 CREATE INDEX IF NOT EXISTS idx_resgates_funcionario ON resgates_pets(funcionario_id, concluido_em DESC);
 CREATE INDEX IF NOT EXISTS idx_bloqueios_usuario_ativo ON bloqueios_conta(usuario_id, ativo);
@@ -632,6 +649,7 @@ ALTER TABLE ocorrencias ENABLE ROW LEVEL SECURITY;
 ALTER TABLE denuncias_anonimas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE historico_ocorrencias ENABLE ROW LEVEL SECURITY;
 ALTER TABLE notificacoes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE eventos_tempo_real ENABLE ROW LEVEL SECURITY;
 ALTER TABLE resgates_pets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bloqueios_conta ENABLE ROW LEVEL SECURITY;
 ALTER TABLE auditoria_seguranca ENABLE ROW LEVEL SECURITY;
@@ -645,15 +663,20 @@ REVOKE ALL ON TABLE ocorrencias FROM anon, authenticated;
 REVOKE ALL ON TABLE denuncias_anonimas FROM anon, authenticated;
 REVOKE ALL ON TABLE historico_ocorrencias FROM anon, authenticated;
 REVOKE ALL ON TABLE notificacoes FROM anon, authenticated;
+REVOKE ALL ON TABLE eventos_tempo_real FROM anon, authenticated;
 REVOKE ALL ON TABLE resgates_pets FROM anon, authenticated;
 REVOKE ALL ON TABLE bloqueios_conta FROM anon, authenticated;
 REVOKE ALL ON TABLE auditoria_seguranca FROM anon, authenticated;
 REVOKE ALL ON TABLE tentativas_login FROM anon, authenticated;
 
+-- Limpa eventos antigos sem tocar nos dados reais do aplicativo.
+DELETE FROM eventos_tempo_real
+WHERE criado_em < CURRENT_TIMESTAMP - INTERVAL '7 days';
+
 COMMIT;
 
 SELECT
-    'Safe Life V19 instalado com segurança' AS resultado,
+    'Safe Life V20 Online instalado com segurança' AS resultado,
     (SELECT COUNT(*) FROM usuarios WHERE excluida_em IS NULL) AS usuarios_ativos_no_banco,
     (SELECT COUNT(*) FROM pets WHERE ativo = TRUE) AS pets_reais,
     (SELECT COUNT(*) FROM ocorrencias) AS ocorrencias_reais,
