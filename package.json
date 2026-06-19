@@ -1,8 +1,8 @@
 {
   "name": "safe-life",
-  "version": "19.0.0",
+  "version": "20.0.0",
   "private": true,
-  "description": "Safe Life V19 - plataforma limpa, estável e online de proteção animal.",
+  "description": "Safe Life V20 - plataforma online-first de proteção animal com tempo real entre dispositivos.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
