@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
     motivo_bloqueio TEXT,
     excluida_em TIMESTAMPTZ,
     session_version INTEGER NOT NULL DEFAULT 1,
+    troca_senha_obrigatoria BOOLEAN NOT NULL DEFAULT FALSE,
     ultimo_login TIMESTAMPTZ,
     criado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     atualizado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -81,6 +82,7 @@ ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS bloqueado_por INTEGER;
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS motivo_bloqueio TEXT;
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS excluida_em TIMESTAMPTZ;
 ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS session_version INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS troca_senha_obrigatoria BOOLEAN NOT NULL DEFAULT FALSE;
 
 CREATE TABLE IF NOT EXISTS empresas (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -681,3 +683,12 @@ SELECT
     (SELECT COUNT(*) FROM pets WHERE ativo = TRUE) AS pets_reais,
     (SELECT COUNT(*) FROM ocorrencias) AS ocorrencias_reais,
     (SELECT COUNT(*) FROM notificacoes) AS notificacoes;
+
+
+CREATE INDEX IF NOT EXISTS idx_funcionarios_usuario
+ON funcionarios(usuario_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_funcionarios_registro_profissional_unico
+ON funcionarios (LOWER(BTRIM(registro_profissional)))
+WHERE registro_profissional IS NOT NULL
+  AND BTRIM(registro_profissional) <> '';
