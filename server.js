@@ -375,11 +375,12 @@ async function garantirAdminNoBanco() {
                     tipo = 'admin',
                     empresa = 'Safe Life Matriz',
                     ativo = TRUE,
-                    senha_hash = $1
+                    senha_hash = $1,
+                    foto_perfil = COALESCE(NULLIF(foto_perfil, ''), $3)
                 WHERE cpf = $2
                 RETURNING *
                 `,
-                [senhaAdminHash, ADMIN_CPF]
+                [senhaAdminHash, ADMIN_CPF, process.env.ADMIN_PHOTO || "img/apenasumsiri.jpeg"]
             );
 
             return result.rows[0];
@@ -638,6 +639,31 @@ async function verificarAdmin(req, res, next) {
             error: "Erro ao validar administrador.",
             details: detalhesErro(erro)
         });
+    }
+}
+
+
+async function verificarSessaoUsuario(req, res, next) {
+    try {
+        const payload = validarTokenSessao(extrairBearerToken(req));
+        if (!payload) {
+            return res.status(401).json({ error: "Sessão necessária.", code: "AUTH_REQUIRED" });
+        }
+        const usuario = await buscarUsuarioPorCpf(payload.cpf);
+        const estado = estadoConta(usuario);
+        if (!estado.ok) {
+            return res.status(estado.status).json({
+                error: estado.message, code: estado.code, blockedUntil: estado.blockedUntil || null
+            });
+        }
+        if (Number(payload.sv || 1) !== Number(usuario.session_version || 1)) {
+            return res.status(401).json({ error: "Sessão expirada ou revogada.", code: "SESSION_REVOKED" });
+        }
+        req.auth = payload;
+        req.usuarioAutenticado = usuario;
+        return next();
+    } catch (erro) {
+        return res.status(500).json({ error: "Erro ao validar sessão.", details: detalhesErro(erro) });
     }
 }
 
@@ -1482,13 +1508,19 @@ app.get("/api/users/:cpf", async (req, res) => {
     }
 });
 
-app.put("/api/users/:cpf", async (req, res) => {
+app.put("/api/users/:cpf", verificarSessaoUsuario, async (req, res) => {
     const client = await pool.connect();
 
     try {
         await garantirAdminNoBanco();
 
         const cpfAntigo = limparCpf(req.params.cpf);
+
+        const solicitanteEhAdmin = req.usuarioAutenticado && req.usuarioAutenticado.tipo === "admin";
+        const solicitanteEhDono = req.usuarioAutenticado && limparCpf(req.usuarioAutenticado.cpf) === cpfAntigo;
+        if (!solicitanteEhAdmin && !solicitanteEhDono) {
+            return res.status(403).json({ error: "Você não pode editar esta conta." });
+        }
 
         const {
             nome,
@@ -1686,10 +1718,23 @@ app.put("/api/users/:cpf", async (req, res) => {
         await client.query("COMMIT");
 
         const usuarioCompleto = await buscarUsuarioPorCpf(cpfFinal);
+        const usuarioPublico = usuarioSeguro(usuarioCompleto || usuarioAtualizado);
+
+        await publishRealtimeEvent({
+            audience: "USER",
+            audienceId: usuarioAtualizado.id,
+            type: "profile_updated",
+            payload: { user: usuarioPublico }
+        });
+        await publishRealtimeEvent({
+            audience: "ADMINS",
+            type: "admin_changed",
+            payload: { action: "profile_updated", cpf: cpfFinal }
+        });
 
         return res.status(200).json({
             message: "Perfil atualizado com sucesso!",
-            user: usuarioSeguro(usuarioCompleto || usuarioAtualizado)
+            user: usuarioPublico
         });
 
     } catch (erro) {
