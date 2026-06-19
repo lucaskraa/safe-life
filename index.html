@@ -19,7 +19,7 @@
 
     <title>Safe Life</title>
 
-    <link rel="stylesheet" href="style.css?v=21.1.0">
+    <link rel="stylesheet" href="style.css?v=21.3.0">
 
 </head>
 
@@ -439,48 +439,17 @@
                         >
                     </div>
 
-                    <label for="regType">
-                        Tipo de Conta
-                    </label>
+                    <div class="public-registration-policy">
+                        <div class="public-registration-policy-icon">🛡️</div>
 
-                    <select
-                        id="regType"
-                        onchange="toggleRegCompanyField()"
-                    >
-                        <option value="citizen">
-                            Cidadão
-                        </option>
+                        <div>
+                            <strong>Cadastro público exclusivo para cidadãos</strong>
 
-                        <option value="professional">
-                            Funcionário / Corporação
-                        </option>
-                    </select>
-
-                    <div
-                        id="companyRegWrapper"
-                        style="display:none;"
-                    >
-                        <label for="regCompany">
-                            Empresa / Base
-                        </label>
-
-                        <select id="regCompany">
-                            <option value="Safe Life Matriz">
-                                Safe Life Matriz
-                            </option>
-
-                            <option value="ONG Patas Livres">
-                                ONG Patas Livres
-                            </option>
-
-                            <option value="Centro de Controle de Zoonoses">
-                                Centro de Controle de Zoonoses
-                            </option>
-
-                            <option value="Protetores Independentes Associados">
-                                Protetores Independentes Associados
-                            </option>
-                        </select>
+                            <p>
+                                Contas profissionais são criadas somente pelo administrador
+                                e precisam estar vinculadas a uma empresa cadastrada.
+                            </p>
+                        </div>
                     </div>
 
                     <div class="register-summary">
@@ -627,6 +596,77 @@
                 </button>
 
 
+            </main>
+
+        </section>
+
+        <!-- =====================================================
+             PRIMEIRO ACESSO DO PROFISSIONAL
+        ====================================================== -->
+        <section class="screen professional-mode" id="firstPasswordChangeScreen">
+
+            <header>
+                <h1>Crie sua senha definitiva</h1>
+
+                <p>
+                    Por segurança, a senha temporária precisa ser substituída antes
+                    de acessar chamados, endereços e dados dos cidadãos.
+                </p>
+            </header>
+
+            <main>
+                <div class="first-password-card">
+                    <div class="first-password-icon">🔐</div>
+
+                    <h3>Primeiro acesso profissional</h3>
+
+                    <p>
+                        Escolha uma senha com pelo menos 8 caracteres,
+                        incluindo letra maiúscula, letra minúscula e número.
+                    </p>
+
+                    <label for="firstNewPassword">
+                        Nova senha
+                    </label>
+
+                    <input
+                        type="password"
+                        id="firstNewPassword"
+                        minlength="8"
+                        maxlength="72"
+                        autocomplete="new-password"
+                        placeholder="Crie uma senha forte"
+                    >
+
+                    <label for="firstNewPasswordConfirm">
+                        Confirmar nova senha
+                    </label>
+
+                    <input
+                        type="password"
+                        id="firstNewPasswordConfirm"
+                        minlength="8"
+                        maxlength="72"
+                        autocomplete="new-password"
+                        placeholder="Digite a mesma senha"
+                    >
+
+                    <button
+                        class="btn"
+                        type="button"
+                        onclick="trocarSenhaTemporaria()"
+                    >
+                        Salvar nova senha e entrar
+                    </button>
+
+                    <button
+                        class="btn secondary-btn"
+                        type="button"
+                        onclick="logout()"
+                    >
+                        Sair desta conta
+                    </button>
+                </div>
             </main>
 
         </section>
@@ -788,7 +828,7 @@
 
                         <p>
                             Escolha uma opção visual, confirme a localização,
-                            escreva uma breve descrição e envie uma foto se tiver.
+                            escreva uma breve descrição e envie obrigatoriamente uma imagem ou vídeo como comprovação.
                         </p>
                     </div>
 
@@ -838,14 +878,19 @@
                     ></textarea>
 
                     <label for="formFile">
-                        📸 Foto da situação
+                        📷 Imagem ou vídeo da situação <strong class="required-mark">*</strong>
                     </label>
 
                     <input
                         type="file"
                         id="formFile"
-                        accept="image/*"
+                        accept="image/*,video/*"
+                        required
                     >
+
+                    <small class="required-media-note">
+                        Obrigatório: envie uma foto ou vídeo real. Vídeos podem ter até 9 MB.
+                    </small>
 
                     <button
                         type="submit"
@@ -1110,14 +1155,19 @@
                     ></textarea>
 
                     <label for="anonFile">
-                        📸 Foto da situação
+                        📷 Imagem ou vídeo da denúncia <strong class="required-mark">*</strong>
                     </label>
 
                     <input
                         type="file"
                         id="anonFile"
-                        accept="image/*"
+                        accept="image/*,video/*"
+                        required
                     >
+
+                    <small class="required-media-note">
+                        Obrigatório: sem imagem ou vídeo a denúncia não será enviada. Vídeos podem ter até 9 MB.
+                    </small>
 
                     <button
                         type="submit"
@@ -2032,33 +2082,53 @@
                         autocomplete="tel"
                     >
 
-                    <label for="adminProPassword">Senha inicial</label>
-                    <input
-                        type="password"
-                        id="adminProPassword"
-                        placeholder="Mínimo de 6 caracteres"
-                        minlength="6"
-                        maxlength="72"
-                        autocomplete="new-password"
-                    >
+                    <div class="temporary-password-info">
+                        <strong>🔐 Senha temporária automática</strong>
 
-                    <label for="adminProPasswordConfirm">Confirmar senha inicial</label>
+                        <p>
+                            O Safe Life criará uma senha temporária. No primeiro login,
+                            o profissional será obrigado a cadastrar uma nova senha.
+                        </p>
+                    </div>
+
+                    <label for="adminProPhoto">
+                        Foto do profissional
+                    </label>
+
                     <input
-                        type="password"
-                        id="adminProPasswordConfirm"
-                        placeholder="Digite a senha novamente"
-                        minlength="6"
-                        maxlength="72"
-                        autocomplete="new-password"
+                        type="file"
+                        id="adminProPhoto"
+                        accept="image/*"
                     >
 
                     <label for="adminProCompany">Empresa / base</label>
-                    <select id="adminProCompany">
-                        <option value="Safe Life Matriz">Safe Life Matriz</option>
-                        <option value="ONG Patas Livres">ONG Patas Livres</option>
-                        <option value="Centro de Controle de Zoonoses">Centro de Controle de Zoonoses</option>
-                        <option value="Protetores Independentes Associados">Protetores Independentes Associados</option>
+
+                    <select id="adminProCompany" required>
+                        <option value="">
+                            Carregando empresas cadastradas...
+                        </option>
                     </select>
+
+                    <small class="admin-company-note">
+                        A empresa precisa estar cadastrada e ativa no painel administrativo.
+                    </small>
+
+                    <label for="adminProEmployeeId">
+                        Identificação funcional / matrícula da empresa
+                    </label>
+
+                    <input
+                        type="text"
+                        id="adminProEmployeeId"
+                        maxlength="80"
+                        placeholder="Ex: SL-2026-001 ou matrícula interna"
+                        autocomplete="off"
+                        required
+                    >
+
+                    <small class="admin-company-note">
+                        Esta identificação é obrigatória e não pode pertencer a outro profissional.
+                    </small>
 
                     <label for="adminProRole">Função</label>
                     <select id="adminProRole">
@@ -2102,6 +2172,45 @@
                     <button class="btn" type="button" onclick="cadastrarProfissionalAdmin()">
                         Criar Conta Profissional
                     </button>
+
+                    <div
+                        class="temporary-credential-result hidden"
+                        id="adminTemporaryCredentialResult"
+                    >
+                        <div class="temporary-credential-result-icon">✅</div>
+
+                        <div>
+                            <strong>Conta profissional criada</strong>
+
+                            <p>
+                                Entregue estas informações diretamente ao funcionário.
+                                A senha será aceita somente até ele criar uma nova.
+                            </p>
+
+                            <div class="temporary-credential-row">
+                                <span>CPF</span>
+                                <code id="adminTemporaryCredentialCpf">—</code>
+                            </div>
+
+                            <div class="temporary-credential-row">
+                                <span>Senha temporária</span>
+                                <code id="adminTemporaryCredentialPassword">—</code>
+                            </div>
+
+                            <div class="temporary-credential-row">
+                                <span>Identificação</span>
+                                <code id="adminTemporaryCredentialEmployeeId">—</code>
+                            </div>
+
+                            <button
+                                class="btn secondary-btn"
+                                type="button"
+                                onclick="copiarCredenciaisTemporariasAdmin()"
+                            >
+                                Copiar credenciais
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <button class="btn secondary-btn" onclick="inicializarPainelAdmin()" type="button">
@@ -2656,7 +2765,7 @@
         </div>
     </noscript>
 
-    <script src="script.js?v=21.1.0"></script>
+    <script src="script.js?v=21.3.0"></script>
 
 </body>
 </html>
