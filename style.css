@@ -5143,3 +5143,24 @@ img[src=""], img:not([src]) { background: #eef2ff; }
     .quick-option-btn { min-height: 104px; padding: 14px 10px !important; border-radius: 20px !important; font-size: 13px; }
     .quick-option-icon { font-size: 24px; }
 }
+/* =====================================================
+   SAFE LIFE V21.1 — AVATARES E ENTRADA DIRETA
+===================================================== */
+
+#profileAvatar,
+#proAvatar,
+#professionalProfileAvatar,
+#adminAvatar,
+#adminProfileAvatar,
+#adminEditUserAvatar,
+.register-avatar-preview img,
+.safe-v19-admin-user img,
+.safe-v19-occurrence-head > img {
+    object-fit: cover !important;
+    object-position: center !important;
+    background: #eef2ff;
+}
+
+.safe-life-ready .screen.active {
+    visibility: visible;
+}
