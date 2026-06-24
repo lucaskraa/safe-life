@@ -6474,3 +6474,60 @@ button {
         padding-bottom: 26px !important;
     }
 }
+
+/* =====================================================
+   CORREÇÃO EXCLUSIVA DA TELA INICIAL NO PC
+   Mantém celular e tablet como estavam.
+===================================================== */
+@media (min-width: 1024px) {
+    /* Os dois botões da abertura ficam iguais, centralizados e sem esticar. */
+    .welcome-start-btn,
+    .welcome-start-btn + .btn,
+    .welcome-start-btn + .btn-large,
+    .welcome-start-btn + .secondary-btn,
+    .welcome-start-btn ~ .secondary-btn,
+    .welcome-start-btn + .login-link,
+    .welcome-main .secondary-btn,
+    .welcome-main .login-link.btn,
+    .welcome-main .login-link.secondary-btn,
+    .welcome-main .welcome-login-btn,
+    .welcome-main .welcome-account-btn,
+    .welcome-main .welcome-start-btn ~ .btn,
+    .welcome-main .welcome-start-btn ~ .btn-large {
+        width: min(100%, 520px) !important;
+        max-width: 520px !important;
+        min-height: 60px !important;
+        margin: 12px auto !important;
+        align-self: center !important;
+        justify-self: center !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+    }
+
+    /* Corrige o ícone de patinhas para não virar uma elipse no computador. */
+    .welcome-circle-icon {
+        width: 74px !important;
+        height: 74px !important;
+        min-width: 74px !important;
+        min-height: 74px !important;
+        max-width: 74px !important;
+        max-height: 74px !important;
+        aspect-ratio: 1 / 1 !important;
+        flex: 0 0 74px !important;
+        border-radius: 50% !important;
+        overflow: hidden !important;
+    }
+
+    /* Se os botões estiverem dentro de um bloco próprio, centraliza o bloco. */
+    .welcome-actions,
+    .welcome-buttons,
+    .welcome-auth-actions {
+        width: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        gap: 12px !important;
+    }
+}
