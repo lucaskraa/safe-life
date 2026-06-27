@@ -6531,3 +6531,556 @@ button {
         gap: 12px !important;
     }
 }
+/* =====================================================
+   SAFE LIFE V22 — REDESIGN OCORRÊNCIAS, PETS E BOTÕES
+   Visual novo sem alterar a função original
+===================================================== */
+
+:root {
+    --sl-primary: #5b3df5;
+    --sl-primary-strong: #4528df;
+    --sl-primary-soft: rgba(91, 61, 245, 0.10);
+    --sl-primary-soft-2: rgba(91, 61, 245, 0.16);
+    --sl-secondary: #8b5cf6;
+    --sl-success: #16a34a;
+    --sl-success-soft: rgba(22, 163, 74, 0.10);
+    --sl-danger: #ef4444;
+    --sl-danger-soft: rgba(239, 68, 68, 0.10);
+    --sl-warning: #f59e0b;
+    --sl-dark: #181c2f;
+    --sl-text: #1f2940;
+    --sl-muted: #667085;
+    --sl-card: rgba(255, 255, 255, 0.96);
+    --sl-card-strong: #ffffff;
+    --sl-line: rgba(91, 61, 245, 0.10);
+    --sl-shadow-sm: 0 10px 24px rgba(17, 24, 39, 0.06);
+    --sl-shadow-md: 0 18px 42px rgba(91, 61, 245, 0.12);
+    --sl-shadow-lg: 0 24px 64px rgba(91, 61, 245, 0.18);
+    --sl-radius-xl: 30px;
+    --sl-radius-lg: 24px;
+    --sl-radius-md: 18px;
+    --sl-radius-sm: 14px;
+}
+
+#scrForm header,
+#scrPetForm header,
+#scrMissingPetForm header,
+#scrAnonForm header {
+    background:
+        radial-gradient(circle at top left, rgba(91, 61, 245, 0.18), transparent 32%),
+        linear-gradient(145deg, rgba(255,255,255,0.96), rgba(245,247,255,0.92));
+    border: 1px solid rgba(255,255,255,0.85);
+    box-shadow: var(--sl-shadow-md);
+}
+
+#scrForm header h1,
+#scrPetForm header h1,
+#scrMissingPetForm header h1,
+#scrAnonForm header h1 {
+    color: var(--sl-dark);
+    letter-spacing: -0.6px;
+}
+
+#scrForm header p,
+#scrPetForm header p,
+#scrMissingPetForm header p,
+#scrAnonForm header p {
+    color: var(--sl-muted);
+}
+
+#scrForm main,
+#scrPetForm main,
+#scrMissingPetForm main,
+#scrAnonForm main {
+    display: grid;
+    gap: 18px;
+}
+
+.occurrence-card,
+.simple-help-box,
+.anon-alert,
+.location-result-box,
+.address-highlight {
+    border-radius: var(--sl-radius-lg) !important;
+    border: 1px solid var(--sl-line);
+    box-shadow: var(--sl-shadow-sm);
+}
+
+.occurrence-card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,250,255,0.98));
+    border-left: 5px solid var(--sl-primary);
+    padding: 18px;
+}
+
+.simple-help-box {
+    background:
+        radial-gradient(circle at top right, rgba(22,163,74,0.10), transparent 32%),
+        linear-gradient(180deg, rgba(255,255,255,0.98), rgba(247,255,250,0.98));
+    padding: 18px;
+}
+
+.simple-help-box strong {
+    color: var(--sl-primary);
+    font-size: 16px;
+}
+
+.simple-help-box p {
+    color: var(--sl-muted);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.anon-alert {
+    background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,246,246,0.98)) !important;
+    border: 1px solid rgba(239, 68, 68, 0.18) !important;
+    color: #991b1b;
+    padding: 18px !important;
+}
+
+#citizenForm,
+#petForm,
+#missingPetForm,
+#anonForm {
+    position: relative;
+    background:
+        radial-gradient(circle at top right, rgba(91,61,245,0.08), transparent 28%),
+        linear-gradient(180deg, rgba(255,255,255,0.98), rgba(245,247,255,0.98));
+    border: 1px solid rgba(91, 61, 245, 0.10);
+    border-radius: 32px;
+    padding: 24px;
+    box-shadow: var(--sl-shadow-md);
+    overflow: hidden;
+}
+
+#citizenForm::before,
+#petForm::before,
+#missingPetForm::before,
+#anonForm::before {
+    content: "";
+    position: absolute;
+    width: 170px;
+    height: 170px;
+    top: -85px;
+    right: -85px;
+    border-radius: 50%;
+    background: rgba(91, 61, 245, 0.07);
+    pointer-events: none;
+}
+
+#scrForm label,
+#scrPetForm label,
+#scrMissingPetForm label,
+#scrAnonForm label {
+    display: block;
+    margin: 4px 0 8px;
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--sl-text);
+}
+
+#scrForm input,
+#scrForm textarea,
+#scrForm select,
+#scrPetForm input,
+#scrPetForm textarea,
+#scrPetForm select,
+#scrMissingPetForm input,
+#scrMissingPetForm textarea,
+#scrMissingPetForm select,
+#scrAnonForm input,
+#scrAnonForm textarea,
+#scrAnonForm select {
+    background: rgba(255,255,255,0.96);
+    border: 1.5px solid rgba(91, 61, 245, 0.12);
+    border-radius: 18px;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.02);
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease;
+}
+
+#scrForm input:focus,
+#scrForm textarea:focus,
+#scrForm select:focus,
+#scrPetForm input:focus,
+#scrPetForm textarea:focus,
+#scrPetForm select:focus,
+#scrMissingPetForm input:focus,
+#scrMissingPetForm textarea:focus,
+#scrMissingPetForm select:focus,
+#scrAnonForm input:focus,
+#scrAnonForm textarea:focus,
+#scrAnonForm select:focus {
+    border-color: rgba(91, 61, 245, 0.55);
+    box-shadow: 0 0 0 5px rgba(91, 61, 245, 0.10);
+    transform: translateY(-1px);
+}
+
+#scrForm textarea,
+#scrPetForm textarea,
+#scrMissingPetForm textarea,
+#scrAnonForm textarea {
+    min-height: 132px;
+    line-height: 1.55;
+}
+
+#formFile,
+#anonFile,
+#petPhoto,
+#missingPetPhoto {
+    min-height: 62px;
+    padding: 14px;
+    border: 2px dashed rgba(91, 61, 245, 0.28) !important;
+    background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(243,246,255,0.98)) !important;
+    border-radius: 18px !important;
+}
+
+.required-media-note {
+    display: block;
+    margin: 8px 0 18px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: rgba(91, 61, 245, 0.08);
+    color: var(--sl-muted);
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.btn,
+.btn-large {
+    border: none !important;
+    border-radius: 20px !important;
+    background: linear-gradient(135deg, var(--sl-primary), #7452ff) !important;
+    color: #fff !important;
+    font-weight: 900 !important;
+    box-shadow: 0 14px 34px rgba(91, 61, 245, 0.24) !important;
+    transition: transform 0.14s ease, box-shadow 0.14s ease, filter 0.14s ease !important;
+}
+
+.btn:hover,
+.btn-large:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.02);
+    box-shadow: 0 18px 38px rgba(91, 61, 245, 0.30) !important;
+}
+
+.btn:active,
+.btn-large:active {
+    transform: scale(0.985);
+}
+
+.secondary-btn {
+    background: linear-gradient(135deg, #6b7280, #4b5563) !important;
+    box-shadow: 0 12px 28px rgba(75, 85, 99, 0.20) !important;
+}
+
+.location-small-btn {
+    background: linear-gradient(135deg, #0f766e, #14b8a6) !important;
+    box-shadow: 0 12px 28px rgba(20, 184, 166, 0.22) !important;
+    border-radius: 16px !important;
+}
+
+.missing-submit-btn {
+    background: linear-gradient(135deg, #dc2626, #ef4444) !important;
+    box-shadow: 0 14px 30px rgba(239, 68, 68, 0.24) !important;
+}
+
+.register-submit-btn {
+    background: linear-gradient(135deg, var(--sl-primary), var(--sl-secondary)) !important;
+}
+
+.quick-options-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px !important;
+    margin: 14px 0 18px !important;
+}
+
+.quick-option-card,
+.quick-option-btn {
+    position: relative;
+    min-height: 148px;
+    background:
+        radial-gradient(circle at top right, rgba(91,61,245,0.08), transparent 30%),
+        linear-gradient(180deg, rgba(255,255,255,0.98), rgba(244,247,255,0.98));
+    border: 1.5px solid rgba(91, 61, 245, 0.12);
+    border-radius: 24px !important;
+    padding: 16px !important;
+    box-shadow: var(--sl-shadow-sm);
+    transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+}
+
+.quick-option-card:hover,
+.quick-option-btn:hover {
+    transform: translateY(-3px);
+    border-color: rgba(91, 61, 245, 0.38);
+    box-shadow: 0 18px 34px rgba(91, 61, 245, 0.14);
+}
+
+.quick-option-card.selected,
+.quick-option-btn.selected {
+    background: linear-gradient(135deg, var(--sl-primary), #7c5cff) !important;
+    border-color: transparent !important;
+    box-shadow: 0 20px 36px rgba(91, 61, 245, 0.24) !important;
+}
+
+.quick-option-card.selected .quick-option-title,
+.quick-option-card.selected .quick-option-desc,
+.quick-option-card.selected .quick-option-icon,
+.quick-option-btn.selected,
+.quick-option-btn.selected .quick-option-icon,
+.quick-option-btn.selected .quick-option-label {
+    color: #fff !important;
+}
+
+.quick-option-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 18px;
+    background: rgba(91, 61, 245, 0.10);
+    display: grid;
+    place-items: center;
+    font-size: 24px;
+}
+
+.quick-option-title,
+.quick-option-label {
+    font-weight: 900;
+    line-height: 1.3;
+    color: var(--sl-text);
+}
+
+.quick-option-desc {
+    color: var(--sl-muted);
+    line-height: 1.45;
+}
+
+.pet-form-shell-modern {
+    background:
+        radial-gradient(circle at top right, rgba(91,61,245,0.10), transparent 30%),
+        linear-gradient(180deg, rgba(255,255,255,0.98), rgba(245,247,255,0.98)) !important;
+    border: 1px solid rgba(91, 61, 245, 0.10) !important;
+    border-radius: 32px !important;
+    padding: 24px !important;
+    box-shadow: var(--sl-shadow-md) !important;
+}
+
+.pet-form-top-modern {
+    background:
+        radial-gradient(circle at top left, rgba(91,61,245,0.14), transparent 34%),
+        linear-gradient(135deg, rgba(240,242,255,0.98), rgba(249,250,255,0.98)) !important;
+    border: 1px solid rgba(91, 61, 245, 0.10);
+    border-radius: 26px !important;
+    padding: 20px !important;
+    box-shadow: var(--sl-shadow-sm);
+}
+
+.pet-form-chip {
+    background: linear-gradient(135deg, var(--sl-primary), #7452ff) !important;
+    color: #fff !important;
+    box-shadow: 0 8px 20px rgba(91, 61, 245, 0.18);
+}
+
+.pet-form-top-modern h3 {
+    color: var(--sl-dark);
+    letter-spacing: -0.5px;
+}
+
+.pet-form-top-modern p {
+    color: var(--sl-muted);
+}
+
+.pet-form-side-icon {
+    background: linear-gradient(135deg, #ffffff, #eef2ff) !important;
+    color: var(--sl-primary);
+    border: 1px solid rgba(91, 61, 245, 0.10);
+    box-shadow: 0 14px 28px rgba(91, 61, 245, 0.12);
+}
+
+.pet-field-card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,250,255,0.98)) !important;
+    border: 1px solid rgba(91, 61, 245, 0.10) !important;
+    border-radius: 22px !important;
+    box-shadow: var(--sl-shadow-sm);
+}
+
+.pet-field-card label {
+    color: var(--sl-text);
+    font-weight: 800;
+}
+
+.pet-photo-card {
+    background:
+        radial-gradient(circle at top right, rgba(91,61,245,0.08), transparent 30%),
+        linear-gradient(180deg, rgba(255,255,255,0.98), rgba(246,248,255,0.98)) !important;
+}
+
+.missing-pet-form,
+#missingPetForm {
+    border-color: rgba(239, 68, 68, 0.14) !important;
+}
+
+.missing-pet-form .pet-form-top-modern,
+#missingPetForm .pet-form-top-modern {
+    background:
+        radial-gradient(circle at top left, rgba(239,68,68,0.12), transparent 32%),
+        linear-gradient(135deg, rgba(255,247,247,0.98), rgba(255,255,255,0.98)) !important;
+}
+
+.missing-pet-form .pet-form-chip,
+#missingPetForm .pet-form-chip {
+    background: linear-gradient(135deg, #dc2626, #ef4444) !important;
+    color: #fff !important;
+}
+
+.missing-last-seen-card {
+    border: 1px solid rgba(239, 68, 68, 0.12) !important;
+    background: linear-gradient(180deg, rgba(255,250,250,0.98), rgba(255,255,255,0.98)) !important;
+}
+
+.screen.anon-mode {
+    background:
+        radial-gradient(circle at top, rgba(239,68,68,0.10), transparent 24%),
+        linear-gradient(180deg, #0f1424 0%, #151b2f 100%) !important;
+}
+
+.screen.anon-mode header {
+    background: linear-gradient(180deg, rgba(22,27,46,0.98), rgba(19,24,40,0.98)) !important;
+    border: 1px solid rgba(255,255,255,0.04);
+    border-bottom: 2px solid rgba(239,68,68,0.22);
+}
+
+.screen.anon-mode #anonForm {
+    background: linear-gradient(180deg, rgba(24,29,48,0.98), rgba(19,24,39,0.98)) !important;
+    border: 1px solid rgba(255,255,255,0.06) !important;
+    box-shadow: 0 24px 50px rgba(0, 0, 0, 0.30) !important;
+}
+
+.screen.anon-mode label,
+.screen.anon-mode .quick-option-title,
+.screen.anon-mode .quick-option-label {
+    color: #f8fafc !important;
+}
+
+.screen.anon-mode input,
+.screen.anon-mode textarea,
+.screen.anon-mode select {
+    background: rgba(255,255,255,0.05) !important;
+    color: #f8fafc !important;
+    border-color: rgba(255,255,255,0.08) !important;
+}
+
+.screen.anon-mode .required-media-note,
+.screen.anon-mode .location-inline-note {
+    background: rgba(255,255,255,0.06) !important;
+    color: #cbd5e1 !important;
+}
+
+.screen.anon-mode .quick-option-card,
+.screen.anon-mode .quick-option-btn {
+    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.04)) !important;
+    border-color: rgba(255,255,255,0.08) !important;
+}
+
+.screen.anon-mode .quick-option-desc {
+    color: #cbd5e1 !important;
+}
+
+#menuScreen .action-buttons .btn,
+#menuScreen .action-card {
+    background:
+        radial-gradient(circle at top right, rgba(91,61,245,0.10), transparent 28%),
+        linear-gradient(180deg, rgba(255,255,255,0.98), rgba(246,248,255,0.98)) !important;
+    color: var(--sl-text) !important;
+    border: 1px solid rgba(91, 61, 245, 0.10);
+    border-radius: 24px !important;
+    box-shadow: var(--sl-shadow-sm) !important;
+    min-height: 126px;
+}
+
+#menuScreen .action-buttons .btn:hover,
+#menuScreen .action-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 20px 36px rgba(91, 61, 245, 0.14) !important;
+}
+
+#menuScreen .action-card .action-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 18px;
+    display: grid;
+    place-items: center;
+    background: rgba(91, 61, 245, 0.10);
+    color: var(--sl-primary);
+    margin-bottom: 10px;
+}
+
+#menuScreen .emergency {
+    background: linear-gradient(135deg, #dc2626, #ff5a5a) !important;
+    color: #fff !important;
+    border: none !important;
+    box-shadow: 0 18px 34px rgba(239, 68, 68, 0.26) !important;
+}
+
+#menuScreen .rescue-card {
+    background: linear-gradient(135deg, #10b981, #22c55e) !important;
+    color: #fff !important;
+    border: none !important;
+    box-shadow: 0 18px 34px rgba(34, 197, 94, 0.24) !important;
+}
+
+#menuScreen .rescue-card .action-icon {
+    background: rgba(255,255,255,0.20) !important;
+    color: #fff !important;
+}
+
+.location-inline-note,
+.location-extra-info small,
+.gps-status {
+    display: block;
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: rgba(91, 61, 245, 0.08);
+    color: var(--sl-muted);
+    line-height: 1.5;
+}
+
+@media (max-width: 560px) {
+    #citizenForm,
+    #petForm,
+    #missingPetForm,
+    #anonForm,
+    .pet-form-shell-modern {
+        padding: 18px !important;
+        border-radius: 26px !important;
+    }
+
+    .quick-options-grid {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 10px !important;
+    }
+
+    .quick-option-card,
+    .quick-option-btn {
+        min-height: 132px;
+        border-radius: 20px !important;
+        padding: 14px !important;
+    }
+
+    .quick-option-icon {
+        width: 44px;
+        height: 44px;
+        font-size: 21px;
+    }
+
+    .pet-form-grid-modern {
+        grid-template-columns: 1fr !important;
+    }
+
+    .pet-field-card-full {
+        grid-column: auto !important;
+    }
+
+    #menuScreen .action-buttons .btn,
+    #menuScreen .action-card {
+        min-height: 118px;
+    }
+}
