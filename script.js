@@ -2033,6 +2033,11 @@
         const mediaMarkup = occurrenceMediaMarkup(item);
         const status = String(item.status || "PENDENTE").toUpperCase();
         const priority = String(item.prioridade || "NORMAL").toUpperCase();
+        const deadlineIso = String(item.previsao_atendimento || "").slice(0, 10);
+        const deadlineLabel = deadlineIso && /^\d{4}-\d{2}-\d{2}$/.test(deadlineIso)
+            ? deadlineIso.split("-").reverse().join("/")
+            : "Não definida";
+        const deadlineAction = status === "EM_ATENDIMENTO" ? "Alterar prazo" : "Assumir e definir prazo";
         return `<article class="safe-v19-occurrence-card priority-${priority.toLowerCase()}">
             <div class="safe-v19-occurrence-head">
                 <img src="${escapeHtml(userPhoto)}" data-fallback="${escapeHtml(defaultUserPhoto({ cpf: item.cpf_usuario, nome: reporter, type: "citizen" }))}" onerror="this.onerror=null;this.src=this.dataset.fallback" alt="Foto de ${escapeHtml(reporter)}">
@@ -2041,10 +2046,14 @@
             </div>
             <div class="safe-v19-data"><strong>Endereço:</strong> ${escapeHtml(item.endereco_completo || item.localizacao || "Não informado")}</div>
             <div class="safe-v19-data"><strong>Descrição:</strong> ${escapeHtml(item.detalhes || "Sem descrição")}</div>
+            <div class="safe-v19-deadline ${status === "EM_ATENDIMENTO" ? "is-active" : ""}">
+                <span>📅</span>
+                <div><small>Previsão de atendimento</small><strong>${escapeHtml(deadlineLabel)}</strong></div>
+            </div>
             ${mediaMarkup}
             ${compact ? "" : `<div class="safe-v19-actions">
-                <button type="button" class="btn secondary-btn" ${status === "EM_ATENDIMENTO" ? "disabled" : ""} onclick="atualizarChamado('${escapeHtml(origin)}', ${Number(item.id)}, 'EM_ATENDIMENTO')">Em atendimento</button>
-                <button type="button" class="btn" onclick="atualizarChamado('${escapeHtml(origin)}', ${Number(item.id)}, 'CONCLUIDA')">Concluir</button>
+                <button type="button" class="btn secondary-btn" onclick="abrirPrazoChamado('${escapeHtml(origin)}', ${Number(item.id)}, '${escapeHtml(deadlineIso)}')">${escapeHtml(deadlineAction)}</button>
+                <button type="button" class="btn" ${status === "CONCLUIDA" ? "disabled" : ""} onclick="atualizarChamado('${escapeHtml(origin)}', ${Number(item.id)}, 'CONCLUIDA')">Concluir</button>
             </div>`}
         </article>`;
     }
@@ -2065,15 +2074,82 @@
         }
     }
 
-    async function atualizarChamado(origin, id, status) {
+    function prazoPadraoISO(dias = 7) {
+        const data = new Date();
+        data.setHours(12, 0, 0, 0);
+        data.setDate(data.getDate() + Number(dias || 0));
+        const ano = data.getFullYear();
+        const mes = String(data.getMonth() + 1).padStart(2, "0");
+        const dia = String(data.getDate()).padStart(2, "0");
+        return `${ano}-${mes}-${dia}`;
+    }
+
+    function abrirPrazoChamado(origin, id, prazoAtual = "") {
         if (!requireUser("professional")) return;
+        const modal = byId("serviceDeadlineModal");
+        const inputOrigin = byId("serviceDeadlineOrigin");
+        const inputId = byId("serviceDeadlineId");
+        const inputDate = byId("serviceDeadlineDate");
+        const inputNote = byId("serviceDeadlineNote");
+        if (!modal || !inputOrigin || !inputId || !inputDate) return;
+
+        const hoje = prazoPadraoISO(0);
+        inputOrigin.value = String(origin || "");
+        inputId.value = String(id || "");
+        inputDate.min = hoje;
+        inputDate.value = /^\d{4}-\d{2}-\d{2}$/.test(String(prazoAtual || ""))
+            ? String(prazoAtual)
+            : prazoPadraoISO(7);
+        if (inputNote) inputNote.value = "";
+        modal.classList.remove("hidden");
+        window.setTimeout(function () { inputDate.focus(); }, 30);
+    }
+
+    function fecharPrazoChamado() {
+        const modal = byId("serviceDeadlineModal");
+        if (modal) modal.classList.add("hidden");
+    }
+
+    async function salvarPrazoChamado() {
+        const origin = String(byId("serviceDeadlineOrigin")?.value || "");
+        const id = Number(byId("serviceDeadlineId")?.value || 0);
+        const previsaoAtendimento = String(byId("serviceDeadlineDate")?.value || "");
+        const observacao = String(byId("serviceDeadlineNote")?.value || "").trim();
+
+        if (!origin || !Number.isInteger(id) || id <= 0) {
+            toast("Chamado inválido.", "error");
+            return;
+        }
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(previsaoAtendimento)) {
+            toast("Escolha uma data válida para o atendimento.", "error");
+            return;
+        }
+        if (previsaoAtendimento < prazoPadraoISO(0)) {
+            toast("A data não pode estar no passado.", "error");
+            return;
+        }
+
+        const ok = await atualizarChamado(origin, id, "EM_ATENDIMENTO", {
+            previsaoAtendimento,
+            observacao
+        });
+        if (ok) fecharPrazoChamado();
+    }
+
+    async function atualizarChamado(origin, id, status, extras = {}) {
+        if (!requireUser("professional")) return false;
         const key = `call-${origin}-${id}`;
-        if (state.busy.has(key)) return;
+        if (state.busy.has(key)) return false;
         state.busy.add(key);
         try {
             const response = await api(`/api/chamados/${encodeURIComponent(origin)}/${encodeURIComponent(id)}/status`, {
                 method: "PATCH",
-                body: JSON.stringify({ status, funcionarioCpf: state.user.cpf })
+                body: JSON.stringify({
+                    status,
+                    funcionarioCpf: state.user.cpf,
+                    previsaoAtendimento: extras.previsaoAtendimento || null,
+                    observacao: extras.observacao || ""
+                })
             }, 35000);
             toast(response.message || "Chamado atualizado.", "success");
             state.queueLoadedAt = 0;
@@ -2081,8 +2157,10 @@
             if (active && active.id === "nearestOccurrenceScreen") await abrirOcorrenciaMaisProxima();
             else if (active && active.id === "priorityQueueScreen") await abrirFilaPrioridade();
             else await abrirOcorrenciasPro();
+            return true;
         } catch (error) {
             showError(error, "Não foi possível atualizar o chamado.");
+            return false;
         } finally {
             state.busy.delete(key);
         }
@@ -3489,6 +3567,9 @@
         alternarDestinoResgatePet,
         concluirResgatePet,
         atualizarChamado,
+        abrirPrazoChamado,
+        fecharPrazoChamado,
+        salvarPrazoChamado,
         inicializarPainelAdmin,
         renderPerfilAdmin,
         salvarPerfilAdmin,
