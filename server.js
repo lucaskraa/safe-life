@@ -7,7 +7,7 @@ const { Pool } = require("pg");
 
 const app = express();
 
-const SAFE_LIFE_VERSION = "24.1.0";
+const SAFE_LIFE_VERSION = "24.5.0";
 const PORT = Number(process.env.PORT) || 3000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 const IS_PRODUCTION = NODE_ENV === "production";
