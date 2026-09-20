@@ -8872,3 +8872,312 @@ body:not(:has(#welcomeScreen.active)) {
         border-radius: 19px !important;
     }
 }
+
+
+/* =============================================================
+   SAFE LIFE V24.5.1 — AJUSTE FINO DA CENTRAL
+   - corrige desalinhamento visual do cabeçalho
+   - compacta cards no desktop
+   - impede sumiço do texto no hover de Solicitar Resgate
+============================================================= */
+
+#menuScreen > header {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+}
+
+#menuScreen > header h1,
+#menuScreen > header p {
+    width: 100% !important;
+    text-align: left !important;
+}
+
+#menuScreen > header p {
+    margin-top: 10px !important;
+    color: #62708f !important;
+}
+
+#menuScreen .citizen-menu-grid .rescue-card:hover,
+#menuScreen .citizen-menu-grid button[onclick*="rescue"]:hover,
+#menuScreen .citizen-menu-grid .rescue-card:focus-visible,
+#menuScreen .citizen-menu-grid button[onclick*="rescue"]:focus-visible {
+    background: linear-gradient(135deg, #1f52f1 0%, #316fff 100%) !important;
+    color: #ffffff !important;
+    border-color: rgba(255,255,255,.14) !important;
+    box-shadow: 0 16px 34px rgba(35,87,255,.24) !important;
+}
+
+#menuScreen .citizen-menu-grid .rescue-card:hover *,
+#menuScreen .citizen-menu-grid button[onclick*="rescue"]:hover *,
+#menuScreen .citizen-menu-grid .rescue-card:focus-visible *,
+#menuScreen .citizen-menu-grid button[onclick*="rescue"]:focus-visible * {
+    color: #ffffff !important;
+    opacity: 1 !important;
+}
+
+@media (min-width: 1180px) {
+    #menuScreen > header {
+        min-height: 136px !important;
+        padding: 26px 30px !important;
+    }
+
+    #menuScreen > header h1 {
+        font-size: clamp(28px, 2.4vw, 38px) !important;
+        margin: 0 !important;
+    }
+
+    #menuScreen > header p {
+        font-size: 14px !important;
+        margin: 8px 0 0 !important;
+    }
+
+    #menuScreen > main {
+        width: min(100%, 1220px) !important;
+        margin-inline: auto !important;
+    }
+
+    #menuScreen .citizen-menu-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 16px !important;
+    }
+
+    #menuScreen .citizen-menu-grid > button,
+    #menuScreen .citizen-menu-grid .action-card,
+    #menuScreen .citizen-menu-grid .emergency,
+    #menuScreen .citizen-menu-grid .rescue-card,
+    #menuScreen .citizen-menu-grid button[onclick*="rescue"] {
+        height: 116px !important;
+        min-height: 116px !important;
+        padding: 18px 18px !important;
+        border-radius: 20px !important;
+    }
+
+    #menuScreen .citizen-menu-grid .action-icon,
+    #menuScreen .citizen-menu-grid .rescue-card .action-icon,
+    #menuScreen .citizen-menu-grid button[onclick*="rescue"] .action-icon {
+        width: 46px !important;
+        height: 46px !important;
+        font-size: 21px !important;
+        margin-bottom: 10px !important;
+        border-radius: 14px !important;
+    }
+
+    #menuScreen .citizen-menu-grid > button > span:last-child,
+    #menuScreen .citizen-menu-grid .action-card > span:last-child {
+        font-size: 16px !important;
+        line-height: 1.2 !important;
+    }
+}
+
+@media (min-width: 900px) and (max-width: 1179px) {
+    #menuScreen > header {
+        min-height: 126px !important;
+        padding: 24px 26px !important;
+    }
+
+    #menuScreen > header h1,
+    #menuScreen > header p {
+        text-align: left !important;
+    }
+
+    #menuScreen > main {
+        width: min(100%, 1040px) !important;
+        margin-inline: auto !important;
+    }
+
+    #menuScreen .citizen-menu-grid {
+        gap: 14px !important;
+    }
+
+    #menuScreen .citizen-menu-grid > button,
+    #menuScreen .citizen-menu-grid .action-card,
+    #menuScreen .citizen-menu-grid .emergency,
+    #menuScreen .citizen-menu-grid .rescue-card,
+    #menuScreen .citizen-menu-grid button[onclick*="rescue"] {
+        height: 124px !important;
+        min-height: 124px !important;
+        padding: 18px 16px !important;
+        border-radius: 20px !important;
+    }
+}
+
+
+/* =============================================================
+   SAFE LIFE V24.6 — PAINEL PROFISSIONAL + PRAZO DE ATENDIMENTO
+============================================================= */
+
+@media (min-width: 600px) {
+    #proDashboard > header {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        justify-content: center !important;
+        text-align: left !important;
+    }
+
+    #proDashboard > header h1,
+    #proDashboard > header p {
+        width: 100% !important;
+        text-align: left !important;
+    }
+
+    #proDashboard > header p {
+        margin: 9px 0 0 !important;
+        color: #62708f !important;
+    }
+}
+
+@media (min-width: 1180px) {
+    #proDashboard > header {
+        min-height: 136px !important;
+        padding: 26px 30px !important;
+    }
+
+    #proDashboard > header h1 {
+        margin: 0 !important;
+        font-size: clamp(28px, 2.4vw, 38px) !important;
+    }
+
+    #proDashboard > header p {
+        font-size: 14px !important;
+    }
+
+    #proDashboard > main {
+        width: min(100%, 1220px) !important;
+        margin-inline: auto !important;
+    }
+}
+
+.safe-v19-deadline {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    margin: 12px 0 2px;
+    padding: 11px 13px;
+    border: 1px solid #dce6fb;
+    border-radius: 14px;
+    background: #f7f9ff;
+    color: #33415f;
+}
+
+.safe-v19-deadline > span {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
+    border-radius: 11px;
+    background: #eaf0ff;
+    font-size: 18px;
+}
+
+.safe-v19-deadline div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.safe-v19-deadline small {
+    color: #71809e;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.safe-v19-deadline strong {
+    color: #182541;
+    font-size: 14px;
+}
+
+.safe-v19-deadline.is-active {
+    border-color: #b9ccff;
+    background: #eef3ff;
+}
+
+.service-deadline-card {
+    width: min(520px, calc(100vw - 32px));
+    padding: 28px !important;
+}
+
+.service-deadline-icon {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    margin-bottom: 14px;
+    border-radius: 16px;
+    background: #eaf0ff;
+    font-size: 24px;
+}
+
+.service-deadline-card h2 {
+    margin: 0 42px 8px 0;
+    color: #14213d;
+}
+
+.service-deadline-card > p {
+    margin-bottom: 20px;
+    color: #65728e;
+    line-height: 1.55;
+}
+
+.service-deadline-card label {
+    display: block;
+    margin: 13px 0 7px;
+    color: #263553;
+    font-weight: 800;
+    font-size: 13px;
+}
+
+.service-deadline-card input[type="date"],
+.service-deadline-card textarea {
+    width: 100%;
+    border: 1px solid #d9e3f5;
+    border-radius: 14px;
+    background: #fbfcff;
+    color: #182541;
+    padding: 13px 14px;
+    font: inherit;
+    outline: none;
+}
+
+.service-deadline-card input[type="date"]:focus,
+.service-deadline-card textarea:focus {
+    border-color: #7d9cff;
+    box-shadow: 0 0 0 3px rgba(35,87,255,.10);
+}
+
+.optional-label {
+    color: #8995aa;
+    font-weight: 600;
+}
+
+.service-deadline-hint {
+    margin-top: 15px;
+    padding: 12px 13px;
+    border-radius: 13px;
+    background: #f0f4ff;
+    color: #556684;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.service-deadline-actions {
+    display: grid;
+    grid-template-columns: 1fr 1.3fr;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+@media (max-width: 599px) {
+    .service-deadline-card {
+        padding: 22px !important;
+    }
+
+    .service-deadline-actions {
+        grid-template-columns: 1fr;
+    }
+}
