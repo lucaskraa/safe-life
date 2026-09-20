@@ -8296,3 +8296,418 @@ body:has(#welcomeScreen.active) #app {
         border-radius: 14px !important;
     }
 }
+
+/* =============================================================
+   SAFE LIFE V24.4 — RESPONSIVE APP SHELL
+   Ajuste final para PC, tablet e celular.
+   Mantém a identidade azul oficial e melhora o aproveitamento
+   da largura nas telas internas sem esticar formulários demais.
+============================================================= */
+
+:root {
+    --sl-responsive-max: 1440px;
+    --sl-responsive-blue: #2357ff;
+    --sl-responsive-blue-2: #2f6bff;
+    --sl-responsive-blue-soft: #edf3ff;
+    --sl-responsive-card-border: #d9e4fb;
+    --sl-responsive-bg: #f4f7ff;
+}
+
+/* Fora da landing, o aplicativo passa a usar a largura disponível. */
+body:not(:has(#welcomeScreen.active)) {
+    background:
+        radial-gradient(circle at 12% 0%, rgba(35, 87, 255, 0.10), transparent 32%),
+        radial-gradient(circle at 88% 15%, rgba(71, 132, 255, 0.07), transparent 28%),
+        var(--sl-responsive-bg) !important;
+}
+
+/* ============================ PC / NOTEBOOK ============================ */
+@media (min-width: 1180px) {
+    body:not(:has(#welcomeScreen.active)) #app {
+        width: 100% !important;
+        max-width: none !important;
+        min-height: 100dvh;
+        margin: 0 !important;
+        padding: 30px clamp(42px, 5vw, 84px) 120px !important;
+        overflow-x: clip;
+    }
+
+    body:not(:has(#welcomeScreen.active)) .screen:not(.anon-mode):not(.admin-mode) {
+        width: 100% !important;
+        max-width: var(--sl-responsive-max) !important;
+        margin-inline: auto !important;
+    }
+
+    body:not(:has(#welcomeScreen.active)) .screen:not(.anon-mode):not(.admin-mode) > header {
+        width: 100% !important;
+        margin: 0 0 28px !important;
+        padding: 34px 38px 30px !important;
+        border-radius: 28px !important;
+        text-align: left !important;
+        border: 1px solid rgba(35, 87, 255, 0.06);
+        background:
+            radial-gradient(circle at 92% 15%, rgba(35, 87, 255, 0.11), transparent 24%),
+            linear-gradient(145deg, #ffffff 0%, #f8faff 100%) !important;
+        box-shadow: 0 18px 45px rgba(30, 55, 105, 0.08) !important;
+    }
+
+    body:not(:has(#welcomeScreen.active)) .screen:not(.anon-mode):not(.admin-mode) > header h1 {
+        font-size: clamp(32px, 3vw, 44px) !important;
+        line-height: 1.05;
+        letter-spacing: -1.2px;
+    }
+
+    body:not(:has(#welcomeScreen.active)) .screen:not(.anon-mode):not(.admin-mode) > header p {
+        font-size: 15px !important;
+        margin-top: 8px;
+    }
+
+    /* Formulários continuam confortáveis em vez de ficarem gigantes. */
+    #locationScreen > main,
+    #registerScreen > main,
+    #loginScreen > main,
+    #firstPasswordChangeScreen > main,
+    #scrForm > main,
+    #scrPetForm > main,
+    #scrMissingPetForm > main,
+    #citizenProfile > main,
+    #professionalProfile > main,
+    #adminProfileScreen > main,
+    #adminCompanyCreateScreen > main,
+    #adminProfessionalCreateScreen > main,
+    #petRescueCompletionScreen > main,
+    #confirmationScreen > main {
+        width: min(100%, 980px) !important;
+        margin-inline: auto !important;
+    }
+
+    /* Dashboards e listagens aproveitam mais a tela. */
+    #menuScreen > main,
+    #proDashboard > main,
+    #adminDashboard > main,
+    #adminCompaniesScreen > main,
+    #adminUsersScreen > main,
+    #adminSuspiciousScreen > main,
+    #adminReportScreen > main,
+    #adminAuditScreen > main,
+    #proPetsScreen > main,
+    #activeAgentsScreen > main,
+    #nearestOccurrenceScreen > main,
+    #priorityQueueScreen > main,
+    #shiftReportScreen > main,
+    #proListScreen > main,
+    #proHistoryScreen > main,
+    #proChecklistScreen > main {
+        width: 100% !important;
+        max-width: none !important;
+        margin-inline: 0 !important;
+    }
+
+    /* Central do cidadão: 3 colunas x 2 linhas no PC. */
+    #menuScreen .citizen-menu-grid {
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 22px !important;
+        width: 100% !important;
+        max-width: none !important;
+        align-items: stretch !important;
+    }
+
+    #menuScreen .citizen-menu-grid > button,
+    #menuScreen .citizen-menu-grid .action-card,
+    #menuScreen .citizen-menu-grid .emergency,
+    #menuScreen .citizen-menu-grid .rescue-card {
+        grid-column: auto !important;
+        width: 100% !important;
+        max-width: none !important;
+        min-width: 0 !important;
+        height: 168px !important;
+        min-height: 168px !important;
+        margin: 0 !important;
+        padding: 26px 24px !important;
+        border-radius: 24px !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+    }
+
+    #menuScreen .citizen-menu-grid .action-card {
+        border: 1px solid var(--sl-responsive-card-border) !important;
+        background:
+            linear-gradient(155deg, #ffffff 0%, #f7faff 100%) !important;
+        box-shadow: 0 12px 30px rgba(31, 62, 122, 0.07) !important;
+    }
+
+    #menuScreen .citizen-menu-grid .action-card:hover {
+        transform: translateY(-4px) !important;
+        border-color: #bbcdf8 !important;
+        box-shadow: 0 18px 38px rgba(35, 87, 255, 0.13) !important;
+    }
+
+    #menuScreen .citizen-menu-grid .action-icon {
+        width: 58px !important;
+        height: 58px !important;
+        border-radius: 18px !important;
+        margin-bottom: 12px !important;
+        font-size: 25px !important;
+        background: linear-gradient(145deg, #eef3ff, #e3ebff) !important;
+        color: var(--sl-responsive-blue) !important;
+    }
+
+    #menuScreen .citizen-menu-grid > button > span:last-child {
+        font-size: 17px !important;
+        line-height: 1.25;
+        font-weight: 800 !important;
+    }
+
+    #menuScreen .citizen-menu-grid .emergency {
+        background: linear-gradient(135deg, #ef4d5a 0%, #df3445 100%) !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(255,255,255,.12) !important;
+        box-shadow: 0 18px 38px rgba(222, 52, 69, 0.22) !important;
+    }
+
+    #menuScreen .citizen-menu-grid .rescue-card,
+    #menuScreen .citizen-menu-grid button[onclick*="rescue"] {
+        background: linear-gradient(135deg, #2357ff 0%, #3474ff 100%) !important;
+        color: #ffffff !important;
+        border: 1px solid rgba(255,255,255,.12) !important;
+        box-shadow: 0 18px 38px rgba(35, 87, 255, 0.24) !important;
+        opacity: 1 !important;
+        filter: none !important;
+    }
+
+    #menuScreen .citizen-menu-grid .rescue-card *,
+    #menuScreen .citizen-menu-grid button[onclick*="rescue"] * {
+        color: #ffffff !important;
+        opacity: 1 !important;
+    }
+
+    #menuScreen .citizen-menu-grid .rescue-card .action-icon,
+    #menuScreen .citizen-menu-grid button[onclick*="rescue"] .action-icon {
+        background: rgba(255,255,255,.18) !important;
+        color: #ffffff !important;
+    }
+
+    /* No PC a navegação vira um dock discreto, sem atravessar a tela inteira. */
+    #menuScreen .bottom-nav,
+    .bottom-nav {
+        left: 50% !important;
+        right: auto !important;
+        bottom: 18px !important;
+        transform: translateX(-50%) !important;
+        width: min(760px, calc(100% - 72px)) !important;
+        max-width: 760px !important;
+        padding: 10px !important;
+        border: 1px solid #dbe5f7 !important;
+        border-radius: 22px !important;
+        background: rgba(255,255,255,.94) !important;
+        box-shadow: 0 18px 50px rgba(27, 54, 112, 0.14) !important;
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+    }
+
+    .bottom-nav button {
+        min-height: 58px;
+        border-radius: 15px !important;
+    }
+}
+
+/* ================================ TABLET ================================ */
+@media (min-width: 600px) and (max-width: 1179px) {
+    body:not(:has(#welcomeScreen.active)) #app {
+        width: 100% !important;
+        max-width: none !important;
+        min-height: 100dvh;
+        margin: 0 !important;
+        padding: 26px clamp(24px, 4vw, 42px) 116px !important;
+    }
+
+    body:not(:has(#welcomeScreen.active)) .screen:not(.anon-mode):not(.admin-mode) > header {
+        margin: 0 0 24px !important;
+        padding: 30px 30px 27px !important;
+        border-radius: 26px !important;
+        text-align: left !important;
+        background:
+            radial-gradient(circle at 92% 12%, rgba(35,87,255,.10), transparent 28%),
+            #ffffff !important;
+        box-shadow: 0 14px 36px rgba(30, 55, 105, .08) !important;
+    }
+
+    #menuScreen .citizen-menu-grid {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 16px !important;
+        width: 100% !important;
+    }
+
+    #menuScreen .citizen-menu-grid > button,
+    #menuScreen .citizen-menu-grid .action-card,
+    #menuScreen .citizen-menu-grid .emergency,
+    #menuScreen .citizen-menu-grid .rescue-card {
+        grid-column: auto !important;
+        width: 100% !important;
+        max-width: none !important;
+        min-width: 0 !important;
+        height: 144px !important;
+        min-height: 144px !important;
+        margin: 0 !important;
+        padding: 22px 18px !important;
+        border-radius: 22px !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+    }
+
+    #menuScreen .citizen-menu-grid .rescue-card,
+    #menuScreen .citizen-menu-grid button[onclick*="rescue"] {
+        background: linear-gradient(135deg, #2357ff, #3474ff) !important;
+        border-color: transparent !important;
+        color: #fff !important;
+        opacity: 1 !important;
+        filter: none !important;
+        box-shadow: 0 14px 30px rgba(35,87,255,.22) !important;
+    }
+
+    #menuScreen .citizen-menu-grid .rescue-card *,
+    #menuScreen .citizen-menu-grid button[onclick*="rescue"] * {
+        color: #fff !important;
+        opacity: 1 !important;
+    }
+
+    #menuScreen .citizen-menu-grid .rescue-card .action-icon,
+    #menuScreen .citizen-menu-grid button[onclick*="rescue"] .action-icon {
+        background: rgba(255,255,255,.18) !important;
+    }
+
+    .bottom-nav {
+        left: 24px !important;
+        right: 24px !important;
+        width: auto !important;
+        max-width: none !important;
+        transform: none !important;
+        bottom: 14px !important;
+        border-radius: 20px !important;
+        border: 1px solid #dde6f7 !important;
+        box-shadow: 0 14px 38px rgba(27,54,112,.12) !important;
+    }
+}
+
+/* ================================ CELULAR =============================== */
+@media (max-width: 599px) {
+    body:not(:has(#welcomeScreen.active)) #app {
+        width: 100% !important;
+        max-width: none !important;
+        min-height: 100dvh;
+        margin: 0 !important;
+        padding: 14px 14px 108px !important;
+    }
+
+    #menuScreen > header {
+        margin: 0 0 16px !important;
+        padding: 26px 20px 24px !important;
+        border-radius: 24px !important;
+        text-align: left !important;
+        background:
+            radial-gradient(circle at 90% 8%, rgba(35,87,255,.11), transparent 30%),
+            #ffffff !important;
+        box-shadow: 0 10px 28px rgba(30,55,105,.08) !important;
+    }
+
+    #menuScreen > header h1 {
+        font-size: clamp(27px, 8vw, 34px) !important;
+        letter-spacing: -1px;
+    }
+
+    #menuScreen .citizen-menu-grid {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 12px !important;
+        width: 100% !important;
+    }
+
+    #menuScreen .citizen-menu-grid > button,
+    #menuScreen .citizen-menu-grid .action-card {
+        width: 100% !important;
+        max-width: none !important;
+        min-width: 0 !important;
+        height: 122px !important;
+        min-height: 122px !important;
+        margin: 0 !important;
+        padding: 15px 10px !important;
+        border-radius: 20px !important;
+        text-align: center !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    #menuScreen .citizen-menu-grid .emergency,
+    #menuScreen .citizen-menu-grid .rescue-card,
+    #menuScreen .citizen-menu-grid button[onclick*="rescue"] {
+        grid-column: 1 / -1 !important;
+        height: 108px !important;
+        min-height: 108px !important;
+    }
+
+    #menuScreen .citizen-menu-grid .rescue-card,
+    #menuScreen .citizen-menu-grid button[onclick*="rescue"] {
+        background: linear-gradient(135deg, #2357ff 0%, #3474ff 100%) !important;
+        border-color: transparent !important;
+        color: #ffffff !important;
+        opacity: 1 !important;
+        filter: none !important;
+        box-shadow: 0 13px 28px rgba(35,87,255,.22) !important;
+    }
+
+    #menuScreen .citizen-menu-grid .rescue-card *,
+    #menuScreen .citizen-menu-grid button[onclick*="rescue"] * {
+        color: #ffffff !important;
+        opacity: 1 !important;
+    }
+
+    #menuScreen .citizen-menu-grid .rescue-card .action-icon,
+    #menuScreen .citizen-menu-grid button[onclick*="rescue"] .action-icon {
+        background: rgba(255,255,255,.18) !important;
+        color: #fff !important;
+    }
+
+    #menuScreen .citizen-menu-grid .action-icon {
+        width: 46px !important;
+        height: 46px !important;
+        border-radius: 15px !important;
+        margin-bottom: 8px !important;
+        font-size: 21px !important;
+    }
+
+    #menuScreen .citizen-menu-grid > button > span:last-child {
+        font-size: 14px !important;
+        line-height: 1.2;
+    }
+
+    .bottom-nav {
+        left: 10px !important;
+        right: 10px !important;
+        bottom: 10px !important;
+        width: auto !important;
+        max-width: none !important;
+        transform: none !important;
+        border-radius: 19px !important;
+        border: 1px solid #dce5f7 !important;
+        padding: 8px !important;
+        background: rgba(255,255,255,.96) !important;
+        box-shadow: 0 12px 34px rgba(27,54,112,.14) !important;
+    }
+}
+
+/* Celulares bem estreitos: uma coluna para evitar texto espremido. */
+@media (max-width: 380px) {
+    #menuScreen .citizen-menu-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    #menuScreen .citizen-menu-grid .emergency,
+    #menuScreen .citizen-menu-grid .rescue-card,
+    #menuScreen .citizen-menu-grid button[onclick*="rescue"] {
+        grid-column: auto !important;
+    }
+}
