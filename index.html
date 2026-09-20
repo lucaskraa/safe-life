@@ -15,11 +15,11 @@
         content="Safe Life — plataforma de proteção animal para denúncias, resgates, pets desaparecidos e atendimento profissional."
     >
 
-    <meta name="theme-color" content="#1639d7">
+    <meta name="theme-color" content="#1f6a50">
 
     <title>Safe Life — Rede de Proteção Animal</title>
 
-    <link rel="stylesheet" href="style.css?v=22.1.0">
+    <link rel="stylesheet" href="style.css?v=23.0.0">
 
 </head>
 
@@ -42,15 +42,14 @@
             <div class="landing-shell">
                 <nav class="landing-nav" aria-label="Navegação principal">
                     <button class="landing-brand" type="button" onclick="nextScreen('welcomeScreen')" aria-label="Safe Life - início">
-                        <span class="landing-brand-mark" aria-hidden="true">🐾</span>
+                        <span class="landing-brand-mark" aria-hidden="true">S</span>
                         <span class="landing-brand-copy">
                             <strong>Safe Life</strong>
-                            <small>Proteção animal conectada</small>
                         </span>
                     </button>
 
                     <div class="landing-nav-actions">
-                        <button class="landing-nav-link" type="button" onclick="document.getElementById('landingRecursos').scrollIntoView({behavior:'smooth'})">Recursos</button>
+                        <button class="landing-nav-link" type="button" onclick="document.getElementById('landingRecursos').scrollIntoView({behavior:'smooth'})">Como funciona</button>
                         <button class="landing-login-link" type="button" onclick="nextScreen('loginScreen')">Entrar</button>
                     </div>
                 </nav>
@@ -58,46 +57,29 @@
                 <main class="landing-main">
                     <section class="landing-hero" aria-labelledby="landingTitle">
                         <div class="landing-hero-copy">
-                            <span class="landing-kicker"><span aria-hidden="true"></span> Rede de proteção animal</span>
-                            <h1 id="landingTitle">Ajuda certa, no lugar certo.</h1>
+                            <span class="landing-eyebrow">Proteção animal em rede</span>
+                            <h1 id="landingTitle">Cuidar fica mais fácil quando todo mundo está conectado.</h1>
                             <p class="landing-lead">
-                                Denuncie situações de risco, encontre pets desaparecidos e acompanhe atendimentos em uma única plataforma.
+                                Denúncias, animais desaparecidos e pedidos de resgate reunidos em um só lugar, com acompanhamento do atendimento.
                             </p>
 
                             <div class="landing-actions">
-                                <button class="btn landing-primary-cta" onclick="nextScreen('locationScreen')" type="button">
-                                    Começar agora <span aria-hidden="true">→</span>
-                                </button>
-                                <button class="btn landing-secondary-cta" onclick="openAnonForm()" type="button">
-                                    Denúncia anônima
-                                </button>
-                            </div>
-
-                            <div class="landing-trust-row" aria-label="Recursos principais">
-                                <span>GPS</span>
-                                <span>Tempo real</span>
-                                <span>Atendimento integrado</span>
+                                <button class="btn landing-primary-cta" onclick="nextScreen('locationScreen')" type="button">Criar minha conta</button>
+                                <button class="landing-text-action" onclick="openAnonForm()" type="button">Fazer denúncia anônima</button>
                             </div>
                         </div>
 
-                        <div class="landing-hero-visual" aria-label="Animais protegidos pelo Safe Life">
+                        <figure class="landing-hero-visual">
                             <div class="landing-media-card">
                                 <div class="welcome-carousel-simple landing-carousel">
                                     <img
                                         id="welcomeCarouselImage"
-                                        src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=1200&q=85"
+                                        src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=1400&q=88"
                                         alt="Animal protegido pelo Safe Life"
                                         loading="eager"
                                         decoding="async"
                                     >
                                     <div class="welcome-image-gradient"></div>
-                                    <div class="landing-media-overlay">
-                                        <span class="landing-live-dot" aria-hidden="true"></span>
-                                        <div>
-                                            <small>Rede ativa</small>
-                                            <strong>Proteção em movimento.</strong>
-                                        </div>
-                                    </div>
                                     <div
                                         class="carousel-slider"
                                         id="welcomeCarouselProgress"
@@ -112,50 +94,53 @@
                                     <span class="carousel-screen-reader" id="welcomeCarouselStatus" aria-live="polite">Imagem 1 de 5</span>
                                 </div>
                             </div>
-                        </div>
+                            <figcaption>Informação rápida para quem precisa agir.</figcaption>
+                        </figure>
                     </section>
 
-                    <section class="landing-simple-section" id="landingRecursos">
+                    <section class="landing-simple-section" id="landingRecursos" aria-labelledby="landingFeaturesTitle">
                         <div class="landing-section-heading">
-                            <span class="landing-eyebrow">O essencial</span>
-                            <h2>Tudo que importa. Sem complicar.</h2>
-                            <p>Três caminhos principais para conectar quem percebe o problema a quem pode ajudar.</p>
+                            <span class="landing-eyebrow">Como funciona</span>
+                            <h2 id="landingFeaturesTitle">Três caminhos. Uma mesma rede.</h2>
                         </div>
 
-                        <div class="landing-feature-grid">
-                            <article class="landing-feature-card">
-                                <div class="landing-feature-icon" aria-hidden="true">!</div>
-                                <h3>Denuncie e peça ajuda</h3>
-                                <p>Envie a situação, evidências e localização. Se preferir, use o modo anônimo.</p>
+                        <div class="landing-feature-list">
+                            <article class="landing-feature-row">
+                                <span class="landing-feature-number">01</span>
+                                <div>
+                                    <h3>Registre o que aconteceu</h3>
+                                    <p>Envie uma ocorrência, uma denúncia anônima ou um alerta de pet desaparecido.</p>
+                                </div>
                             </article>
-                            <article class="landing-feature-card">
-                                <div class="landing-feature-icon" aria-hidden="true">⌖</div>
-                                <h3>Encontre seu pet</h3>
-                                <p>Cadastre o desaparecimento e conecte o caso à rede de atendimento.</p>
+                            <article class="landing-feature-row">
+                                <span class="landing-feature-number">02</span>
+                                <div>
+                                    <h3>Compartilhe a localização</h3>
+                                    <p>Use o GPS para facilitar a identificação do local e agilizar o atendimento.</p>
+                                </div>
                             </article>
-                            <article class="landing-feature-card">
-                                <div class="landing-feature-icon" aria-hidden="true">✓</div>
-                                <h3>Acompanhe o atendimento</h3>
-                                <p>Veja mudanças de status e receba atualizações sem depender de mensagens separadas.</p>
+                            <article class="landing-feature-row">
+                                <span class="landing-feature-number">03</span>
+                                <div>
+                                    <h3>Acompanhe pelo Safe Life</h3>
+                                    <p>Receba atualizações do caso e mantenha as informações organizadas no mesmo sistema.</p>
+                                </div>
                             </article>
                         </div>
                     </section>
 
-                    <section class="landing-compact-cta">
+                    <section class="landing-compact-cta" aria-label="Começar a usar o Safe Life">
                         <div>
                             <span class="landing-eyebrow">Safe Life</span>
-                            <h2>Uma rede mais simples para proteger quem precisa.</h2>
+                            <h2>Uma ferramenta simples para uma tarefa importante.</h2>
                         </div>
-                        <div class="landing-compact-actions">
-                            <button class="btn landing-primary-cta" onclick="nextScreen('locationScreen')" type="button">Criar conta</button>
-                            <button class="landing-text-link" onclick="nextScreen('loginScreen')" type="button">Já tenho conta</button>
-                        </div>
+                        <button class="btn landing-primary-cta" onclick="nextScreen('locationScreen')" type="button">Começar</button>
                     </section>
                 </main>
 
                 <footer class="landing-footer">
                     <strong>Safe Life</strong>
-                    <span>Projeto acadêmico de proteção animal.</span>
+                    <span>Proteção animal conectada.</span>
                 </footer>
             </div>
         </section>
