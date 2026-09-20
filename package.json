@@ -1,8 +1,8 @@
 {
   "name": "safe-life",
-  "version": "22.0.0",
+  "version": "24.3.0",
   "private": true,
-  "description": "Safe Life V22 - plataforma online-first de proteção animal com tempo real entre dispositivos.",
+  "description": "Safe Life V24.3 - plataforma online-first de proteção animal com identidade visual azul oficial e logo embutida.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
