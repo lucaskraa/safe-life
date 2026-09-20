@@ -7,28 +7,26 @@ const { Pool } = require("pg");
 
 const app = express();
 
-const SAFE_LIFE_VERSION = "21.4.0";
+const SAFE_LIFE_VERSION = "22.0.0";
 const PORT = Number(process.env.PORT) || 3000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 const IS_PRODUCTION = NODE_ENV === "production";
 const ADMIN_CPF = String(process.env.ADMIN_CPF || "45317828791").replace(/\D/g, "");
-const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || "123456");
+const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || (IS_PRODUCTION ? "" : "123456"));
 const ADMIN_TOKEN = String(process.env.ADMIN_TOKEN || "");
 const APP_SECRET = String(
     process.env.APP_SECRET ||
     process.env.ADMIN_TOKEN ||
-    "safelife-dev-secret-change-me"
+    (IS_PRODUCTION ? "" : "safelife-dev-secret-change-me")
 );
-const REQUIRE_USER_PASSWORD = process.env.REQUIRE_USER_PASSWORD === "true";
+const REQUIRE_USER_PASSWORD = true;
 const PUBLIC_DIR = path.join(__dirname, "public");
 const PUBLIC_INDEX = path.join(PUBLIC_DIR, "index.html");
 
-if (IS_PRODUCTION && ADMIN_PASSWORD === "123456") {
-    console.warn("⚠️ Configure ADMIN_PASSWORD no Render. A senha padrão não é segura.");
-}
-
-if (IS_PRODUCTION && APP_SECRET === "safelife-dev-secret-change-me") {
-    console.warn("⚠️ Configure APP_SECRET no Render para proteger os tokens de sessão.");
+if (IS_PRODUCTION && (!ADMIN_PASSWORD || !APP_SECRET)) {
+    throw new Error(
+        "Configuração de produção insegura: defina ADMIN_PASSWORD e APP_SECRET antes de iniciar o Safe Life."
+    );
 }
 
 /* =====================================================
@@ -86,8 +84,11 @@ app.use("/api", (req, res, next) => {
 app.use((req, res, next) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "DENY");
-    res.setHeader("Referrer-Policy", "no-referrer");
-    res.setHeader("Permissions-Policy", "camera=(self), geolocation=(self)");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    res.setHeader("Permissions-Policy", "camera=(self), geolocation=(self), microphone=()");
+    res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+    res.setHeader("Cross-Origin-Resource-Policy", "same-site");
+    res.setHeader("X-Permitted-Cross-Domain-Policies", "none");
     next();
 });
 
@@ -768,6 +769,130 @@ async function verificarSessaoUsuario(req, res, next) {
         return next();
     } catch (erro) {
         return res.status(500).json({ error: "Erro ao validar sessão.", details: detalhesErro(erro) });
+    }
+}
+
+
+
+function exigirPerfis(...perfisPermitidos) {
+    return function (req, res, next) {
+        const tipo = req.usuarioAutenticado?.tipo;
+        if (!tipo || !perfisPermitidos.includes(tipo)) {
+            return res.status(403).json({
+                error: "Seu perfil não possui permissão para esta operação.",
+                code: "ROLE_FORBIDDEN"
+            });
+        }
+        return next();
+    };
+}
+
+function verificarMesmoUsuarioOuAdmin(req, res, next) {
+    const usuario = req.usuarioAutenticado;
+    const cpfAlvo = limparCpf(req.params.cpf);
+
+    if (usuario?.tipo === "admin" || limparCpf(usuario?.cpf) === cpfAlvo) {
+        return next();
+    }
+
+    return res.status(403).json({
+        error: "Você não possui permissão para acessar os dados desta conta.",
+        code: "RESOURCE_FORBIDDEN"
+    });
+}
+
+async function verificarProprietarioPetOuAdmin(req, res, next) {
+    try {
+        const usuario = req.usuarioAutenticado;
+        if (usuario?.tipo === "admin") return next();
+
+        const petId = Number(req.params.id);
+        if (!Number.isInteger(petId) || petId <= 0) {
+            return res.status(400).json({ error: "Pet inválido." });
+        }
+
+        const result = await pool.query(
+            "SELECT usuario_id FROM pets WHERE id = $1 AND ativo = TRUE LIMIT 1",
+            [petId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: "Pet não encontrado." });
+        }
+
+        if (Number(result.rows[0].usuario_id) !== Number(usuario?.id)) {
+            return res.status(403).json({
+                error: "Você não possui permissão para alterar este pet.",
+                code: "PET_FORBIDDEN"
+            });
+        }
+
+        return next();
+    } catch (erro) {
+        return res.status(500).json({
+            error: "Erro ao validar acesso ao pet.",
+            details: detalhesErro(erro)
+        });
+    }
+}
+
+async function verificarLeituraPet(req, res, next) {
+    try {
+        const usuario = req.usuarioAutenticado;
+        if (["professional", "admin"].includes(usuario?.tipo)) return next();
+
+        const result = await pool.query(
+            "SELECT usuario_id FROM pets WHERE id = $1 AND ativo = TRUE LIMIT 1",
+            [req.params.id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: "Pet não encontrado." });
+        }
+
+        if (Number(result.rows[0].usuario_id) !== Number(usuario?.id)) {
+            return res.status(403).json({
+                error: "Você não possui permissão para visualizar este pet.",
+                code: "PET_FORBIDDEN"
+            });
+        }
+
+        return next();
+    } catch (erro) {
+        return res.status(500).json({
+            error: "Erro ao validar acesso ao pet.",
+            details: detalhesErro(erro)
+        });
+    }
+}
+
+async function verificarLeituraOcorrencia(req, res, next) {
+    try {
+        const usuario = req.usuarioAutenticado;
+        if (["professional", "admin"].includes(usuario?.tipo)) return next();
+
+        const result = await pool.query(
+            "SELECT usuario_id FROM ocorrencias WHERE id = $1 LIMIT 1",
+            [req.params.id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: "Ocorrência não encontrada." });
+        }
+
+        if (Number(result.rows[0].usuario_id) !== Number(usuario?.id)) {
+            return res.status(403).json({
+                error: "Você não possui permissão para visualizar esta ocorrência.",
+                code: "OCCURRENCE_FORBIDDEN"
+            });
+        }
+
+        return next();
+    } catch (erro) {
+        return res.status(500).json({
+            error: "Erro ao validar acesso à ocorrência.",
+            details: detalhesErro(erro)
+        });
     }
 }
 
@@ -1457,15 +1582,15 @@ app.post("/api/auth/login", async (req, res) => {
             });
         }
 
-        if (senhaInformada) {
-            if (!verificarSenha(senhaInformada, usuario.senha_hash)) {
-                return res.status(401).json({
-                    error: "CPF ou senha incorretos."
-                });
-            }
-        } else if (REQUIRE_USER_PASSWORD) {
+        if (!senhaInformada) {
             return res.status(400).json({
                 error: "A senha é obrigatória para entrar."
+            });
+        }
+
+        if (!verificarSenha(senhaInformada, usuario.senha_hash)) {
+            return res.status(401).json({
+                error: "CPF ou senha incorretos."
             });
         }
 
@@ -1685,7 +1810,7 @@ app.post("/api/auth/offline", async (req, res) => {
    USUÁRIOS / PERFIL
 ===================================================== */
 
-app.get("/api/users", async (req, res) => {
+app.get("/api/users", verificarAdmin, async (req, res) => {
     try {
         await garantirAdminNoBanco();
 
@@ -1707,7 +1832,7 @@ app.get("/api/users", async (req, res) => {
     }
 });
 
-app.get("/api/users/:cpf", async (req, res) => {
+app.get("/api/users/:cpf", verificarSessaoUsuario, verificarMesmoUsuarioOuAdmin, async (req, res) => {
     try {
         await garantirAdminNoBanco();
 
@@ -2810,9 +2935,13 @@ app.delete(
    PETS
 ===================================================== */
 
-app.get("/api/pets", async (req, res) => {
+app.get("/api/pets", verificarSessaoUsuario, async (req, res) => {
     try {
-        const { donoCpf } = req.query;
+        const usuarioSessao = req.usuarioAutenticado;
+        const donoCpfSolicitado = req.query.donoCpf;
+        const donoCpf = usuarioSessao.tipo === "citizen"
+            ? usuarioSessao.cpf
+            : donoCpfSolicitado;
 
         if (donoCpf) {
             const cpfLimpo = limparCpf(donoCpf);
@@ -2867,10 +2996,7 @@ app.get("/api/pets/desaparecidos", async (req, res) => {
             `
             SELECT
                 p.*,
-                u.nome AS dono_nome,
-                u.cpf AS dono_cpf,
-                u.email AS dono_email,
-                u.telefone AS dono_telefone
+                u.nome AS dono_nome
             FROM pets p
             INNER JOIN usuarios u
             ON u.id = p.usuario_id
@@ -2889,7 +3015,7 @@ app.get("/api/pets/desaparecidos", async (req, res) => {
     }
 });
 
-app.get("/api/pets/:id", async (req, res) => {
+app.get("/api/pets/:id", verificarSessaoUsuario, verificarLeituraPet, async (req, res) => {
     try {
         const result = await pool.query(
             `
@@ -2922,7 +3048,7 @@ app.get("/api/pets/:id", async (req, res) => {
     }
 });
 
-app.post("/api/pets", async (req, res) => {
+app.post("/api/pets", verificarSessaoUsuario, exigirPerfis("citizen", "admin"), async (req, res) => {
     try {
         const {
             donoCpf,
@@ -2948,7 +3074,10 @@ app.post("/api/pets", async (req, res) => {
             });
         }
 
-        const usuario = await buscarUsuarioPorCpf(donoCpf);
+        const donoCpfSeguro = req.usuarioAutenticado?.tipo === "admin" && donoCpf
+            ? limparCpf(donoCpf)
+            : limparCpf(req.usuarioAutenticado?.cpf);
+        const usuario = await buscarUsuarioPorCpf(donoCpfSeguro);
 
         if (!usuario) {
             return res.status(404).json({
@@ -3032,7 +3161,7 @@ app.post("/api/pets", async (req, res) => {
     }
 });
 
-app.put("/api/pets/:id", async (req, res) => {
+app.put("/api/pets/:id", verificarSessaoUsuario, verificarProprietarioPetOuAdmin, async (req, res) => {
     try {
         const {
             nome,
@@ -3122,7 +3251,7 @@ app.put("/api/pets/:id", async (req, res) => {
 });
 
 
-app.patch("/api/pets/:id/desaparecido", async (req, res) => {
+app.patch("/api/pets/:id/desaparecido", verificarSessaoUsuario, verificarProprietarioPetOuAdmin, async (req, res) => {
     try {
         const {
             desaparecido,
@@ -3181,7 +3310,7 @@ app.patch("/api/pets/:id/desaparecido", async (req, res) => {
     }
 });
 
-app.delete("/api/pets/:id", async (req, res) => {
+app.delete("/api/pets/:id", verificarSessaoUsuario, verificarProprietarioPetOuAdmin, async (req, res) => {
     try {
         const result = await pool.query(
             `
@@ -3214,7 +3343,7 @@ app.delete("/api/pets/:id", async (req, res) => {
    OCORRÊNCIAS IDENTIFICADAS
 ===================================================== */
 
-app.post("/api/ocorrencias", async (req, res) => {
+app.post("/api/ocorrencias", verificarSessaoUsuario, exigirPerfis("citizen", "admin"), async (req, res) => {
     try {
         const {
             usuarioCpf,
@@ -3250,13 +3379,15 @@ app.post("/api/ocorrencias", async (req, res) => {
             });
         }
 
-        let usuario = null;
+        const usuario = req.usuarioAutenticado;
 
-        if (usuarioCpf) {
-            usuario = await buscarUsuarioPorCpf(usuarioCpf);
+        if (!usuario) {
+            return res.status(401).json({
+                error: "Sessão necessária para abrir um chamado identificado."
+            });
         }
 
-        if (usuario && usuario.ativo === false) {
+        if (usuario.ativo === false) {
             return res.status(403).json({
                 error: "Esta conta está bloqueada e não pode abrir chamados."
             });
@@ -3329,9 +3460,12 @@ app.post("/api/ocorrencias", async (req, res) => {
     }
 });
 
-app.get("/api/ocorrencias", async (req, res) => {
+app.get("/api/ocorrencias", verificarSessaoUsuario, async (req, res) => {
     try {
-        const { status, categoria, usuarioCpf } = req.query;
+        const { status, categoria } = req.query;
+        const usuarioCpf = req.usuarioAutenticado?.tipo === "citizen"
+            ? req.usuarioAutenticado.cpf
+            : req.query.usuarioCpf;
 
         const params = [];
         const filtros = [];
@@ -3375,7 +3509,7 @@ app.get("/api/ocorrencias", async (req, res) => {
     }
 });
 
-app.get("/api/ocorrencias/:id", async (req, res) => {
+app.get("/api/ocorrencias/:id", verificarSessaoUsuario, verificarLeituraOcorrencia, async (req, res) => {
     try {
         const result = await pool.query(
             `
@@ -3506,7 +3640,7 @@ app.post("/api/ocorrencias/anonima", async (req, res) => {
     }
 });
 
-app.get("/api/denuncias-anonimas", async (req, res) => {
+app.get("/api/denuncias-anonimas", verificarSessaoUsuario, exigirPerfis("professional", "admin"), async (req, res) => {
     try {
         const { status, categoria } = req.query;
 
@@ -3553,7 +3687,7 @@ app.get("/api/denuncias-anonimas", async (req, res) => {
    Derivadas do status salvo no PostgreSQL.
 ===================================================== */
 
-app.get("/api/users/:cpf/notifications", async (req, res) => {
+app.get("/api/users/:cpf/notifications", verificarSessaoUsuario, verificarMesmoUsuarioOuAdmin, async (req, res) => {
     try {
         const cpfLimpo = limparCpf(req.params.cpf);
 
@@ -3655,7 +3789,7 @@ app.get("/api/users/:cpf/notifications", async (req, res) => {
    PAINEL PROFISSIONAL
 ===================================================== */
 
-app.get("/api/pro/ocorrencias", async (req, res) => {
+app.get("/api/pro/ocorrencias", verificarSessaoUsuario, exigirPerfis("professional", "admin"), async (req, res) => {
     try {
         const result = await pool.query(
             `
@@ -3748,14 +3882,16 @@ app.get("/api/pro/ocorrencias", async (req, res) => {
    STATUS / DESPACHO
 ===================================================== */
 
-app.patch("/api/chamados/:origem/:id/status", async (req, res) => {
+app.patch("/api/chamados/:origem/:id/status", verificarSessaoUsuario, exigirPerfis("professional", "admin"), async (req, res) => {
     const client = await pool.connect();
 
     try {
         const origem = String(req.params.origem || "").toLowerCase();
         const id = Number(req.params.id);
         const status = String(req.body.status || "").toUpperCase();
-        const funcionarioCpf = limparCpf(req.body.funcionarioCpf);
+        const funcionarioCpf = req.usuarioAutenticado?.tipo === "professional"
+            ? limparCpf(req.usuarioAutenticado.cpf)
+            : limparCpf(req.body.funcionarioCpf);
         const observacao = limparTexto(req.body.observacao || "");
 
         if (!Number.isInteger(id) || id <= 0) {
@@ -3949,7 +4085,7 @@ app.patch("/api/chamados/:origem/:id/status", async (req, res) => {
     }
 });
 
-app.delete("/api/chamados/:origem/:id", async (req, res) => {
+app.delete("/api/chamados/:origem/:id", verificarSessaoUsuario, exigirPerfis("professional", "admin"), async (req, res) => {
     try {
         const { origem, id } = req.params;
 
@@ -3999,10 +4135,10 @@ app.delete("/api/chamados/:origem/:id", async (req, res) => {
 
 
 /* =====================================================
-   SAFE LIFE V19 — PETS, NOTIFICAÇÕES E ADMINISTRAÇÃO
+   SAFE LIFE V22 — PETS, NOTIFICAÇÕES E ADMINISTRAÇÃO
 ===================================================== */
 
-app.get("/api/pro/pets/cadastrados", async (req, res) => {
+app.get("/api/pro/pets/cadastrados", verificarSessaoUsuario, exigirPerfis("professional", "admin"), async (req, res) => {
     try {
         const result = await pool.query(
             `
@@ -4030,7 +4166,7 @@ app.get("/api/pro/pets/cadastrados", async (req, res) => {
     }
 });
 
-app.get("/api/pro/pets/desaparecidos", async (req, res) => {
+app.get("/api/pro/pets/desaparecidos", verificarSessaoUsuario, exigirPerfis("professional", "admin"), async (req, res) => {
     try {
         const result = await pool.query(
             `
@@ -4059,12 +4195,14 @@ app.get("/api/pro/pets/desaparecidos", async (req, res) => {
     }
 });
 
-app.post("/api/pro/pets/:id/concluir-resgate", async (req, res) => {
+app.post("/api/pro/pets/:id/concluir-resgate", verificarSessaoUsuario, exigirPerfis("professional", "admin"), async (req, res) => {
     const client = await pool.connect();
 
     try {
         const petId = Number(req.params.id);
-        const funcionarioCpf = limparCpf(req.body.funcionarioCpf);
+        const funcionarioCpf = req.usuarioAutenticado?.tipo === "professional"
+            ? limparCpf(req.usuarioAutenticado.cpf)
+            : limparCpf(req.body.funcionarioCpf);
         const fotoEncontrado = limparTexto(req.body.fotoEncontrado);
         const destinoTipo = limparTexto(req.body.destinoTipo).toUpperCase();
         const destinoNome = limparTexto(req.body.destinoNome || "");
@@ -4233,7 +4371,7 @@ app.post("/api/pro/pets/:id/concluir-resgate", async (req, res) => {
     }
 });
 
-app.get("/api/users/:cpf/notifications-v18", async (req, res) => {
+app.get("/api/users/:cpf/notifications-v18", verificarSessaoUsuario, verificarMesmoUsuarioOuAdmin, async (req, res) => {
     try {
         const cpf = limparCpf(req.params.cpf);
         const result = await pool.query(
@@ -4454,7 +4592,7 @@ app.delete("/api/admin/accounts/:cpf/delete", verificarAdmin, async (req, res) =
    DASHBOARD / RELATÓRIOS
 ===================================================== */
 
-app.get("/api/dashboard/resumo", async (req, res) => {
+app.get("/api/dashboard/resumo", verificarAdmin, async (req, res) => {
     try {
         const totalUsuarios = await pool.query(
             "SELECT COUNT(*)::int AS total FROM usuarios WHERE ativo = TRUE"
