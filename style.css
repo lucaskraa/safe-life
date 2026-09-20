@@ -8711,3 +8711,164 @@ body:not(:has(#welcomeScreen.active)) {
         grid-column: auto !important;
     }
 }
+
+/* =============================================================
+   SAFE LIFE V24.5 — COMPACT DESKTOP OVERRIDES
+   PC/notebook: 3 colunas compactas a partir de 900px.
+   Tablet: 2 colunas. Celular: preserva layout touch.
+============================================================= */
+
+/* A landing agora possui um CTA principal só. */
+.landing-actions:has(.landing-primary-cta:only-child),
+.landing-actions:not(:has(.landing-secondary-cta)) {
+    display: flex !important;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.landing-actions:not(:has(.landing-secondary-cta)) .landing-primary-cta {
+    width: auto !important;
+    min-width: 190px;
+}
+
+/* PC e notebook, inclusive telas que antes caiam no breakpoint de tablet. */
+@media (min-width: 900px) {
+    body:not(:has(#welcomeScreen.active)) #app {
+        width: 100% !important;
+        max-width: none !important;
+        min-height: 100dvh;
+        margin: 0 !important;
+        padding: 18px clamp(22px, 3vw, 44px) 96px !important;
+    }
+
+    body:not(:has(#welcomeScreen.active)) .screen:not(.anon-mode):not(.admin-mode) {
+        width: 100% !important;
+        max-width: 1240px !important;
+        margin-inline: auto !important;
+    }
+
+    body:not(:has(#welcomeScreen.active)) .screen:not(.anon-mode):not(.admin-mode) > header {
+        margin: 0 0 18px !important;
+        padding: 22px 28px 20px !important;
+        border-radius: 22px !important;
+        text-align: left !important;
+        box-shadow: 0 10px 28px rgba(30, 55, 105, .07) !important;
+    }
+
+    body:not(:has(#welcomeScreen.active)) .screen:not(.anon-mode):not(.admin-mode) > header h1 {
+        font-size: clamp(27px, 2.5vw, 36px) !important;
+        line-height: 1.08 !important;
+        letter-spacing: -.8px !important;
+    }
+
+    body:not(:has(#welcomeScreen.active)) .screen:not(.anon-mode):not(.admin-mode) > header p {
+        font-size: 13px !important;
+        margin-top: 5px !important;
+    }
+
+    #menuScreen > main {
+        width: 100% !important;
+        max-width: 1180px !important;
+        margin-inline: auto !important;
+    }
+
+    #menuScreen .citizen-menu-grid {
+        display: grid !important;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 14px !important;
+        width: 100% !important;
+        max-width: 1180px !important;
+        margin-inline: auto !important;
+        align-items: stretch !important;
+    }
+
+    #menuScreen .citizen-menu-grid > button,
+    #menuScreen .citizen-menu-grid .action-card,
+    #menuScreen .citizen-menu-grid .emergency,
+    #menuScreen .citizen-menu-grid .rescue-card,
+    #menuScreen .citizen-menu-grid button[onclick*="rescue"] {
+        grid-column: auto !important;
+        width: 100% !important;
+        max-width: none !important;
+        min-width: 0 !important;
+        height: 118px !important;
+        min-height: 118px !important;
+        margin: 0 !important;
+        padding: 16px 16px !important;
+        border-radius: 19px !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+    }
+
+    #menuScreen .citizen-menu-grid .action-icon,
+    #menuScreen .citizen-menu-grid .rescue-card .action-icon,
+    #menuScreen .citizen-menu-grid button[onclick*="rescue"] .action-icon {
+        width: 44px !important;
+        height: 44px !important;
+        min-width: 44px !important;
+        min-height: 44px !important;
+        border-radius: 14px !important;
+        margin-bottom: 7px !important;
+        font-size: 20px !important;
+    }
+
+    #menuScreen .citizen-menu-grid > button > span:last-child,
+    #menuScreen .citizen-menu-grid .action-card > span:last-child {
+        font-size: 15px !important;
+        line-height: 1.18 !important;
+        font-weight: 800 !important;
+    }
+
+    #menuScreen .citizen-menu-grid .emergency {
+        box-shadow: 0 11px 26px rgba(222, 52, 69, .18) !important;
+    }
+
+    #menuScreen .citizen-menu-grid .rescue-card,
+    #menuScreen .citizen-menu-grid button[onclick*="rescue"] {
+        background: linear-gradient(135deg, #2357ff 0%, #3474ff 100%) !important;
+        color: #fff !important;
+        opacity: 1 !important;
+        filter: none !important;
+        box-shadow: 0 11px 26px rgba(35, 87, 255, .18) !important;
+    }
+
+    #menuScreen .bottom-nav,
+    .bottom-nav {
+        width: min(620px, calc(100% - 40px)) !important;
+        max-width: 620px !important;
+        bottom: 10px !important;
+        padding: 7px !important;
+        border-radius: 18px !important;
+        box-shadow: 0 12px 34px rgba(27, 54, 112, .12) !important;
+    }
+
+    .bottom-nav button {
+        min-height: 48px !important;
+        border-radius: 13px !important;
+    }
+}
+
+/* Tablet real: mantém conforto para toque, sem cards gigantes. */
+@media (min-width: 600px) and (max-width: 899px) {
+    body:not(:has(#welcomeScreen.active)) #app {
+        padding: 18px 20px 100px !important;
+    }
+
+    #menuScreen .citizen-menu-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 12px !important;
+    }
+
+    #menuScreen .citizen-menu-grid > button,
+    #menuScreen .citizen-menu-grid .action-card,
+    #menuScreen .citizen-menu-grid .emergency,
+    #menuScreen .citizen-menu-grid .rescue-card,
+    #menuScreen .citizen-menu-grid button[onclick*="rescue"] {
+        grid-column: auto !important;
+        height: 118px !important;
+        min-height: 118px !important;
+        padding: 15px !important;
+        border-radius: 19px !important;
+    }
+}
