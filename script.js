@@ -1,5 +1,5 @@
 /* =============================================================
-   SAFE LIFE V20 — FRONTEND COMPLETO ONLINE FIRST
+   SAFE LIFE V22 — FRONTEND ONLINE-FIRST
    Uma única implementação, sem versões antigas empilhadas.
 ============================================================= */
 (function () {
