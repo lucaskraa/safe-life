@@ -7,7 +7,7 @@ const { Pool } = require("pg");
 
 const app = express();
 
-const SAFE_LIFE_VERSION = "24.5.0";
+const SAFE_LIFE_VERSION = "24.6.0";
 const PORT = Number(process.env.PORT) || 3000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 const IS_PRODUCTION = NODE_ENV === "production";
@@ -147,6 +147,32 @@ function limparTexto(valor) {
 
 function validarEmail(email) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || ""));
+}
+
+function normalizarDataISO(valor) {
+    const texto = String(valor || "").trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(texto)) return null;
+
+    const [ano, mes, dia] = texto.split("-").map(Number);
+    const data = new Date(Date.UTC(ano, mes - 1, dia));
+
+    if (
+        data.getUTCFullYear() !== ano ||
+        data.getUTCMonth() !== mes - 1 ||
+        data.getUTCDate() !== dia
+    ) {
+        return null;
+    }
+
+    return texto;
+}
+
+function formatarDataBr(valor) {
+    const texto = String(valor || "").slice(0, 10);
+    const dataIso = normalizarDataISO(texto);
+    if (!dataIso) return "data não informada";
+    const [ano, mes, dia] = dataIso.split("-");
+    return `${dia}/${mes}/${ano}`;
 }
 
 
@@ -3439,6 +3465,26 @@ app.post("/api/ocorrencias", verificarSessaoUsuario, exigirPerfis("citizen", "ad
             ]
         );
 
+        try {
+            const chamadoCriado = result.rows[0];
+            const prazoInicial = formatarDataBr(chamadoCriado.previsao_atendimento);
+
+            await inserirNotificacao(pool, {
+                usuarioId: usuario.id,
+                tipo: "OCORRENCIA_RECEBIDA",
+                titulo: "Chamado recebido",
+                mensagem: `Recebemos seu chamado “${chamadoCriado.opcao_escolhida || chamadoCriado.assunto || chamadoCriado.tipo || "Ocorrência"}”. A previsão inicial de atendimento é até ${prazoInicial}. A equipe pode atualizar esse prazo quando assumir o caso.`,
+                foto: chamadoCriado.foto || null,
+                dados: {
+                    ocorrenciaId: chamadoCriado.id,
+                    status: chamadoCriado.status,
+                    previsaoAtendimento: chamadoCriado.previsao_atendimento || null
+                }
+            });
+        } catch (notificacaoErro) {
+            console.warn("⚠️ Não foi possível criar a notificação inicial do chamado:", notificacaoErro.message);
+        }
+
         broadcastProfessionalEvent("new_occurrence", {
             origin: "ocorrencia",
             id: result.rows[0].id,
@@ -3893,6 +3939,7 @@ app.patch("/api/chamados/:origem/:id/status", verificarSessaoUsuario, exigirPerf
             ? limparCpf(req.usuarioAutenticado.cpf)
             : limparCpf(req.body.funcionarioCpf);
         const observacao = limparTexto(req.body.observacao || "");
+        const previsaoAtendimento = normalizarDataISO(req.body.previsaoAtendimento);
 
         if (!Number.isInteger(id) || id <= 0) {
             return res.status(400).json({ error: "ID do chamado inválido." });
@@ -3900,6 +3947,24 @@ app.patch("/api/chamados/:origem/:id/status", verificarSessaoUsuario, exigirPerf
 
         if (!["PENDENTE", "EM_ATENDIMENTO", "CONCLUIDA", "CANCELADA"].includes(status)) {
             return res.status(400).json({ error: "Status inválido." });
+        }
+
+        if (status === "EM_ATENDIMENTO") {
+            if (!previsaoAtendimento) {
+                return res.status(400).json({
+                    error: "Informe a previsão de atendimento no formato AAAA-MM-DD.",
+                    code: "SERVICE_DEADLINE_REQUIRED"
+                });
+            }
+
+            const hoje = new Date();
+            const hojeIso = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(hoje.getDate()).padStart(2, "0")}`;
+            if (previsaoAtendimento < hojeIso) {
+                return res.status(400).json({
+                    error: "A previsão de atendimento não pode estar no passado.",
+                    code: "INVALID_SERVICE_DEADLINE"
+                });
+            }
         }
 
         let funcionario = null;
@@ -3947,6 +4012,11 @@ app.patch("/api/chamados/:origem/:id/status", verificarSessaoUsuario, exigirPerf
                 SET
                     status = $1::status_ocorrencia_enum,
                     atendente_id = COALESCE($2::INTEGER, atendente_id),
+                    previsao_atendimento = CASE
+                        WHEN $1::status_ocorrencia_enum = 'EM_ATENDIMENTO'::status_ocorrencia_enum
+                            THEN $4::date
+                        ELSE previsao_atendimento
+                    END,
                     concluido_em = CASE
                         WHEN $1::status_ocorrencia_enum = 'CONCLUIDA'::status_ocorrencia_enum
                             THEN CURRENT_TIMESTAMP
@@ -3958,7 +4028,7 @@ app.patch("/api/chamados/:origem/:id/status", verificarSessaoUsuario, exigirPerf
                 WHERE id = $3::INTEGER
                 RETURNING *
                 `,
-                [status, funcionario?.id || null, id]
+                [status, funcionario?.id || null, id, previsaoAtendimento]
             );
 
             try {
@@ -3975,7 +4045,12 @@ app.patch("/api/chamados/:origem/:id/status", verificarSessaoUsuario, exigirPerf
                         anterior.status,
                         status,
                         "Alteração de status",
-                        observacao || null
+                        [
+                            observacao,
+                            status === "EM_ATENDIMENTO" && previsaoAtendimento
+                                ? `Previsão de atendimento até ${formatarDataBr(previsaoAtendimento)}`
+                                : ""
+                        ].filter(Boolean).join(" • ") || null
                     ]
                 );
             } catch (historicoErro) {
@@ -3990,7 +4065,7 @@ app.patch("/api/chamados/:origem/:id/status", verificarSessaoUsuario, exigirPerf
 
                 if (status === "EM_ATENDIMENTO") {
                     titulo = "Atendimento iniciado";
-                    mensagem = `${profissionalNome} iniciou o atendimento da ocorrência “${tituloChamado}”.`;
+                    mensagem = `${profissionalNome} assumiu a ocorrência “${tituloChamado}”. A previsão informada para atendimento é até ${formatarDataBr(previsaoAtendimento)}.`;
                 } else if (status === "CONCLUIDA") {
                     titulo = "Atendimento concluído";
                     mensagem = `${profissionalNome} concluiu a ocorrência “${tituloChamado}”.`;
@@ -4009,7 +4084,10 @@ app.patch("/api/chamados/:origem/:id/status", verificarSessaoUsuario, exigirPerf
                         ocorrenciaId: id,
                         status,
                         profissional: profissionalNome,
-                        empresa: funcionario?.empresa || null
+                        empresa: funcionario?.empresa || null,
+                        previsaoAtendimento: status === "EM_ATENDIMENTO"
+                            ? previsaoAtendimento
+                            : (atualizadoResult.rows[0]?.previsao_atendimento || anterior.previsao_atendimento || null)
                     }
                 });
             }
@@ -4036,6 +4114,11 @@ app.patch("/api/chamados/:origem/:id/status", verificarSessaoUsuario, exigirPerf
                 UPDATE denuncias_anonimas
                 SET
                     status = $1::status_ocorrencia_enum,
+                    previsao_atendimento = CASE
+                        WHEN $1::status_ocorrencia_enum = 'EM_ATENDIMENTO'::status_ocorrencia_enum
+                            THEN $3::date
+                        ELSE previsao_atendimento
+                    END,
                     concluido_em = CASE
                         WHEN $1::status_ocorrencia_enum = 'CONCLUIDA'::status_ocorrencia_enum
                             THEN CURRENT_TIMESTAMP
@@ -4047,7 +4130,7 @@ app.patch("/api/chamados/:origem/:id/status", verificarSessaoUsuario, exigirPerf
                 WHERE id = $2::INTEGER
                 RETURNING *
                 `,
-                [status, id]
+                [status, id, previsaoAtendimento]
             );
 
             if (atualizadoResult.rows.length === 0) {
