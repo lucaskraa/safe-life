@@ -1,6 +1,6 @@
 {
   "name": "safe-life",
-  "version": "24.3.0",
+  "version": "24.4.0",
   "private": true,
   "description": "Safe Life V24.3 - plataforma online-first de proteção animal com identidade visual azul oficial e logo embutida.",
   "main": "server.js",
