@@ -182,6 +182,7 @@ CREATE TABLE IF NOT EXISTS ocorrencias (
     prioridade prioridade_enum NOT NULL DEFAULT 'NORMAL',
     anonima BOOLEAN NOT NULL DEFAULT FALSE,
     atendente_id INTEGER REFERENCES funcionarios(id) ON DELETE SET NULL,
+    previsao_atendimento DATE NOT NULL DEFAULT (CURRENT_DATE + 7),
     criado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     atualizado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     concluido_em TIMESTAMPTZ,
@@ -206,6 +207,7 @@ CREATE TABLE IF NOT EXISTS denuncias_anonimas (
     estado VARCHAR(100),
     status status_ocorrencia_enum NOT NULL DEFAULT 'PENDENTE',
     prioridade prioridade_enum NOT NULL DEFAULT 'ALTA',
+    previsao_atendimento DATE NOT NULL DEFAULT (CURRENT_DATE + 7),
     criado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     atualizado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     concluido_em TIMESTAMPTZ,
@@ -394,6 +396,7 @@ ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS cidade VARCHAR(150);
 ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS estado VARCHAR(100);
 ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS anonima BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS atendente_id INTEGER;
+ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS previsao_atendimento DATE NOT NULL DEFAULT (CURRENT_DATE + 7);
 ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS criado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS concluido_em TIMESTAMPTZ;
@@ -413,9 +416,18 @@ ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS endereco_completo TEXT;
 ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS bairro VARCHAR(150);
 ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS cidade VARCHAR(150);
 ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS estado VARCHAR(100);
+ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS previsao_atendimento DATE NOT NULL DEFAULT (CURRENT_DATE + 7);
 ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS criado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS concluido_em TIMESTAMPTZ;
+
+UPDATE ocorrencias
+SET previsao_atendimento = (criado_em::date + 7)
+WHERE previsao_atendimento IS NULL;
+
+UPDATE denuncias_anonimas
+SET previsao_atendimento = (criado_em::date + 7)
+WHERE previsao_atendimento IS NULL;
 
 UPDATE usuarios
 SET
