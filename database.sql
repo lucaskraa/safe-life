@@ -1,5 +1,5 @@
 -- =============================================================
--- SAFE LIFE V21.5 — BANCO COMPLETO ONLINE / SUPABASE
+-- SAFE LIFE V22 — BANCO COMPLETO ONLINE / SUPABASE
 -- Atualização idempotente: preserva dados reais e adiciona tudo que estiver faltando.
 -- Pode ser executado no SQL Editor do Supabase.
 -- =============================================================
