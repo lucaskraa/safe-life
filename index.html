@@ -15,11 +15,11 @@
         content="Safe Life — plataforma de proteção animal para denúncias, resgates, pets desaparecidos e atendimento profissional."
     >
 
-    <meta name="theme-color" content="#2454d6">
+    <meta name="theme-color" content="#1639d7">
 
-    <title>Safe Life</title>
+    <title>Safe Life — Rede de Proteção Animal</title>
 
-    <link rel="stylesheet" href="style.css?v=21.4.0">
+    <link rel="stylesheet" href="style.css?v=22.0.0">
 
 </head>
 
@@ -38,117 +38,205 @@
         <!-- =====================================================
              TELA DE BOAS-VINDAS
         ====================================================== -->
-        <section class="screen active" id="welcomeScreen">
-
-            <header class="welcome-header">
-                <div class="welcome-header-content">
-
-                    <span class="welcome-mini-badge">
-                        🐾 Rede Inteligente de Proteção Animal
-                    </span>
-
-                    <h1>Safe Life</h1>
-
-                    <p>
-                        Proteção, denúncia, resgate e localização atual em uma só plataforma.
-                    </p>
-
-                </div>
-            </header>
-
-            <main class="welcome-main">
-
-                <section class="welcome-hero-card">
-
-                    <div class="welcome-carousel-simple">
-
-                        <img
-                            id="welcomeCarouselImage"
-                            src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=1200&q=85"
-                            alt="Animal protegido pelo Safe Life"
-                            loading="eager"
-                            decoding="async"
-                        >
-
-                        <div class="welcome-image-gradient"></div>
-
-                        <div
-                            class="carousel-slider"
-                            id="welcomeCarouselProgress"
-                            role="progressbar"
-                            aria-label="Progresso do carrossel"
-                            aria-valuemin="1"
-                            aria-valuemax="5"
-                            aria-valuenow="1"
-                        >
-                            <div
-                                class="carousel-slider-thumb"
-                                id="carouselSliderThumb"
-                            ></div>
-                        </div>
-
-                        <span
-                            class="carousel-screen-reader"
-                            id="welcomeCarouselStatus"
-                            aria-live="polite"
-                        >
-                            Imagem 1 de 5
+        <section class="screen active landing-screen" id="welcomeScreen">
+            <div class="landing-shell">
+                <nav class="landing-nav" aria-label="Navegação principal">
+                    <button class="landing-brand" type="button" onclick="nextScreen('welcomeScreen')" aria-label="Safe Life - início">
+                        <span class="landing-brand-mark" aria-hidden="true">🐾</span>
+                        <span>
+                            <strong>Safe Life</strong>
+                            <small>Rede de Proteção Animal</small>
                         </span>
+                    </button>
 
+                    <div class="landing-nav-links">
+                        <button type="button" onclick="document.getElementById('landingRecursos').scrollIntoView({behavior:'smooth'})">Recursos</button>
+                        <button type="button" onclick="document.getElementById('landingComoFunciona').scrollIntoView({behavior:'smooth'})">Como funciona</button>
+                        <button type="button" onclick="document.getElementById('landingSeguranca').scrollIntoView({behavior:'smooth'})">Segurança</button>
                     </div>
 
-                    <div class="welcome-copy-new">
+                    <button class="landing-login-link" type="button" onclick="nextScreen('loginScreen')">
+                        Entrar
+                    </button>
+                </nav>
 
-                        <div class="welcome-circle-icon">
-                            🐾
+                <main class="landing-main">
+                    <section class="landing-hero" aria-labelledby="landingTitle">
+                        <div class="landing-hero-copy">
+                            <span class="landing-kicker"><span aria-hidden="true">●</span> Proteção animal conectada em tempo real</span>
+                            <h1 id="landingTitle">Ajuda mais rápida para quem <em>não consegue pedir.</em></h1>
+                            <p class="landing-lead">
+                                O Safe Life conecta cidadãos, equipes de resgate, profissionais e administração em uma única rede para denúncias, emergências, pets desaparecidos e acompanhamento de atendimento.
+                            </p>
+
+                            <div class="landing-actions">
+                                <button class="btn landing-primary-cta" onclick="nextScreen('locationScreen')" type="button">
+                                    Entrar na rede <span aria-hidden="true">→</span>
+                                </button>
+                                <button class="btn landing-secondary-cta" onclick="openAnonForm()" type="button">
+                                    Fazer denúncia anônima
+                                </button>
+                            </div>
+
+                            <div class="landing-trust-row" aria-label="Principais recursos">
+                                <span>✓ Localização por GPS</span>
+                                <span>✓ Atualizações em tempo real</span>
+                                <span>✓ Perfis com acesso controlado</span>
+                            </div>
                         </div>
 
-                        <span class="welcome-tag">
-                            Sistema de Apoio Animal
-                        </span>
+                        <div class="landing-hero-visual" aria-label="Demonstração visual da plataforma">
+                            <div class="landing-orbit landing-orbit-one"></div>
+                            <div class="landing-orbit landing-orbit-two"></div>
 
-                        <h2>
-                            Bem-vindo ao Safe Life
-                        </h2>
+                            <div class="landing-phone-card">
+                                <div class="landing-phone-topbar">
+                                    <span class="landing-live-dot"></span>
+                                    <strong>Rede ativa</strong>
+                                    <span>Safe Life</span>
+                                </div>
 
-                        <p>
-                            Uma plataforma criada para aproximar cidadãos,
-                            equipes de resgate, profissionais e administradores.
-                        </p>
+                                <div class="welcome-carousel-simple landing-carousel">
+                                    <img
+                                        id="welcomeCarouselImage"
+                                        src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=1200&q=85"
+                                        alt="Animal protegido pelo Safe Life"
+                                        loading="eager"
+                                        decoding="async"
+                                    >
+                                    <div class="welcome-image-gradient"></div>
+                                    <div class="landing-image-caption">
+                                        <span>Ocorrência conectada</span>
+                                        <strong>Proteção que chega até o local.</strong>
+                                    </div>
+                                    <div
+                                        class="carousel-slider"
+                                        id="welcomeCarouselProgress"
+                                        role="progressbar"
+                                        aria-label="Progresso do carrossel"
+                                        aria-valuemin="1"
+                                        aria-valuemax="5"
+                                        aria-valuenow="1"
+                                    >
+                                        <div class="carousel-slider-thumb" id="carouselSliderThumb"></div>
+                                    </div>
+                                    <span class="carousel-screen-reader" id="welcomeCarouselStatus" aria-live="polite">Imagem 1 de 5</span>
+                                </div>
 
-                        <div class="welcome-info-box">
-                            <strong>
-                                Juntos podemos salvar vidas.
-                            </strong>
+                                <div class="landing-mini-dashboard">
+                                    <article>
+                                        <span class="landing-mini-icon is-danger">!</span>
+                                        <div><small>Chamado</small><strong>Prioridade identificada</strong></div>
+                                        <span class="landing-status-pill">Recebido</span>
+                                    </article>
+                                    <article>
+                                        <span class="landing-mini-icon is-success">✓</span>
+                                        <div><small>Equipe</small><strong>Atendimento sincronizado</strong></div>
+                                        <span class="landing-status-pill is-green">Online</span>
+                                    </article>
+                                </div>
+                            </div>
 
-                            <small>
-                                Ative sua localização para permitir que os chamados cheguem
-                                com endereço atual, bairro, cidade e estado.
-                            </small>
+                            <div class="landing-floating-card landing-floating-left">
+                                <span>📍</span>
+                                <div><small>Localização</small><strong>GPS + endereço</strong></div>
+                            </div>
+                            <div class="landing-floating-card landing-floating-right">
+                                <span>🔔</span>
+                                <div><small>Acompanhamento</small><strong>Notificação ao cidadão</strong></div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="landing-metrics" aria-label="Estrutura da solução">
+                        <article><strong>3</strong><span>perfis integrados</span></article>
+                        <article><strong>4</strong><span>frentes de proteção</span></article>
+                        <article><strong>GPS</strong><span>localização contextual</span></article>
+                        <article><strong>Live</strong><span>eventos entre dispositivos</span></article>
+                    </section>
+
+                    <section class="landing-section" id="landingRecursos">
+                        <div class="landing-section-heading">
+                            <span class="landing-eyebrow">Uma rede, vários caminhos</span>
+                            <h2>Do primeiro alerta ao acompanhamento final.</h2>
+                            <p>O sistema organiza ações que normalmente ficariam espalhadas entre mensagens, ligações e registros separados.</p>
                         </div>
 
-                    </div>
+                        <div class="landing-feature-grid">
+                            <article class="landing-feature-card feature-emergency">
+                                <div class="landing-feature-icon">⚠️</div>
+                                <span>SOS e ocorrências</span>
+                                <h3>Registre situações com contexto.</h3>
+                                <p>Descrição, evidência, prioridade e localização ficam reunidas para agilizar a triagem.</p>
+                            </article>
+                            <article class="landing-feature-card feature-missing">
+                                <div class="landing-feature-icon">🔎</div>
+                                <span>Pets desaparecidos</span>
+                                <h3>Amplie a rede de busca.</h3>
+                                <p>Cadastre o animal, marque o desaparecimento e conecte o caso ao fluxo profissional de resgate.</p>
+                            </article>
+                            <article class="landing-feature-card feature-anonymous">
+                                <div class="landing-feature-icon">🛡️</div>
+                                <span>Denúncia anônima</span>
+                                <h3>Proteção sem exposição.</h3>
+                                <p>O cidadão pode enviar evidências e localização sem vincular a denúncia ao seu perfil.</p>
+                            </article>
+                            <article class="landing-feature-card feature-live">
+                                <div class="landing-feature-icon">⚡</div>
+                                <span>Tempo real</span>
+                                <h3>Todos veem a mudança acontecer.</h3>
+                                <p>Atualizações de atendimento, notificações e eventos mantêm os dispositivos sincronizados.</p>
+                            </article>
+                        </div>
+                    </section>
 
-                </section>
+                    <section class="landing-section landing-flow-section" id="landingComoFunciona">
+                        <div class="landing-section-heading is-left">
+                            <span class="landing-eyebrow">Fluxo de atendimento</span>
+                            <h2>Simples para quem pede ajuda. Organizado para quem atende.</h2>
+                        </div>
 
-                <button
-                    class="btn-large welcome-start-btn"
-                    onclick="nextScreen('locationScreen')"
-                    type="button"
-                >
-                    Entrar na Rede de Proteção 🐾
-                </button>
+                        <div class="landing-flow-grid">
+                            <article><span>01</span><div><h3>O cidadão registra</h3><p>Informa o problema, adiciona evidência e, quando disponível, envia sua localização.</p></div></article>
+                            <article><span>02</span><div><h3>A rede recebe</h3><p>Profissionais visualizam chamados e pets dentro de uma fila operacional atualizada.</p></div></article>
+                            <article><span>03</span><div><h3>O atendimento evolui</h3><p>Status e responsáveis são registrados no sistema, criando histórico da ocorrência.</p></div></article>
+                            <article><span>04</span><div><h3>O cidadão acompanha</h3><p>Notificações informam quando o chamado entra em atendimento ou é concluído.</p></div></article>
+                        </div>
+                    </section>
 
-                <button
-                    class="btn secondary-btn"
-                    onclick="nextScreen('loginScreen')"
-                    type="button"
-                >
-                    Já tenho uma conta
-                </button>
+                    <section class="landing-security-card" id="landingSeguranca">
+                        <div>
+                            <span class="landing-eyebrow">Segurança por função</span>
+                            <h2>O mesmo sistema, acessos diferentes.</h2>
+                            <p>Cidadão, profissional e administrador recebem somente os fluxos compatíveis com seu perfil. Sessões assinadas, senha protegida e autorização no servidor reduzem exposição indevida de dados.</p>
+                        </div>
+                        <div class="landing-security-points">
+                            <span><b>01</b> Senhas com hash e salt</span>
+                            <span><b>02</b> Sessões assinadas e revogáveis</span>
+                            <span><b>03</b> Autorização por perfil e propriedade</span>
+                            <span><b>04</b> Registro de ações administrativas</span>
+                        </div>
+                    </section>
 
-            </main>
+                    <section class="landing-final-cta">
+                        <span class="landing-paw-watermark" aria-hidden="true">🐾</span>
+                        <div>
+                            <span class="landing-eyebrow">Safe Life</span>
+                            <h2>Uma plataforma criada para transformar alerta em ação.</h2>
+                            <p>Ative sua localização, crie sua conta e participe da rede de proteção.</p>
+                        </div>
+                        <div class="landing-final-actions">
+                            <button class="btn landing-primary-cta" onclick="nextScreen('locationScreen')" type="button">Começar agora</button>
+                            <button class="btn landing-secondary-cta" onclick="nextScreen('loginScreen')" type="button">Já tenho conta</button>
+                        </div>
+                    </section>
+                </main>
 
+                <footer class="landing-footer">
+                    <div><strong>Safe Life</strong><span>Proteção animal com tecnologia e colaboração.</span></div>
+                    <span>Projeto acadêmico • Plataforma online-first</span>
+                </footer>
+            </div>
         </section>
 
         <!-- =====================================================
@@ -2834,7 +2922,7 @@
         </div>
     </noscript>
 
-    <script src="script.js?v=21.4.0"></script>
+    <script src="script.js?v=22.0.0"></script>
 
 </body>
 </html>
