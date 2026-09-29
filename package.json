@@ -1,13 +1,14 @@
 {
   "name": "safe-life",
-  "version": "24.6.0",
+  "version": "25.0.0",
   "private": true,
-  "description": "Safe Life V24.6 - plataforma online-first de proteção animal com layout responsivo compacto, identidade azul oficial e logo embutida.",
+  "description": "Safe Life V25 - plataforma online-first de proteção animal, ocorrências, resgate e gestão administrativa.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "check": "node --check server.js && node --check public/script.js && node tests/security.test.js"
+    "check": "node --check server.js && node --check script.js && node security.test.js",
+    "integration": "node integration.test.js"
   },
   "engines": {
     "node": ">=18"
