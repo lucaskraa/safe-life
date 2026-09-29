@@ -901,7 +901,7 @@ REVOKE ALL ON TABLE view_chamados_profissionais FROM PUBLIC;
 
 -- As roles anon/authenticated existem no Supabase, mas não em todo PostgreSQL
 -- (por exemplo, no banco isolado do CI). Mantém o script portátil e seguro.
-DO $
+DO $$
 BEGIN
     IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
         EXECUTE 'REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon';
@@ -913,7 +913,7 @@ BEGIN
         EXECUTE 'REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM authenticated';
     END IF;
 END;
-$;
+$$;
 
 -- Limpa eventos antigos sem tocar nos dados reais do aplicativo.
 DELETE FROM eventos_tempo_real
