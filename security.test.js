@@ -20,7 +20,8 @@ const checks = [
     ["dashboard summary requires admin", 'app.get("/api/dashboard/resumo", verificarAdmin'],
     ["password bypass stays disabled", "const REQUIRE_USER_PASSWORD = true;"],
     ["demo admin uses the fixed new CPF", 'const ADMIN_CPF = "33333333333";'],
-    ["citizen receives the five-business-day notice", "Ele será resolvido em até 5 dias úteis."],
+    ["citizen receives the five-business-day notice", "equivalente a 5 dias úteis."],
+    ["audit listing requires admin", 'app.get("/api/admin/auditoria", verificarAdmin'],
     ["database has business-day helper", "CREATE OR REPLACE FUNCTION adicionar_dias_uteis"],
     ["occurrence default is five business days", "DEFAULT adicionar_dias_uteis(CURRENT_DATE, 5)"]
 ];
