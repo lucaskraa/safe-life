@@ -9233,3 +9233,43 @@ body:not(:has(#welcomeScreen.active)) {
     border-color: rgba(37, 75, 250, 0.34);
     background: var(--blue-soft);
 }
+
+
+/* =====================================================
+   SAFE LIFE V25 — SLA / FEEDBACK DE CHAMADOS
+===================================================== */
+.sla-info-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin: 16px 0 18px;
+    padding: 14px 15px;
+    border-radius: 16px;
+    background: rgba(16, 185, 129, 0.10);
+    border: 1px solid rgba(16, 185, 129, 0.22);
+}
+
+.sla-info-icon {
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--success-color);
+    color: white;
+    font-weight: 900;
+}
+
+.sla-info-card strong {
+    display: block;
+    margin-bottom: 3px;
+    font-size: 14px;
+}
+
+.sla-info-card p {
+    margin: 0;
+    color: var(--text-light);
+    font-size: 13px;
+    line-height: 1.45;
+}
