@@ -22,7 +22,7 @@ As três contas abaixo são deliberadamente públicas porque fazem parte da demo
 
 ## Stack
 
-- Node.js 18+
+- Node.js 
 - Express
 - PostgreSQL / Supabase
 - HTML, CSS e JavaScript
