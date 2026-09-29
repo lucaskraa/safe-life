@@ -4820,6 +4820,44 @@ app.delete("/api/admin/accounts/:cpf/delete", verificarAdmin, async (req, res) =
 });
 
 /* =====================================================
+   AUDITORIA ADMINISTRATIVA
+===================================================== */
+
+app.get("/api/admin/auditoria", verificarAdmin, async (req, res) => {
+    try {
+        const result = await pool.query(
+            `
+            SELECT
+                a.id,
+                a.acao,
+                a.detalhes,
+                a.ip_origem,
+                a.user_agent,
+                a.criado_em,
+                admin.nome AS administrador_nome,
+                admin.cpf AS administrador_cpf,
+                alvo.nome AS usuario_alvo_nome,
+                alvo.cpf AS usuario_alvo_cpf
+            FROM auditoria_seguranca a
+            LEFT JOIN usuarios admin
+                ON admin.id = a.administrador_id
+            LEFT JOIN usuarios alvo
+                ON alvo.id = a.usuario_alvo_id
+            ORDER BY a.criado_em DESC, a.id DESC
+            LIMIT 200
+            `
+        );
+
+        return res.status(200).json(result.rows);
+    } catch (erro) {
+        return res.status(500).json({
+            error: "Erro ao carregar auditoria administrativa.",
+            details: erro.message
+        });
+    }
+});
+
+/* =====================================================
    DASHBOARD / RELATÓRIOS
 ===================================================== */
 
