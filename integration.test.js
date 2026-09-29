@@ -43,7 +43,7 @@ async function login(cpf, role, password = "123456", extra = {}) {
 }
 
 (async () => {
-    console.log("▶ Safe Life V25 integration smoke test");
+    console.log("▶ Safe Life V26 integration smoke test");
 
     await request("/api/status", { expected: [200] });
 
@@ -54,6 +54,17 @@ async function login(cpf, role, password = "123456", extra = {}) {
         token: citizen.token,
         expected: [200]
     });
+
+    const citizenProfile = await request("/api/users/11111111111", {
+        token: citizen.token,
+        expected: [200]
+    });
+    assert.strictEqual(citizenProfile.data.nome, "Antonio Cidadão", "Perfil do cidadão retornou nome incorreto.");
+
+    const publicCompanies = await request("/api/empresas", {
+        expected: [200]
+    });
+    assert(Array.isArray(publicCompanies.data) && publicCompanies.data.length >= 1, "Lista de empresas não carregou.");
 
     await request("/api/admin/users", {
         token: citizen.token,
@@ -130,6 +141,14 @@ async function login(cpf, role, password = "123456", extra = {}) {
         String(initialNotice.message).includes("5 dias úteis"),
         "Notificação inicial não informa o SLA de 5 dias úteis."
     );
+    assert(
+        String(initialNotice.message).includes("Solicitação registrada em"),
+        "Notificação inicial não informa a data do pedido."
+    );
+    assert(
+        String(initialNotice.message).includes("Prazo estimado de resolução"),
+        "Notificação inicial não informa a data limite."
+    );
 
     const anonymous = await request("/api/ocorrencias/anonima", {
         method: "POST",
@@ -151,6 +170,12 @@ async function login(cpf, role, password = "123456", extra = {}) {
         company: "Safe Life Matriz"
     });
     assert.strictEqual(professional.user.nome, "Antonio Funcionário");
+
+    const professionalProfile = await request("/api/users/22222222222", {
+        token: professional.token,
+        expected: [200]
+    });
+    assert.strictEqual(professionalProfile.data.nome, "Antonio Funcionário", "Perfil do funcionário retornou nome incorreto.");
 
     await request("/api/dashboard/resumo", {
         token: professional.token,
@@ -206,6 +231,12 @@ async function login(cpf, role, password = "123456", extra = {}) {
     const admin = await login("33333333333", "admin");
     assert.strictEqual(admin.user.nome, "Antonio Administrador");
 
+    const adminProfile = await request("/api/admin/users/33333333333", {
+        token: admin.token,
+        expected: [200]
+    });
+    assert.strictEqual(adminProfile.data.nome, "Antonio Administrador", "Perfil do administrador retornou nome incorreto.");
+
     const adminUsers = await request("/api/admin/users", {
         token: admin.token,
         expected: [200]
@@ -220,6 +251,18 @@ async function login(cpf, role, password = "123456", extra = {}) {
     });
     assert(Number.isInteger(dashboard.data.usuarios), "Dashboard admin não retornou contador de usuários.");
     assert(Number.isInteger(dashboard.data.ocorrencias), "Dashboard admin não retornou contador de ocorrências.");
+    assert(Number.isInteger(dashboard.data.denunciasAnonimas), "Dashboard admin não retornou contador de denúncias.");
+
+    const audit = await request("/api/admin/auditoria", {
+        token: admin.token,
+        expected: [200]
+    });
+    assert(Array.isArray(audit.data), "Auditoria administrativa não retornou lista.");
+
+    await request("/api/admin/auditoria", {
+        token: citizen.token,
+        expected: [403]
+    });
 
     await request("/api/debug/views", {
         token: admin.token,
@@ -251,11 +294,11 @@ async function login(cpf, role, password = "123456", extra = {}) {
         expected: [200]
     });
 
-    console.log("✓ cidadão: login, sessão, pet, desaparecimento, ocorrência e notificações");
-    console.log("✓ funcionário: login, fila, atendimento e conclusão");
-    console.log("✓ admin: login, usuários, dashboard, views e empresas");
+    console.log("✓ cidadão: login, sessão, perfil, empresas, pet, desaparecimento, ocorrência e notificações");
+    console.log("✓ funcionário: login, perfil, fila, atendimento e conclusão");
+    console.log("✓ admin: login, perfil, usuários, dashboard, auditoria, views e empresas");
     console.log("✓ autorização: cidadão/funcionário bloqueados em rotas administrativas");
-    console.log("✓ SLA: notificação inicial informa resolução em até 5 dias úteis");
+    console.log("✓ SLA: notificação inicial informa data do pedido e resolução em até 5 dias úteis");
 })().catch((error) => {
     console.error("✗ Falha no teste de integração:");
     console.error(error);

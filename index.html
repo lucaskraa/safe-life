@@ -1819,6 +1819,16 @@
                         <small>Resumo completo do sistema.</small>
                     </button>
 
+                    <button
+                        class="admin-tool-card"
+                        onclick="abrirAuditoriaAdmin()"
+                        type="button"
+                    >
+                        <span>🧾</span>
+                        <strong>Auditoria</strong>
+                        <small>Ver ações administrativas registradas.</small>
+                    </button>
+
                 </section>
 
                 <button
@@ -2658,36 +2668,49 @@
         ====================================================== -->
         <section class="screen" id="confirmationScreen">
 
-            <header>
-                <h1>
-                    Enviado com Sucesso
-                </h1>
-
-                <p>
-                    Seu protocolo foi registrado
-                </p>
+            <header class="confirmation-header">
+                <div class="confirmation-header-badge" aria-hidden="true">✓</div>
+                <h1 id="confirmTitle">Enviado com sucesso</h1>
+                <p id="confirmSubtitle">Seu pedido foi registrado no Safe Life.</p>
             </header>
 
             <main class="confirmation-main">
 
-                <div class="occurrence-card confirmation-card">
+                <div class="confirmation-card">
 
-                    <div class="confirmation-icon">
-                        ✅
+                    <div class="confirmation-icon" aria-hidden="true">✓</div>
+
+                    <div class="confirmation-copy">
+                        <strong id="confirmMsg">Operação concluída.</strong>
+                        <p id="confirmNotice" class="confirmation-notice hidden"></p>
                     </div>
 
-                    <p id="confirmMsg">
-                        Operação concluída.
-                    </p>
+                    <div id="confirmDeadlineBox" class="confirmation-deadline hidden">
+                        <div class="confirmation-date-item">
+                            <span>Solicitado em</span>
+                            <strong id="confirmRequestedDate">--/--/----</strong>
+                        </div>
+
+                        <div class="confirmation-deadline-arrow" aria-hidden="true">→</div>
+
+                        <div class="confirmation-date-item is-deadline">
+                            <span>Prazo estimado</span>
+                            <strong id="confirmDeadlineDate">--/--/----</strong>
+                        </div>
+
+                        <p id="confirmDeadlineText">
+                            Resolução em até 5 dias úteis.
+                        </p>
+                    </div>
 
                 </div>
 
                 <button
-                    class="btn"
+                    class="btn confirmation-home-button"
                     onclick="nextScreen('menuScreen')"
                     type="button"
                 >
-                    Voltar ao Início 🏠
+                    Voltar ao início
                 </button>
 
             </main>

@@ -886,13 +886,19 @@ async function verificarAdmin(req, res, next) {
         }
 
         if (!tokenEmergencialValido) {
-            const tokenSessaoValido =
+            const identidadeAdminValida =
                 payload &&
                 payload.tipo === "admin" &&
-                limparCpf(payload.cpf) === ADMIN_CPF &&
-                Number(payload.sv || 1) === Number(admin.session_version || 1);
+                limparCpf(payload.cpf) === ADMIN_CPF;
 
-            if (!tokenSessaoValido) {
+            if (!identidadeAdminValida) {
+                return res.status(403).json({
+                    error: "Acesso administrativo negado.",
+                    code: "ADMIN_ROLE_REQUIRED"
+                });
+            }
+
+            if (Number(payload.sv || 1) !== Number(admin.session_version || 1)) {
                 return res.status(401).json({
                     error: "Sessão administrativa expirada ou revogada.",
                     code: "SESSION_REVOKED"
@@ -3626,18 +3632,21 @@ app.post("/api/ocorrencias", verificarSessaoUsuario, exigirPerfis("citizen", "ad
 
         try {
             const chamadoCriado = result.rows[0];
+            const solicitadoEm = formatarDataBr(chamadoCriado.criado_em);
             const prazoInicial = formatarDataBr(chamadoCriado.previsao_atendimento);
 
             await inserirNotificacao(pool, {
                 usuarioId: usuario.id,
                 tipo: "OCORRENCIA_RECEBIDA",
                 titulo: "Chamado recebido",
-                mensagem: `Recebemos seu chamado “${chamadoCriado.opcao_escolhida || chamadoCriado.assunto || chamadoCriado.tipo || "Ocorrência"}”. Ele será resolvido em até 5 dias úteis. Previsão atual: ${prazoInicial}.`,
+                mensagem: `Recebemos seu chamado “${chamadoCriado.opcao_escolhida || chamadoCriado.assunto || chamadoCriado.tipo || "Ocorrência"}”. Solicitação registrada em ${solicitadoEm}. Prazo estimado de resolução: até ${prazoInicial}, equivalente a 5 dias úteis.`,
                 foto: chamadoCriado.foto || null,
                 dados: {
                     ocorrenciaId: chamadoCriado.id,
                     status: chamadoCriado.status,
-                    previsaoAtendimento: chamadoCriado.previsao_atendimento || null
+                    solicitadoEm: chamadoCriado.criado_em || null,
+                    previsaoAtendimento: chamadoCriado.previsao_atendimento || null,
+                    prazoDiasUteis: 5
                 }
             });
         } catch (notificacaoErro) {
@@ -4813,6 +4822,44 @@ app.delete("/api/admin/accounts/:cpf/delete", verificarAdmin, async (req, res) =
         return res.status(200).json({ message: "Conta excluída e sessões revogadas." });
     } catch (erro) {
         return res.status(500).json({ error: "Erro ao excluir conta.", details: erro.message });
+    }
+});
+
+/* =====================================================
+   AUDITORIA ADMINISTRATIVA
+===================================================== */
+
+app.get("/api/admin/auditoria", verificarAdmin, async (req, res) => {
+    try {
+        const result = await pool.query(
+            `
+            SELECT
+                a.id,
+                a.acao,
+                a.detalhes,
+                a.ip_origem,
+                a.user_agent,
+                a.criado_em,
+                admin.nome AS administrador_nome,
+                admin.cpf AS administrador_cpf,
+                alvo.nome AS usuario_alvo_nome,
+                alvo.cpf AS usuario_alvo_cpf
+            FROM auditoria_seguranca a
+            LEFT JOIN usuarios admin
+                ON admin.id = a.administrador_id
+            LEFT JOIN usuarios alvo
+                ON alvo.id = a.usuario_alvo_id
+            ORDER BY a.criado_em DESC, a.id DESC
+            LIMIT 200
+            `
+        );
+
+        return res.status(200).json(result.rows);
+    } catch (erro) {
+        return res.status(500).json({
+            error: "Erro ao carregar auditoria administrativa.",
+            details: erro.message
+        });
     }
 });
 

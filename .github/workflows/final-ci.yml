@@ -1,0 +1,61 @@
+name: Safe Life Final CI
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  full-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: safelife
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d safelife"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/safelife
+      DB_SSL: "false"
+      NODE_ENV: test
+      APP_SECRET: safe-life-ci-final
+      ADMIN_CPF: "33333333333"
+      ADMIN_PASSWORD: "123456"
+      FRONTEND_URL: http://127.0.0.1:3000
+      TEST_BASE_URL: http://127.0.0.1:3000
+      PGPASSWORD: postgres
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+      - name: Load database
+        run: psql -h 127.0.0.1 -U postgres -d safelife -f database.sql
+      - name: Static and security checks
+        run: npm run check
+      - name: Start application
+        run: |
+          node server.js > server.log 2>&1 &
+          echo $! > server.pid
+          for i in {1..40}; do
+            curl -fsS http://127.0.0.1:3000/api/status >/dev/null && exit 0
+            sleep 1
+          done
+          cat server.log
+          exit 1
+      - name: Full role integration
+        run: npm run integration
+      - name: Logs on failure
+        if: failure()
+        run: cat server.log || true

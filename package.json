@@ -1,8 +1,8 @@
 {
   "name": "safe-life",
-  "version": "25.0.0",
+  "version": "26.0.0",
   "private": true,
-  "description": "Safe Life V25 - plataforma online-first de proteção animal, ocorrências, resgate e gestão administrativa.",
+  "description": "Safe Life V26 - versão final do TCC com SLA de 5 dias úteis, perfis, administração e auditoria.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

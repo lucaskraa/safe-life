@@ -79,7 +79,7 @@ BEGIN
     END LOOP;
     RETURN resultado;
 END;
-$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 ALTER FUNCTION public.atualizar_data_modificacao() SET search_path = public, pg_temp;
 ALTER FUNCTION public.adicionar_dias_uteis(date, integer) SET search_path = pg_catalog, public;
@@ -895,26 +895,25 @@ ALTER TABLE bloqueios_conta ENABLE ROW LEVEL SECURITY;
 ALTER TABLE auditoria_seguranca ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tentativas_login ENABLE ROW LEVEL SECURITY;
 
-REVOKE ALL ON TABLE usuarios FROM anon, authenticated;
-REVOKE ALL ON TABLE empresas FROM anon, authenticated;
-REVOKE ALL ON TABLE funcionarios FROM anon, authenticated;
-REVOKE ALL ON TABLE pets FROM anon, authenticated;
-REVOKE ALL ON TABLE ocorrencias FROM anon, authenticated;
-REVOKE ALL ON TABLE denuncias_anonimas FROM anon, authenticated;
-REVOKE ALL ON TABLE historico_ocorrencias FROM anon, authenticated;
-REVOKE ALL ON TABLE notificacoes FROM anon, authenticated;
-REVOKE ALL ON TABLE eventos_tempo_real FROM anon, authenticated;
-REVOKE ALL ON TABLE resgates_pets FROM anon, authenticated;
-REVOKE ALL ON TABLE bloqueios_conta FROM anon, authenticated;
-REVOKE ALL ON TABLE auditoria_seguranca FROM anon, authenticated;
-REVOKE ALL ON TABLE tentativas_login FROM anon, authenticated;
+REVOKE ALL ON TABLE view_usuarios_completos FROM PUBLIC;
+REVOKE ALL ON TABLE view_ocorrencias_completas FROM PUBLIC;
+REVOKE ALL ON TABLE view_chamados_profissionais FROM PUBLIC;
 
-REVOKE ALL ON TABLE view_usuarios_completos FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON TABLE view_ocorrencias_completas FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON TABLE view_chamados_profissionais FROM PUBLIC, anon, authenticated;
+-- As roles anon/authenticated existem no Supabase, mas não em todo PostgreSQL
+-- (por exemplo, no banco isolado do CI). Mantém o script portátil e seguro.
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
+        EXECUTE 'REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon';
+        EXECUTE 'REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon';
+    END IF;
 
-REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon, authenticated;
-REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated;
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+        EXECUTE 'REVOKE ALL ON ALL TABLES IN SCHEMA public FROM authenticated';
+        EXECUTE 'REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM authenticated';
+    END IF;
+END;
+$$;
 
 -- Limpa eventos antigos sem tocar nos dados reais do aplicativo.
 DELETE FROM eventos_tempo_real
@@ -923,7 +922,7 @@ WHERE criado_em < CURRENT_TIMESTAMP - INTERVAL '7 days';
 COMMIT;
 
 SELECT
-    'Safe Life V21.5 completo instalado com segurança' AS resultado,
+    'Safe Life V26 final instalado com segurança' AS resultado,
     (SELECT COUNT(*) FROM usuarios WHERE excluida_em IS NULL AND ativo = TRUE) AS usuarios_ativos_no_banco,
     (SELECT COUNT(*) FROM empresas WHERE ativo = TRUE) AS empresas_ativas,
     (SELECT COUNT(*) FROM funcionarios WHERE ativo = TRUE) AS profissionais_ativos,
