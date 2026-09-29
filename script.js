@@ -336,6 +336,74 @@
         });
     }
 
+    function dateOnly(input) {
+        if (!input) return "Data não informada";
+        const raw = String(input);
+        const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (isoMatch) return `${isoMatch[3]}/${isoMatch[2]}/${isoMatch[1]}`;
+        const parsed = new Date(input);
+        if (Number.isNaN(parsed.getTime())) return raw;
+        return parsed.toLocaleDateString("pt-BR");
+    }
+
+    function addBusinessDaysIso(baseInput, amount = 5) {
+        const raw = String(baseInput || "");
+        const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        let date;
+        if (isoMatch) {
+            date = new Date(Number(isoMatch[1]), Number(isoMatch[2]) - 1, Number(isoMatch[3]), 12, 0, 0, 0);
+        } else {
+            date = baseInput ? new Date(baseInput) : new Date();
+            if (Number.isNaN(date.getTime())) date = new Date();
+            date.setHours(12, 0, 0, 0);
+        }
+        let added = 0;
+        while (added < Number(amount || 0)) {
+            date.setDate(date.getDate() + 1);
+            const day = date.getDay();
+            if (day !== 0 && day !== 6) added += 1;
+        }
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+    }
+
+    function showConfirmation({
+        title = "Enviado com sucesso",
+        subtitle = "Seu pedido foi registrado no Safe Life.",
+        message = "Operação concluída.",
+        notice = "",
+        requestedAt = null,
+        deadline = null,
+        showDeadline = false
+    } = {}) {
+        text("confirmTitle", title);
+        text("confirmSubtitle", subtitle);
+        text("confirmMsg", message);
+
+        const noticeNode = byId("confirmNotice");
+        if (noticeNode) {
+            noticeNode.textContent = notice || "";
+            noticeNode.classList.toggle("hidden", !notice);
+        }
+
+        const deadlineBox = byId("confirmDeadlineBox");
+        if (deadlineBox) {
+            deadlineBox.classList.toggle("hidden", !showDeadline);
+        }
+
+        if (showDeadline) {
+            const requestIso = requestedAt || new Date().toISOString();
+            const deadlineIso = deadline || addBusinessDaysIso(requestIso, 5);
+            text("confirmRequestedDate", dateOnly(requestIso));
+            text("confirmDeadlineDate", dateOnly(deadlineIso));
+            text("confirmDeadlineText", "Resolução estimada em até 5 dias úteis a partir da data do pedido.");
+        }
+
+        nextScreen("confirmationScreen");
+    }
+
     function toast(message, type) {
         const node = byId("toast");
         if (!node) {
@@ -1303,7 +1371,7 @@
                 submit.textContent = "Enviando chamado...";
             }
 
-            await api("/api/ocorrencias", {
+            const response = await api("/api/ocorrencias", {
                 method: "POST",
                 body: JSON.stringify({
                     usuarioCpf: state.user.cpf,
@@ -1322,8 +1390,16 @@
                 })
             }, 90000);
 
-            text("confirmMsg", "Seu chamado foi enviado para os profissionais disponíveis.");
-            nextScreen("confirmationScreen");
+            const created = response && response.data ? response.data : {};
+            showConfirmation({
+                title: "Chamado enviado",
+                subtitle: "Seu protocolo foi registrado com sucesso.",
+                message: "Seu chamado foi enviado para os profissionais disponíveis.",
+                notice: "A mesma confirmação foi adicionada às suas Notificações.",
+                requestedAt: created.criado_em || new Date().toISOString(),
+                deadline: created.previsao_atendimento || null,
+                showDeadline: true
+            });
             safeResetForm(form);
             setValue("selectedQuickOption", "");
         } catch (error) {
@@ -1374,8 +1450,11 @@
 
             toast("Pet cadastrado com sucesso.", "success");
             safeResetForm(form);
-            text("confirmMsg", "Pet cadastrado e salvo na sua conta. Ele já está disponível nos painéis online.");
-            nextScreen("confirmationScreen");
+            showConfirmation({
+                title: "Pet cadastrado",
+                subtitle: "Cadastro salvo com sucesso.",
+                message: "Pet cadastrado e salvo na sua conta. Ele já está disponível nos painéis online."
+            });
         } catch (error) {
             showError(error, "Não foi possível cadastrar o pet.");
         } finally {
@@ -1430,8 +1509,11 @@
 
             toast("Alerta de pet desaparecido publicado.", "success");
             safeResetForm(form);
-            text("confirmMsg", "Alerta publicado. Os profissionais receberam o pet desaparecido no painel online.");
-            nextScreen("confirmationScreen");
+            showConfirmation({
+                title: "Alerta publicado",
+                subtitle: "O alerta do pet desaparecido está ativo.",
+                message: "Os profissionais já podem visualizar o pet desaparecido no painel online."
+            });
         } catch (error) {
             showError(error, "Não foi possível publicar o alerta.");
         } finally {
@@ -1471,7 +1553,7 @@
                 submit.textContent = "Enviando denúncia...";
             }
 
-            await api("/api/ocorrencias/anonima", {
+            const response = await api("/api/ocorrencias/anonima", {
                 method: "POST",
                 body: JSON.stringify({
                     tipo: "Denúncia Anônima",
@@ -1488,8 +1570,15 @@
                     prioridade: selected.toLowerCase().includes("maus") ? "ALTA" : "NORMAL"
                 })
             }, 90000);
-            text("confirmMsg", "Sua denúncia anônima foi enviada com segurança.");
-            nextScreen("confirmationScreen");
+            const created = response && response.data ? response.data : {};
+            showConfirmation({
+                title: "Denúncia enviada",
+                subtitle: "Seu protocolo anônimo foi registrado.",
+                message: "Sua denúncia anônima foi enviada com segurança.",
+                requestedAt: created.criado_em || new Date().toISOString(),
+                deadline: created.previsao_atendimento || null,
+                showDeadline: true
+            });
             safeResetForm(form);
             setValue("selectedAnonOption", "");
         } catch (error) {
@@ -2075,14 +2164,15 @@
         }
     }
 
-    function prazoPadraoISO(dias = 7) {
-        const data = new Date();
-        data.setHours(12, 0, 0, 0);
-        data.setDate(data.getDate() + Number(dias || 0));
-        const ano = data.getFullYear();
-        const mes = String(data.getMonth() + 1).padStart(2, "0");
-        const dia = String(data.getDate()).padStart(2, "0");
-        return `${ano}-${mes}-${dia}`;
+    function prazoPadraoISO(diasUteis = 5) {
+        if (Number(diasUteis || 0) <= 0) {
+            const hoje = new Date();
+            const ano = hoje.getFullYear();
+            const mes = String(hoje.getMonth() + 1).padStart(2, "0");
+            const dia = String(hoje.getDate()).padStart(2, "0");
+            return `${ano}-${mes}-${dia}`;
+        }
+        return addBusinessDaysIso(new Date().toISOString(), Number(diasUteis || 5));
     }
 
     function abrirPrazoChamado(origin, id, prazoAtual = "") {
@@ -2100,7 +2190,7 @@
         inputDate.min = hoje;
         inputDate.value = /^\d{4}-\d{2}-\d{2}$/.test(String(prazoAtual || ""))
             ? String(prazoAtual)
-            : prazoPadraoISO(7);
+            : prazoPadraoISO(5);
         if (inputNote) inputNote.value = "";
         modal.classList.remove("hidden");
         window.setTimeout(function () { inputDate.focus(); }, 30);
