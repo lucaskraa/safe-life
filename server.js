@@ -3626,18 +3626,21 @@ app.post("/api/ocorrencias", verificarSessaoUsuario, exigirPerfis("citizen", "ad
 
         try {
             const chamadoCriado = result.rows[0];
+            const solicitadoEm = formatarDataBr(chamadoCriado.criado_em);
             const prazoInicial = formatarDataBr(chamadoCriado.previsao_atendimento);
 
             await inserirNotificacao(pool, {
                 usuarioId: usuario.id,
                 tipo: "OCORRENCIA_RECEBIDA",
                 titulo: "Chamado recebido",
-                mensagem: `Recebemos seu chamado “${chamadoCriado.opcao_escolhida || chamadoCriado.assunto || chamadoCriado.tipo || "Ocorrência"}”. Ele será resolvido em até 5 dias úteis. Previsão atual: ${prazoInicial}.`,
+                mensagem: `Recebemos seu chamado “${chamadoCriado.opcao_escolhida || chamadoCriado.assunto || chamadoCriado.tipo || "Ocorrência"}”. Solicitação registrada em ${solicitadoEm}. Prazo estimado de resolução: até ${prazoInicial}, equivalente a 5 dias úteis.`,
                 foto: chamadoCriado.foto || null,
                 dados: {
                     ocorrenciaId: chamadoCriado.id,
                     status: chamadoCriado.status,
-                    previsaoAtendimento: chamadoCriado.previsao_atendimento || null
+                    solicitadoEm: chamadoCriado.criado_em || null,
+                    previsaoAtendimento: chamadoCriado.previsao_atendimento || null,
+                    prazoDiasUteis: 5
                 }
             });
         } catch (notificacaoErro) {
