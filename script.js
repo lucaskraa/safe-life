@@ -2508,14 +2508,38 @@
         text("adminCpfText", `CPF: ${formatCpf(user.cpf)}`);
         const avatar = byId("adminAvatar");
         setImageSource(avatar, user.foto, defaultUserPhoto(user));
+
         try {
-            const summary = await api("/api/dashboard/resumo", {}, 25000);
-            Object.entries(summary || {}).forEach(function ([key, item]) {
-                const node = byId(key);
-                if (node) node.textContent = item;
-            });
+            const [summary, users] = await Promise.all([
+                api("/api/dashboard/resumo", {}, 25000),
+                api("/api/admin/users", {}, 25000)
+            ]);
+
+            const safeSummary = summary || {};
+            const safeUsers = Array.isArray(users) ? users : [];
+            const totalCalls =
+                Number(safeSummary.ocorrencias || 0) +
+                Number(safeSummary.denunciasAnonimas || 0);
+            const suspicious = safeUsers.filter(function (item) {
+                return item.ativo === false ||
+                    item.motivoBloqueio ||
+                    item.motivo_bloqueio ||
+                    item.excluidaEm ||
+                    item.excluida_em ||
+                    !item.email ||
+                    !item.telefone;
+            }).length;
+
+            text("adminStatUsers", Number(safeSummary.usuarios || 0));
+            text("adminStatProfessionals", Number(safeSummary.funcionarios || 0));
+            text("adminStatReports", totalCalls);
+            text("adminStatSuspicious", suspicious);
         } catch (error) {
-            console.warn(error);
+            console.warn("Não foi possível atualizar o dashboard administrativo:", error);
+            text("adminStatUsers", "—");
+            text("adminStatProfessionals", "—");
+            text("adminStatReports", "—");
+            text("adminStatSuspicious", "—");
         }
     }
 
@@ -3331,6 +3355,38 @@
         }
     }
 
+    async function abrirAuditoriaAdmin() {
+        if (!requireUser("admin")) return;
+        nextScreen("adminAuditScreen");
+        const container = byId("adminAuditList");
+        if (!container) return;
+
+        container.innerHTML = '<div class="occurrence-card"><p>Carregando auditoria...</p></div>';
+
+        try {
+            const entries = await api("/api/admin/auditoria", {}, 30000);
+            const list = Array.isArray(entries) ? entries : [];
+
+            container.innerHTML = list.length
+                ? list.map(function (item) {
+                    const actor = item.administrador_nome || "Sistema";
+                    const target = item.usuario_alvo_nome
+                        ? ` • Alvo: ${escapeHtml(item.usuario_alvo_nome)}`
+                        : "";
+                    return `<article class="safe-v19-admin-card">
+                        <div>
+                            <h4>${escapeHtml(item.acao || "Ação administrativa")}</h4>
+                            <p>${escapeHtml(actor)}${target}</p>
+                            <small>${escapeHtml(dateTime(item.criado_em))}</small>
+                        </div>
+                    </article>`;
+                }).join("")
+                : '<div class="occurrence-card"><h4>Auditoria limpa</h4><p>Nenhuma ação administrativa registrada neste ambiente.</p></div>';
+        } catch (error) {
+            container.innerHTML = `<div class="occurrence-card"><p>${escapeHtml(error.message)}</p></div>`;
+        }
+    }
+
     function abrirRelatorioPlantao() {
         nextScreen("shiftReportScreen");
         const container = byId("shiftReportBox");
@@ -3691,6 +3747,7 @@
         excluirContaPermanentementeAdmin,
         abrirContasSuspeitas,
         abrirRelatorioAdmin,
+        abrirAuditoriaAdmin,
         abrirRelatorioPlantao,
         atualizarPainelProfissionalAgora,
         encerrarSessaoPorStatus
