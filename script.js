@@ -945,6 +945,28 @@
         wrapper.classList.toggle("hidden", value("loginRole") !== "professional");
     }
 
+    function preencherLoginDemo(role) {
+        const roleSelect = byId("loginRole");
+        const cpfInput = byId("cpfInput");
+        const passwordInput = byId("loginPassword");
+        const companySelect = byId("loginCompany");
+
+        const accounts = {
+            citizen: "11111111111",
+            professional: "22222222222",
+            admin: "33333333333"
+        };
+
+        if (!accounts[role]) return;
+        if (roleSelect) roleSelect.value = role;
+        toggleLoginCompanyField();
+        if (cpfInput) cpfInput.value = accounts[role];
+        if (passwordInput) passwordInput.value = "123456";
+        if (role === "professional" && companySelect) {
+            companySelect.value = "Safe Life Matriz";
+        }
+    }
+
     async function efetuarCadastro() {
         if (state.busy.has("register")) return;
         const button = document.querySelector('button[onclick="efetuarCadastro()"]');
@@ -3518,6 +3540,7 @@
         atualizarFotoAdmin,
         toggleRegCompanyField,
         toggleLoginCompanyField,
+        preencherLoginDemo,
         efetuarCadastro,
         autenticar,
         logout,
