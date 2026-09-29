@@ -886,13 +886,19 @@ async function verificarAdmin(req, res, next) {
         }
 
         if (!tokenEmergencialValido) {
-            const tokenSessaoValido =
+            const identidadeAdminValida =
                 payload &&
                 payload.tipo === "admin" &&
-                limparCpf(payload.cpf) === ADMIN_CPF &&
-                Number(payload.sv || 1) === Number(admin.session_version || 1);
+                limparCpf(payload.cpf) === ADMIN_CPF;
 
-            if (!tokenSessaoValido) {
+            if (!identidadeAdminValida) {
+                return res.status(403).json({
+                    error: "Acesso administrativo negado.",
+                    code: "ADMIN_ROLE_REQUIRED"
+                });
+            }
+
+            if (Number(payload.sv || 1) !== Number(admin.session_version || 1)) {
                 return res.status(401).json({
                     error: "Sessão administrativa expirada ou revogada.",
                     code: "SESSION_REVOKED"
