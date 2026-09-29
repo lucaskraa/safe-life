@@ -942,7 +942,9 @@
     function toggleLoginCompanyField() {
         const wrapper = byId("loginCompanyWrapper");
         if (!wrapper) return;
-        wrapper.classList.toggle("hidden", value("loginRole") !== "professional");
+        const showCompany = value("loginRole") === "professional";
+        wrapper.classList.toggle("hidden", !showCompany);
+        wrapper.style.display = showCompany ? "block" : "none";
     }
 
     function preencherLoginDemo(role) {
