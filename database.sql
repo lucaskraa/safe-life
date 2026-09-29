@@ -79,7 +79,7 @@ BEGIN
     END LOOP;
     RETURN resultado;
 END;
-$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 ALTER FUNCTION public.atualizar_data_modificacao() SET search_path = public, pg_temp;
 ALTER FUNCTION public.adicionar_dias_uteis(date, integer) SET search_path = pg_catalog, public;
