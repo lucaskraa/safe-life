@@ -7,11 +7,11 @@ const { Pool } = require("pg");
 
 const app = express();
 
-const SAFE_LIFE_VERSION = "24.6.0";
+const SAFE_LIFE_VERSION = "25.0.0";
 const PORT = Number(process.env.PORT) || 3000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 const IS_PRODUCTION = NODE_ENV === "production";
-const ADMIN_CPF = String(process.env.ADMIN_CPF || "45317828791").replace(/\D/g, "");
+const ADMIN_CPF = String(process.env.ADMIN_CPF || "33333333333").replace(/\D/g, "");
 const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || (IS_PRODUCTION ? "" : "123456"));
 const ADMIN_TOKEN = String(process.env.ADMIN_TOKEN || "");
 const APP_SECRET = String(
@@ -21,7 +21,10 @@ const APP_SECRET = String(
 );
 const REQUIRE_USER_PASSWORD = true;
 const PUBLIC_DIR = path.join(__dirname, "public");
-const PUBLIC_INDEX = path.join(PUBLIC_DIR, "index.html");
+const ROOT_PUBLIC_INDEX = path.join(__dirname, "index.html");
+const PUBLIC_INDEX = fs.existsSync(path.join(PUBLIC_DIR, "index.html"))
+    ? path.join(PUBLIC_DIR, "index.html")
+    : ROOT_PUBLIC_INDEX;
 
 if (IS_PRODUCTION && (!ADMIN_PASSWORD || !APP_SECRET)) {
     throw new Error(
@@ -94,6 +97,19 @@ app.use((req, res, next) => {
 
 if (fs.existsSync(PUBLIC_DIR)) {
     app.use(express.static(PUBLIC_DIR));
+} else {
+    const rootStyle = path.join(__dirname, "style.css");
+    const rootScript = path.join(__dirname, "script.js");
+
+    app.get("/style.css", (req, res, next) => {
+        if (!fs.existsSync(rootStyle)) return next();
+        return res.sendFile(rootStyle);
+    });
+
+    app.get("/script.js", (req, res, next) => {
+        if (!fs.existsSync(rootScript)) return next();
+        return res.sendFile(rootScript);
+    });
 }
 
 /* =====================================================
@@ -495,7 +511,7 @@ async function garantirAdminNoBanco() {
                 WHERE cpf = $2
                 RETURNING *
                 `,
-                [senhaAdminHash, ADMIN_CPF, process.env.ADMIN_PHOTO || "img/apenasumsiri.jpeg"]
+                [senhaAdminHash, ADMIN_CPF, process.env.ADMIN_PHOTO || null]
             );
 
             return result.rows[0];
@@ -523,11 +539,11 @@ async function garantirAdminNoBanco() {
         RETURNING *
         `,
         [
-            process.env.ADMIN_NAME || "Gustavo Siri",
+            process.env.ADMIN_NAME || "Antonio Administrador",
             ADMIN_CPF,
             senhaAdminHash,
-            process.env.ADMIN_EMAIL || "gustavo.siriguejo@safelife.com",
-            process.env.ADMIN_PHONE || "11977770000",
+            process.env.ADMIN_EMAIL || "antonio.admin@safelife.com",
+            process.env.ADMIN_PHONE || "41900000003",
             "admin",
             "Safe Life Matriz",
             process.env.ADMIN_PHOTO || "img/apenasumsiri.jpeg"
@@ -3473,7 +3489,7 @@ app.post("/api/ocorrencias", verificarSessaoUsuario, exigirPerfis("citizen", "ad
                 usuarioId: usuario.id,
                 tipo: "OCORRENCIA_RECEBIDA",
                 titulo: "Chamado recebido",
-                mensagem: `Recebemos seu chamado “${chamadoCriado.opcao_escolhida || chamadoCriado.assunto || chamadoCriado.tipo || "Ocorrência"}”. A previsão inicial de atendimento é até ${prazoInicial}. A equipe pode atualizar esse prazo quando assumir o caso.`,
+                mensagem: `Recebemos seu chamado “${chamadoCriado.opcao_escolhida || chamadoCriado.assunto || chamadoCriado.tipo || "Ocorrência"}”. Ele será resolvido em até 5 dias úteis. Previsão atual: ${prazoInicial}.`,
                 foto: chamadoCriado.foto || null,
                 dados: {
                     ocorrenciaId: chamadoCriado.id,
