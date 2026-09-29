@@ -55,15 +55,15 @@ $$;
 -- =============================================================
 
 CREATE OR REPLACE FUNCTION atualizar_data_modificacao()
-RETURNS TRIGGER AS $
+RETURNS TRIGGER AS $$
 BEGIN
     NEW.atualizado_em = CURRENT_TIMESTAMP;
     RETURN NEW;
 END;
-$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION adicionar_dias_uteis(data_inicio DATE, quantidade INTEGER)
-RETURNS DATE AS $
+RETURNS DATE AS $$
 DECLARE
     resultado DATE := data_inicio;
     adicionados INTEGER := 0;
@@ -79,7 +79,7 @@ BEGIN
     END LOOP;
     RETURN resultado;
 END;
-$ LANGUAGE plpgsql IMMUTABLE;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 -- =============================================================
 -- TABELAS PRINCIPAIS
