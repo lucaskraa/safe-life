@@ -7,12 +7,15 @@ const { Pool } = require("pg");
 
 const app = express();
 
-const SAFE_LIFE_VERSION = "24.6.0";
+const SAFE_LIFE_VERSION = "25.0.0";
 const PORT = Number(process.env.PORT) || 3000;
 const NODE_ENV = process.env.NODE_ENV || "development";
 const IS_PRODUCTION = NODE_ENV === "production";
-const ADMIN_CPF = String(process.env.ADMIN_CPF || "45317828791").replace(/\D/g, "");
-const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || (IS_PRODUCTION ? "" : "123456"));
+const DEMO_PASSWORD = "123456";
+const DEMO_CITIZEN_CPF = "11111111111";
+const DEMO_PROFESSIONAL_CPF = "22222222222";
+const ADMIN_CPF = "33333333333";
+const ADMIN_PASSWORD = DEMO_PASSWORD;
 const ADMIN_TOKEN = String(process.env.ADMIN_TOKEN || "");
 const APP_SECRET = String(
     process.env.APP_SECRET ||
@@ -21,7 +24,10 @@ const APP_SECRET = String(
 );
 const REQUIRE_USER_PASSWORD = true;
 const PUBLIC_DIR = path.join(__dirname, "public");
-const PUBLIC_INDEX = path.join(PUBLIC_DIR, "index.html");
+const ROOT_PUBLIC_INDEX = path.join(__dirname, "index.html");
+const PUBLIC_INDEX = fs.existsSync(path.join(PUBLIC_DIR, "index.html"))
+    ? path.join(PUBLIC_DIR, "index.html")
+    : ROOT_PUBLIC_INDEX;
 
 if (IS_PRODUCTION && (!ADMIN_PASSWORD || !APP_SECRET)) {
     throw new Error(
@@ -94,6 +100,19 @@ app.use((req, res, next) => {
 
 if (fs.existsSync(PUBLIC_DIR)) {
     app.use(express.static(PUBLIC_DIR));
+} else {
+    const rootStyle = path.join(__dirname, "style.css");
+    const rootScript = path.join(__dirname, "script.js");
+
+    app.get("/style.css", (req, res, next) => {
+        if (!fs.existsSync(rootStyle)) return next();
+        return res.sendFile(rootStyle);
+    });
+
+    app.get("/script.js", (req, res, next) => {
+        if (!fs.existsSync(rootScript)) return next();
+        return res.sendFile(rootScript);
+    });
 }
 
 /* =====================================================
@@ -495,7 +514,7 @@ async function garantirAdminNoBanco() {
                 WHERE cpf = $2
                 RETURNING *
                 `,
-                [senhaAdminHash, ADMIN_CPF, process.env.ADMIN_PHOTO || "img/apenasumsiri.jpeg"]
+                [senhaAdminHash, ADMIN_CPF, process.env.ADMIN_PHOTO || null]
             );
 
             return result.rows[0];
@@ -523,11 +542,11 @@ async function garantirAdminNoBanco() {
         RETURNING *
         `,
         [
-            process.env.ADMIN_NAME || "Gustavo Siri",
+            process.env.ADMIN_NAME || "Antonio Administrador",
             ADMIN_CPF,
             senhaAdminHash,
-            process.env.ADMIN_EMAIL || "gustavo.siriguejo@safelife.com",
-            process.env.ADMIN_PHONE || "11977770000",
+            process.env.ADMIN_EMAIL || "antonio.admin@safelife.com",
+            process.env.ADMIN_PHONE || "41900000003",
             "admin",
             "Safe Life Matriz",
             process.env.ADMIN_PHOTO || "img/apenasumsiri.jpeg"
@@ -536,6 +555,146 @@ async function garantirAdminNoBanco() {
 
     return result.rows[0];
 }
+
+async function garantirContasDemoNoBanco() {
+    const senhaCidadao = await hashSenhaAsync(DEMO_PASSWORD);
+    const senhaProfissional = await hashSenhaAsync(DEMO_PASSWORD);
+    const senhaAdmin = await hashSenhaAsync(DEMO_PASSWORD);
+
+    const profissionalNovo = await buscarUsuarioPorCpf(DEMO_PROFESSIONAL_CPF);
+    if (!profissionalNovo) {
+        const profissionalAntigo = await buscarUsuarioPorCpf("99999999999");
+        if (profissionalAntigo) {
+            await pool.query(
+                "UPDATE usuarios SET cpf = $1 WHERE id = $2",
+                [DEMO_PROFESSIONAL_CPF, profissionalAntigo.id]
+            );
+        }
+    }
+
+    const adminNovo = await buscarUsuarioPorCpf(ADMIN_CPF);
+    if (!adminNovo) {
+        const adminAntigo = await buscarUsuarioPorCpf("45317828791");
+        if (adminAntigo) {
+            await pool.query(
+                "UPDATE usuarios SET cpf = $1 WHERE id = $2",
+                [ADMIN_CPF, adminAntigo.id]
+            );
+        }
+    }
+
+    const contas = [
+        {
+            nome: "Antonio Cidadão",
+            cpf: DEMO_CITIZEN_CPF,
+            senhaHash: senhaCidadao,
+            email: "antonio.cidadao@safelife.com",
+            telefone: "(41) 90000-0001",
+            tipo: "citizen",
+            empresa: null
+        },
+        {
+            nome: "Antonio Funcionário",
+            cpf: DEMO_PROFESSIONAL_CPF,
+            senhaHash: senhaProfissional,
+            email: "antonio.funcionario@safelife.com",
+            telefone: "(41) 90000-0002",
+            tipo: "professional",
+            empresa: "Safe Life Matriz"
+        },
+        {
+            nome: "Antonio Administrador",
+            cpf: ADMIN_CPF,
+            senhaHash: senhaAdmin,
+            email: "antonio.admin@safelife.com",
+            telefone: "(41) 90000-0003",
+            tipo: "admin",
+            empresa: "Safe Life Matriz"
+        }
+    ];
+
+    for (const conta of contas) {
+        const atual = await buscarUsuarioPorCpf(conta.cpf);
+        const senhaFinal =
+            atual && verificarSenha(DEMO_PASSWORD, atual.senha_hash)
+                ? atual.senha_hash
+                : conta.senhaHash;
+
+        await pool.query(
+            `
+            INSERT INTO usuarios
+            (nome, cpf, senha_hash, email, telefone, tipo, empresa, foto_perfil, ativo, troca_senha_obrigatoria)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,NULL,TRUE,FALSE)
+            ON CONFLICT (cpf) DO UPDATE SET
+                nome = EXCLUDED.nome,
+                senha_hash = EXCLUDED.senha_hash,
+                email = EXCLUDED.email,
+                telefone = EXCLUDED.telefone,
+                tipo = EXCLUDED.tipo,
+                empresa = EXCLUDED.empresa,
+                ativo = TRUE,
+                excluida_em = NULL,
+                bloqueado_em = NULL,
+                bloqueado_ate = NULL,
+                bloqueado_por = NULL,
+                motivo_bloqueio = NULL,
+                troca_senha_obrigatoria = FALSE,
+                atualizado_em = CURRENT_TIMESTAMP
+            `,
+            [
+                conta.nome,
+                conta.cpf,
+                senhaFinal,
+                conta.email,
+                conta.telefone,
+                conta.tipo,
+                conta.empresa
+            ]
+        );
+    }
+
+    const profissional = await buscarUsuarioPorCpf(DEMO_PROFESSIONAL_CPF);
+    if (profissional) {
+        await pool.query(
+            `
+            INSERT INTO funcionarios
+            (
+                usuario_id,
+                cargo,
+                empresa,
+                nivel_acesso,
+                registro_profissional,
+                especialidade,
+                regiao_atendimento,
+                status_plantao,
+                veiculo,
+                equipe,
+                bio_profissional,
+                ativo
+            )
+            VALUES
+            ($1,'Agente Operacional','Safe Life Matriz','operador','SAFE-0001',
+             'Resgate de rua','Curitiba e Região Metropolitana','Disponível',
+             'Carro de resgate','Equipe Alpha','Profissional de resgate e triagem animal.',TRUE)
+            ON CONFLICT (usuario_id) DO UPDATE SET
+                cargo = EXCLUDED.cargo,
+                empresa = EXCLUDED.empresa,
+                nivel_acesso = EXCLUDED.nivel_acesso,
+                registro_profissional = EXCLUDED.registro_profissional,
+                especialidade = EXCLUDED.especialidade,
+                regiao_atendimento = EXCLUDED.regiao_atendimento,
+                status_plantao = EXCLUDED.status_plantao,
+                veiculo = EXCLUDED.veiculo,
+                equipe = EXCLUDED.equipe,
+                bio_profissional = EXCLUDED.bio_profissional,
+                ativo = TRUE,
+                atualizado_em = CURRENT_TIMESTAMP
+            `,
+            [profissional.id]
+        );
+    }
+}
+
 
 
 function estadoConta(usuario) {
@@ -3473,7 +3632,7 @@ app.post("/api/ocorrencias", verificarSessaoUsuario, exigirPerfis("citizen", "ad
                 usuarioId: usuario.id,
                 tipo: "OCORRENCIA_RECEBIDA",
                 titulo: "Chamado recebido",
-                mensagem: `Recebemos seu chamado “${chamadoCriado.opcao_escolhida || chamadoCriado.assunto || chamadoCriado.tipo || "Ocorrência"}”. A previsão inicial de atendimento é até ${prazoInicial}. A equipe pode atualizar esse prazo quando assumir o caso.`,
+                mensagem: `Recebemos seu chamado “${chamadoCriado.opcao_escolhida || chamadoCriado.assunto || chamadoCriado.tipo || "Ocorrência"}”. Ele será resolvido em até 5 dias úteis. Previsão atual: ${prazoInicial}.`,
                 foto: chamadoCriado.foto || null,
                 dados: {
                     ocorrenciaId: chamadoCriado.id,
@@ -3896,20 +4055,6 @@ app.get("/api/pro/ocorrencias", verificarSessaoUsuario, exigirPerfis("profession
             ) chamados
             WHERE status <> 'CONCLUIDA'
               AND status <> 'CANCELADA'
-              AND NOT (
-                    (LOWER(COALESCE(assunto, '')) = 'animal na rua'
-                     AND LOWER(COALESCE(localizacao, '')) LIKE 'rua das flores%')
-                 OR (LOWER(COALESCE(assunto, '')) = 'animal ferido'
-                     AND LOWER(COALESCE(localizacao, '')) LIKE 'avenida principal%')
-                 OR (LOWER(COALESCE(assunto, '')) = 'sem água e comida'
-                     AND LOWER(COALESCE(localizacao, '')) LIKE 'rua esperança%')
-                 OR (LOWER(COALESCE(assunto, '')) = 'animal acorrentado'
-                     AND LOWER(COALESCE(localizacao, '')) LIKE 'travessa das palmeiras%')
-                 OR COALESCE(foto, '') LIKE '%photo-1558788353-f76d92427f16%'
-                 OR COALESCE(foto, '') LIKE '%photo-1574158622682-e40e69881006%'
-                 OR COALESCE(foto, '') LIKE '%photo-1583512603805-3cc6b41f3edb%'
-                 OR COALESCE(foto, '') LIKE '%photo-1596492784531-6e6eb5ea9993%'
-              )
             ORDER BY criado_em DESC
             `
         );
@@ -4780,9 +4925,19 @@ app.get("/api/dashboard/resumo", verificarAdmin, async (req, res) => {
 
 app.get("/api/debug/db", verificarAdmin, async (req, res) => {
     try {
+        if (IS_PRODUCTION && process.env.ENABLE_DEBUG_ROUTES !== "true") {
+            return res.status(404).json({ error: "Rota indisponível." });
+        }
         await garantirAdminNoBanco();
 
-        const usuarios = await pool.query("SELECT * FROM usuarios ORDER BY id");
+        const usuarios = await pool.query(
+            `SELECT id, nome, cpf, email, telefone, tipo, empresa, foto_perfil,
+                    ativo, bloqueado_em, bloqueado_ate, motivo_bloqueio,
+                    excluida_em, session_version, troca_senha_obrigatoria,
+                    ultima_atividade_em, online_ate, ultimo_login, criado_em, atualizado_em
+             FROM usuarios
+             ORDER BY id`
+        );
         const funcionarios = await pool.query("SELECT * FROM funcionarios ORDER BY id");
         const pets = await pool.query("SELECT * FROM pets ORDER BY id");
         const ocorrencias = await pool.query("SELECT * FROM ocorrencias ORDER BY id");
@@ -4807,6 +4962,9 @@ app.get("/api/debug/db", verificarAdmin, async (req, res) => {
 
 app.get("/api/debug/views", verificarAdmin, async (req, res) => {
     try {
+        if (IS_PRODUCTION && process.env.ENABLE_DEBUG_ROUTES !== "true") {
+            return res.status(404).json({ error: "Rota indisponível." });
+        }
         await garantirAdminNoBanco();
 
         const usuarios = await pool.query("SELECT * FROM view_usuarios_completos ORDER BY id");
@@ -4881,6 +5039,9 @@ async function iniciarServidor() {
 
         const testeBanco = await pool.query("SELECT NOW() AS agora");
         console.log(`✅ PostgreSQL conectado: ${testeBanco.rows[0].agora}`);
+
+        await garantirContasDemoNoBanco();
+        console.log("✅ Contas públicas de demonstração verificadas no banco.");
 
         await garantirAdminNoBanco();
         console.log("✅ Administrador master verificado no banco.");

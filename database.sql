@@ -1,5 +1,5 @@
 -- =============================================================
--- SAFE LIFE V22 — BANCO COMPLETO ONLINE / SUPABASE
+-- SAFE LIFE V25 — BANCO COMPLETO ONLINE / SUPABASE
 -- Atualização idempotente: preserva dados reais e adiciona tudo que estiver faltando.
 -- Pode ser executado no SQL Editor do Supabase.
 -- =============================================================
@@ -10,9 +10,9 @@ BEGIN;
 -- CONTAS PRINCIPAIS CRIADAS EM UMA INSTALAÇÃO NOVA
 -- Senha inicial das três contas: 123456
 --
--- Gustavo/Admin: 45317828791
--- Vitor/Cidadão: 11111111111
--- Zeca/Profissional: 99999999999
+-- Antonio Administrador: 33333333333
+-- Antonio Cidadão: 11111111111
+-- Antonio Funcionário: 22222222222
 --
 -- No Render, ADMIN_PASSWORD substitui a senha do administrador
 -- quando o servidor inicia.
@@ -61,6 +61,25 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION adicionar_dias_uteis(data_inicio DATE, quantidade INTEGER)
+RETURNS DATE AS $$
+DECLARE
+    resultado DATE := data_inicio;
+    adicionados INTEGER := 0;
+BEGIN
+    IF quantidade <= 0 THEN
+        RETURN resultado;
+    END IF;
+    WHILE adicionados < quantidade LOOP
+        resultado := resultado + 1;
+        IF EXTRACT(ISODOW FROM resultado) BETWEEN 1 AND 5 THEN
+            adicionados := adicionados + 1;
+        END IF;
+    END LOOP;
+    RETURN resultado;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
 
 -- =============================================================
 -- TABELAS PRINCIPAIS
@@ -182,7 +201,7 @@ CREATE TABLE IF NOT EXISTS ocorrencias (
     prioridade prioridade_enum NOT NULL DEFAULT 'NORMAL',
     anonima BOOLEAN NOT NULL DEFAULT FALSE,
     atendente_id INTEGER REFERENCES funcionarios(id) ON DELETE SET NULL,
-    previsao_atendimento DATE NOT NULL DEFAULT (CURRENT_DATE + 7),
+    previsao_atendimento DATE NOT NULL DEFAULT adicionar_dias_uteis(CURRENT_DATE, 5),
     criado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     atualizado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     concluido_em TIMESTAMPTZ,
@@ -207,7 +226,7 @@ CREATE TABLE IF NOT EXISTS denuncias_anonimas (
     estado VARCHAR(100),
     status status_ocorrencia_enum NOT NULL DEFAULT 'PENDENTE',
     prioridade prioridade_enum NOT NULL DEFAULT 'ALTA',
-    previsao_atendimento DATE NOT NULL DEFAULT (CURRENT_DATE + 7),
+    previsao_atendimento DATE NOT NULL DEFAULT adicionar_dias_uteis(CURRENT_DATE, 5),
     criado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     atualizado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     concluido_em TIMESTAMPTZ,
@@ -396,7 +415,8 @@ ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS cidade VARCHAR(150);
 ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS estado VARCHAR(100);
 ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS anonima BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS atendente_id INTEGER;
-ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS previsao_atendimento DATE NOT NULL DEFAULT (CURRENT_DATE + 7);
+ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS previsao_atendimento DATE NOT NULL DEFAULT adicionar_dias_uteis(CURRENT_DATE, 5);
+ALTER TABLE ocorrencias ALTER COLUMN previsao_atendimento SET DEFAULT adicionar_dias_uteis(CURRENT_DATE, 5);
 ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS criado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS concluido_em TIMESTAMPTZ;
@@ -416,17 +436,18 @@ ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS endereco_completo TEXT;
 ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS bairro VARCHAR(150);
 ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS cidade VARCHAR(150);
 ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS estado VARCHAR(100);
-ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS previsao_atendimento DATE NOT NULL DEFAULT (CURRENT_DATE + 7);
+ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS previsao_atendimento DATE NOT NULL DEFAULT adicionar_dias_uteis(CURRENT_DATE, 5);
+ALTER TABLE denuncias_anonimas ALTER COLUMN previsao_atendimento SET DEFAULT adicionar_dias_uteis(CURRENT_DATE, 5);
 ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS criado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE denuncias_anonimas ADD COLUMN IF NOT EXISTS concluido_em TIMESTAMPTZ;
 
 UPDATE ocorrencias
-SET previsao_atendimento = (criado_em::date + 7)
+SET previsao_atendimento = adicionar_dias_uteis(criado_em::date, 5)
 WHERE previsao_atendimento IS NULL;
 
 UPDATE denuncias_anonimas
-SET previsao_atendimento = (criado_em::date + 7)
+SET previsao_atendimento = adicionar_dias_uteis(criado_em::date, 5)
 WHERE previsao_atendimento IS NULL;
 
 UPDATE usuarios
@@ -729,45 +750,32 @@ ON CONFLICT (nome) DO UPDATE SET
     email = EXCLUDED.email,
     endereco = EXCLUDED.endereco;
 
+-- Migra os CPFs antigos das contas públicas de demonstração sem trocar IDs internos.
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM usuarios WHERE cpf = '99999999999')
+       AND NOT EXISTS (SELECT 1 FROM usuarios WHERE cpf = '22222222222') THEN
+        UPDATE usuarios SET cpf = '22222222222' WHERE cpf = '99999999999';
+    END IF;
+    IF EXISTS (SELECT 1 FROM usuarios WHERE cpf = '45317828791')
+       AND NOT EXISTS (SELECT 1 FROM usuarios WHERE cpf = '33333333333') THEN
+        UPDATE usuarios SET cpf = '33333333333' WHERE cpf = '45317828791';
+    END IF;
+END;
+$$;
+
 INSERT INTO usuarios
 (nome, cpf, senha_hash, email, telefone, tipo, empresa, foto_perfil, ativo)
 VALUES
-(
-    'Vitor Chineque',
-    '11111111111',
-    'scrypt$35648d7fd60731ac9205183ec436c4e0$6a122be2c6771531791ff7de26b1d4fc59775e62cd03265070ea048881e782cd280567e6e76b3169a24adb5636b7dcf70589e2645133ee02be43f64b9ed78f7e',
-    'vitor.chinequero@safelife.com',
-    '(41) 99999-0000',
-    'citizen',
-    NULL,
-    'img/pequenochinique.jpeg',
-    TRUE
-),
-(
-    'Zeca dos Santos',
-    '99999999999',
-    'scrypt$ae5d4f36ed0b35fb69e440c77d6f3978$5d02a0401490f6f62f97692d8e8f2f449dda23ef8cd4e90899818324a232e289737441c5c64999589d3579d6ad2f5fc7ab299be3986373e727fd2ed93b47858b',
-    'zeca.dos.animais@safelife.com',
-    '(41) 98888-0000',
-    'professional',
-    'Safe Life Matriz',
-    'img/corredorzeca.jpeg',
-    TRUE
-),
-(
-    'Gustavo Siri',
-    '45317828791',
-    'scrypt$8feab15f9b71b8e65b7a18af374ded86$e059083684993f4287ffa67fbeee1bce8cc3d84d4a125760172941177a7f2bd77ab10a4fa09b942036785dd1b8b2459b61417e7bd04a60d0d04e84a6e84cc3d5',
-    'gustavo.siriguejo@safelife.com',
-    '(41) 97777-0000',
-    'admin',
-    'Safe Life Matriz',
-    'img/apenasumsiri.jpeg',
-    TRUE
-)
+('Antonio Cidadão','11111111111','scrypt$8cdd91ecc79c3132fe42063d77478efa$cbdb0b42abe7af50f82d321d32f1640dded0e96c5648ecdd83c7ab0289944da3f1c7861d0d6de982e12294ead071e8977a971269de70bed0e9fc97778e462e3c','antonio.cidadao@safelife.com','(41) 90000-0001','citizen',NULL,NULL,TRUE),
+('Antonio Funcionário','22222222222','scrypt$b41dc129a0fb822df846065daf89c92e$b321a7358cf6eebee218314c241371831157173573c3128cf339a6239406daa87315c53d43416576365effde3124c03c7e899ae8187b52b926dfcf4be955fc90','antonio.funcionario@safelife.com','(41) 90000-0002','professional','Safe Life Matriz',NULL,TRUE),
+('Antonio Administrador','33333333333','scrypt$0a11e98e437efdea9669c816f18daac6$713b35827aec1c3e03065ef9a33bca255f76665dc68ed00c1f35323f2cee62ad50c7e8f871b8d16329f356b84d0ff2cae98d5f6ebdccc5f6ddf7f91623a2306f','antonio.admin@safelife.com','(41) 90000-0003','admin','Safe Life Matriz',NULL,TRUE)
 ON CONFLICT (cpf) DO UPDATE SET
     nome = EXCLUDED.nome,
-    foto_perfil = COALESCE(NULLIF(usuarios.foto_perfil, ''), EXCLUDED.foto_perfil),
+    senha_hash = EXCLUDED.senha_hash,
+    email = EXCLUDED.email,
+    telefone = EXCLUDED.telefone,
+    foto_perfil = EXCLUDED.foto_perfil,
     empresa = EXCLUDED.empresa,
     tipo = EXCLUDED.tipo,
     ativo = TRUE,
@@ -794,11 +802,11 @@ SET
     troca_senha_obrigatoria = FALSE,
     session_version = GREATEST(COALESCE(session_version, 1), 1),
     atualizado_em = CURRENT_TIMESTAMP
-WHERE cpf IN ('45317828791', '11111111111', '99999999999');
+WHERE cpf IN ('33333333333', '11111111111', '22222222222');
 
-UPDATE usuarios SET tipo = 'admin', empresa = 'Safe Life Matriz' WHERE cpf = '45317828791';
+UPDATE usuarios SET tipo = 'admin', empresa = 'Safe Life Matriz' WHERE cpf = '33333333333';
 UPDATE usuarios SET tipo = 'citizen', empresa = NULL WHERE cpf = '11111111111';
-UPDATE usuarios SET tipo = 'professional', empresa = 'Safe Life Matriz' WHERE cpf = '99999999999';
+UPDATE usuarios SET tipo = 'professional', empresa = 'Safe Life Matriz' WHERE cpf = '22222222222';
 
 INSERT INTO funcionarios
 (usuario_id, cargo, empresa, nivel_acesso, registro_profissional, especialidade, regiao_atendimento, status_plantao, veiculo, equipe, bio_profissional, ativo)
@@ -816,7 +824,7 @@ SELECT
     'Profissional de resgate e triagem animal.',
     TRUE
 FROM usuarios u
-WHERE u.cpf = '99999999999'
+WHERE u.cpf = '22222222222'
 ON CONFLICT (usuario_id) DO UPDATE SET
     cargo = EXCLUDED.cargo,
     empresa = EXCLUDED.empresa,
@@ -844,7 +852,7 @@ SELECT
     'Administrador principal da plataforma.',
     TRUE
 FROM usuarios u
-WHERE u.cpf = '45317828791'
+WHERE u.cpf = '33333333333'
 ON CONFLICT (usuario_id) DO UPDATE SET
     cargo = EXCLUDED.cargo,
     empresa = EXCLUDED.empresa,
