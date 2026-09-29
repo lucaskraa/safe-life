@@ -79,7 +79,10 @@ BEGIN
     END LOOP;
     RETURN resultado;
 END;
-$$ LANGUAGE plpgsql IMMUTABLE;
+$ LANGUAGE plpgsql IMMUTABLE;
+
+ALTER FUNCTION public.atualizar_data_modificacao() SET search_path = public, pg_temp;
+ALTER FUNCTION public.adicionar_dias_uteis(date, integer) SET search_path = pg_catalog, public;
 
 -- =============================================================
 -- TABELAS PRINCIPAIS
@@ -593,6 +596,12 @@ CREATE INDEX IF NOT EXISTS idx_resgates_funcionario ON resgates_pets(funcionario
 CREATE INDEX IF NOT EXISTS idx_bloqueios_usuario_ativo ON bloqueios_conta(usuario_id, ativo);
 CREATE INDEX IF NOT EXISTS idx_auditoria_data ON auditoria_seguranca(criado_em DESC);
 CREATE INDEX IF NOT EXISTS idx_tentativas_login_cpf_data ON tentativas_login(cpf, criado_em DESC);
+
+CREATE INDEX IF NOT EXISTS idx_auditoria_administrador_id ON auditoria_seguranca(administrador_id);
+CREATE INDEX IF NOT EXISTS idx_auditoria_usuario_alvo_id ON auditoria_seguranca(usuario_alvo_id);
+CREATE INDEX IF NOT EXISTS idx_bloqueios_administrador_id ON bloqueios_conta(administrador_id);
+CREATE INDEX IF NOT EXISTS idx_eventos_tempo_real_usuario_id ON eventos_tempo_real(usuario_id);
+CREATE INDEX IF NOT EXISTS idx_usuarios_bloqueado_por ON usuarios(bloqueado_por);
 
 -- =============================================================
 -- VIEWS SEM DADOS DE DEMONSTRAÇÃO
