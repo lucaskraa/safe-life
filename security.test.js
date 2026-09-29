@@ -19,7 +19,7 @@ const checks = [
     ["case deletion requires role", 'app.delete("/api/chamados/:origem/:id", verificarSessaoUsuario, exigirPerfis("professional", "admin")'],
     ["dashboard summary requires admin", 'app.get("/api/dashboard/resumo", verificarAdmin'],
     ["password bypass stays disabled", "const REQUIRE_USER_PASSWORD = true;"],
-    ["demo admin uses the new CPF", 'process.env.ADMIN_CPF || "33333333333"'],
+    ["demo admin uses the fixed new CPF", 'const ADMIN_CPF = "33333333333";'],
     ["citizen receives the five-business-day notice", "Ele será resolvido em até 5 dias úteis."],
     ["database has business-day helper", "CREATE OR REPLACE FUNCTION adicionar_dias_uteis"],
     ["occurrence default is five business days", "DEFAULT adicionar_dias_uteis(CURRENT_DATE, 5)"]
@@ -34,7 +34,15 @@ assert(
     "Falhou: rota pública ainda expõe contato do dono."
 );
 
-assert(!server.includes("45317828791"), "Falhou: CPF antigo de admin ainda está no servidor.");
-assert(!server.includes("99999999999"), "Falhou: CPF antigo de funcionário ainda está no servidor.");
+assert(
+    server.includes('buscarUsuarioPorCpf("45317828791")') &&
+    server.includes('buscarUsuarioPorCpf("99999999999")'),
+    "Falhou: migração das contas demo antigas não está disponível."
+);
 
-console.log(`✓ ${checks.length + 2} verificações de segurança/integridade passaram.`);
+assert(
+    server.includes('process.env.ENABLE_DEBUG_ROUTES !== "true"'),
+    "Falhou: rotas de debug não estão protegidas em produção."
+);
+
+console.log(`✓ ${checks.length + 3} verificações de segurança/integridade passaram.`);
