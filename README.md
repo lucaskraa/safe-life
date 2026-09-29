@@ -47,11 +47,13 @@ Variáveis mais importantes:
 DATABASE_URL=postgresql://...
 DB_SSL=false
 APP_SECRET=troque-esta-chave
-ADMIN_CPF=33333333333
-ADMIN_PASSWORD=123456
+# As três credenciais de demonstração são fixas no código:
+# cidadão 11111111111 / 123456
+# funcionário 22222222222 / 123456
+# admin 33333333333 / 123456
 ```
 
-Em produção, use um `APP_SECRET` forte. Para o TCC, a senha pública do administrador pode continuar sendo `123456`, desde que a conta seja usada apenas como demonstração.
+Em produção, use um `APP_SECRET` forte. As três contas Antonio são deliberadamente públicas e o servidor garante essas credenciais no banco ao iniciar, porque o ambiente é de demonstração do TCC.
 
 ## Testes
 
