@@ -9181,3 +9181,55 @@ body:not(:has(#welcomeScreen.active)) {
         grid-template-columns: 1fr;
     }
 }
+
+
+/* =====================================================
+   SAFE LIFE V25 — CONTAS PÚBLICAS DE DEMONSTRAÇÃO
+===================================================== */
+.demo-login-card {
+    margin: 18px 0;
+    padding: 16px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.86);
+    border: 1px solid rgba(37, 75, 250, 0.14);
+    box-shadow: var(--box-shadow-card);
+}
+
+.demo-login-card strong {
+    display: block;
+    margin-bottom: 6px;
+}
+
+.demo-login-card p {
+    margin: 0 0 12px;
+    color: var(--text-light);
+    font-size: 13px;
+}
+
+.demo-login-card code {
+    font-weight: 800;
+    color: var(--text-dark);
+}
+
+.demo-login-grid {
+    display: grid;
+    gap: 8px;
+}
+
+.demo-login-grid button {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid rgba(37, 75, 250, 0.14);
+    border-radius: 12px;
+    background: var(--white-card);
+    color: var(--text-dark);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.demo-login-grid button:hover {
+    border-color: rgba(37, 75, 250, 0.34);
+    background: var(--blue-soft);
+}
