@@ -9531,3 +9531,186 @@ body {
         grid-column: 1;
     }
 }
+
+
+/* =============================================================
+   LANDING POLISH + ANIMAL ENCONTRADO SEM VIDA
+============================================================= */
+.landing-screen {
+    background:
+        radial-gradient(circle at 8% 4%, rgba(37, 99, 235, .08), transparent 34%),
+        radial-gradient(circle at 94% 14%, rgba(16, 185, 129, .07), transparent 28%),
+        #f8fafc;
+}
+
+.landing-hero {
+    position: relative;
+}
+
+.landing-hero-copy {
+    position: relative;
+    z-index: 2;
+}
+
+.landing-actions {
+    align-items: stretch;
+}
+
+.landing-secondary-cta {
+    background: rgba(255, 255, 255, .88) !important;
+    color: #1e293b !important;
+    border: 1px solid #dbe3ef !important;
+    box-shadow: none !important;
+}
+
+.landing-secondary-cta:hover {
+    background: #ffffff !important;
+    border-color: #b9c7da !important;
+    transform: translateY(-1px);
+}
+
+.landing-trust-row {
+    margin-top: 18px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.landing-trust-row span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 34px;
+    padding: 7px 11px;
+    border: 1px solid #e1e7f0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .8);
+    color: #526071;
+    font-size: 12px;
+    font-weight: 700;
+    box-shadow: 0 7px 20px rgba(15, 23, 42, .04);
+}
+
+.landing-feature-card {
+    transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+}
+
+.landing-feature-card:hover {
+    transform: translateY(-4px);
+    border-color: #cfd9e8;
+    box-shadow: 0 16px 34px rgba(15, 23, 42, .08);
+}
+
+.landing-media-overlay {
+    right: 18px;
+    max-width: 300px;
+    padding: 12px 14px 12px 36px;
+    border: 1px solid rgba(255, 255, 255, .22);
+    border-radius: 16px;
+    background: rgba(15, 23, 42, .66);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 16px 34px rgba(15, 23, 42, .20);
+}
+
+.landing-live-dot {
+    position: absolute;
+    left: 14px;
+    top: 17px;
+}
+
+.landing-deceased-callout {
+    margin-top: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 22px;
+    padding: 22px;
+    border: 1px solid #e2e8f0;
+    border-radius: 22px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    box-shadow: 0 14px 35px rgba(15, 23, 42, .06);
+}
+
+.landing-deceased-copy {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    min-width: 0;
+}
+
+.landing-deceased-icon {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 15px;
+    background: #f1f5f9;
+    font-size: 21px;
+}
+
+.landing-deceased-callout h3 {
+    margin: 5px 0 5px;
+    color: #1e293b;
+    font-size: 19px;
+    letter-spacing: -.35px;
+}
+
+.landing-deceased-callout p {
+    margin: 0;
+    max-width: 700px;
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.65;
+}
+
+.landing-deceased-button {
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding: 0 16px;
+    border: 1px solid #cbd5e1;
+    border-radius: 13px;
+    background: #0f172a;
+    color: #ffffff;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform .18s ease, background .18s ease;
+}
+
+.landing-deceased-button:hover {
+    background: #1e293b;
+    transform: translateY(-1px);
+}
+
+.deceased-card {
+    border-color: #cbd5e1 !important;
+    background: linear-gradient(145deg, #ffffff, #f8fafc) !important;
+}
+
+.deceased-card:hover {
+    border-color: #94a3b8 !important;
+    background: #ffffff !important;
+}
+
+.deceased-card .action-icon {
+    background: #eef2f7;
+}
+
+@media (max-width: 720px) {
+    .landing-deceased-callout {
+        align-items: stretch;
+        flex-direction: column;
+        padding: 18px;
+    }
+
+    .landing-deceased-button {
+        width: 100%;
+    }
+
+    .landing-media-overlay {
+        right: 12px;
+        left: 12px;
+        max-width: none;
+    }
+}
