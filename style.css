@@ -11344,3 +11344,69 @@ body:has(#welcomeScreen.active) #app {
         width: 100% !important;
     }
 }
+
+
+/* =============================================================
+   SAFE LIFE — CENTERED HEADERS + SOS FIVE OPTIONS
+============================================================= */
+.screen:not(.landing-screen) > header,
+.screen:not(.landing-screen) header {
+    text-align: center !important;
+}
+
+.screen:not(.landing-screen) header h1,
+.screen:not(.landing-screen) header h2,
+.screen:not(.landing-screen) header p {
+    width: 100% !important;
+    max-width: 760px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    text-align: center !important;
+}
+
+.screen:not(.landing-screen) header h1 {
+    margin-top: 0 !important;
+    margin-bottom: 8px !important;
+}
+
+.screen:not(.landing-screen) header p {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+#scrForm header {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+#scrForm #formTitle,
+#scrForm #formSubtitle {
+    text-align: center !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+
+@media (min-width: 1180px) {
+    #scrForm .quick-options-grid:has(.quick-option-btn:nth-child(5)) {
+        grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+        gap: 12px !important;
+    }
+
+    #scrForm .quick-options-grid:has(.quick-option-btn:nth-child(5)) .quick-option-btn {
+        min-width: 0 !important;
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
+
+    #scrForm .quick-options-grid:has(.quick-option-btn:nth-child(5)) .quick-option-label {
+        font-size: 13px !important;
+        line-height: 1.3 !important;
+        text-align: center !important;
+    }
+}
+
+.deceased-card {
+    display: none !important;
+}
