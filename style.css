@@ -10970,3 +10970,190 @@ body:has(#welcomeScreen.active) #app {
         max-width: 100%;
     }
 }
+
+
+/* =============================================================
+   SAFE LIFE — HOW IT WORKS GRID ALIGNMENT FINAL
+============================================================= */
+#welcomeScreen .landing-how-dialog {
+    padding: 0 !important;
+}
+
+#welcomeScreen .landing-how-screen {
+    --how-max: 1160px;
+    --how-gutter: 36px;
+    grid-template-rows: 72px minmax(0, 1fr) 84px !important;
+}
+
+#welcomeScreen .landing-how-topbar {
+    position: relative !important;
+    min-height: 72px !important;
+    padding: 0 !important;
+}
+
+#welcomeScreen .landing-how-topbar::before,
+#welcomeScreen .landing-how-footer::before {
+    content: "";
+    display: block;
+}
+
+#welcomeScreen .landing-how-topbar {
+    display: grid !important;
+    grid-template-columns:
+        minmax(var(--how-gutter), 1fr)
+        minmax(0, var(--how-max))
+        minmax(var(--how-gutter), 1fr) !important;
+    align-items: center !important;
+}
+
+#welcomeScreen .landing-how-brand {
+    grid-column: 2;
+    justify-self: start;
+}
+
+#welcomeScreen .landing-how-close {
+    position: absolute !important;
+    top: 50% !important;
+    right: max(var(--how-gutter), calc((100vw - var(--how-max)) / 2)) !important;
+    transform: translateY(-50%) !important;
+    margin: 0 !important;
+}
+
+#welcomeScreen .landing-how-close:hover {
+    transform: translateY(-50%) !important;
+}
+
+#welcomeScreen .landing-how-main {
+    width: min(var(--how-max), calc(100% - (var(--how-gutter) * 2))) !important;
+    margin: 0 auto !important;
+    padding: 28px 0 !important;
+    grid-template-columns: minmax(0, .88fr) minmax(0, 1.12fr) !important;
+    gap: 56px !important;
+    align-items: center !important;
+}
+
+#welcomeScreen .landing-how-intro {
+    width: 100%;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    align-self: center !important;
+}
+
+#welcomeScreen .landing-how-intro h2 {
+    max-width: 520px !important;
+    margin: 13px 0 15px !important;
+}
+
+#welcomeScreen .landing-how-intro > p,
+#welcomeScreen .landing-how-about {
+    max-width: 500px !important;
+}
+
+#welcomeScreen .landing-how-process {
+    width: 100%;
+    margin: 0 !important;
+    align-self: center !important;
+}
+
+#welcomeScreen .landing-how-step {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#welcomeScreen .landing-how-footer {
+    min-height: 84px !important;
+    padding: 0 !important;
+    display: grid !important;
+    grid-template-columns:
+        minmax(var(--how-gutter), 1fr)
+        minmax(0, var(--how-max))
+        minmax(var(--how-gutter), 1fr) !important;
+    align-items: center !important;
+}
+
+#welcomeScreen .landing-how-footer > div {
+    grid-column: 2;
+    justify-self: start;
+}
+
+#welcomeScreen .landing-how-cta {
+    position: absolute;
+    right: max(var(--how-gutter), calc((100vw - var(--how-max)) / 2));
+}
+
+@media (min-width: 901px) and (max-height: 760px) {
+    #welcomeScreen .landing-how-screen {
+        grid-template-rows: 64px minmax(0, 1fr) 76px !important;
+    }
+
+    #welcomeScreen .landing-how-topbar {
+        min-height: 64px !important;
+    }
+
+    #welcomeScreen .landing-how-main {
+        padding: 20px 0 !important;
+        gap: 52px !important;
+    }
+
+    #welcomeScreen .landing-how-intro h2 {
+        font-size: clamp(40px, 3.8vw, 52px) !important;
+    }
+
+    #welcomeScreen .landing-how-step {
+        min-height: 92px !important;
+    }
+
+    #welcomeScreen .landing-how-footer {
+        min-height: 76px !important;
+    }
+}
+
+@media (max-width: 900px) {
+    #welcomeScreen .landing-how-screen {
+        --how-gutter: 18px;
+    }
+
+    #welcomeScreen .landing-how-topbar {
+        display: flex !important;
+        padding: 0 var(--how-gutter) !important;
+    }
+
+    #welcomeScreen .landing-how-close {
+        position: static !important;
+        margin-left: auto !important;
+        transform: none !important;
+    }
+
+    #welcomeScreen .landing-how-close:hover {
+        transform: none !important;
+    }
+
+    #welcomeScreen .landing-how-main {
+        width: calc(100% - (var(--how-gutter) * 2)) !important;
+        grid-template-columns: 1fr !important;
+        gap: 28px !important;
+    }
+
+    #welcomeScreen .landing-how-footer {
+        display: flex !important;
+        padding: 14px var(--how-gutter) !important;
+    }
+
+    #welcomeScreen .landing-how-cta {
+        position: static;
+        margin-left: auto !important;
+    }
+}
+
+@media (max-width: 560px) {
+    #welcomeScreen .landing-how-footer {
+        align-items: stretch !important;
+        flex-direction: column !important;
+    }
+
+    #welcomeScreen .landing-how-cta {
+        width: 100% !important;
+        margin-left: 0 !important;
+    }
+}
