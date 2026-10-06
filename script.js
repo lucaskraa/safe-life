@@ -87,6 +87,19 @@
                 "Suspeita de maus-tratos"
             ]
         },
+        deceased: {
+            title: "Animal Encontrado Sem Vida",
+            subtitle: "Registre o local e as condições para que a equipe responsável avalie a situação.",
+            tipo: "Animal Encontrado Sem Vida",
+            categoria: "deceased",
+            prioridade: "NORMAL",
+            options: [
+                "Animal encontrado sem vida em via pública",
+                "Animal atropelado encontrado sem vida",
+                "Suspeita de maus-tratos",
+                "Corpo em local de risco ou difícil acesso"
+            ]
+        },
         rescue: {
             title: "Solicitar Resgate",
             subtitle: "Peça apoio para retirar um animal de uma situação de risco.",
