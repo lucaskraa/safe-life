@@ -10902,3 +10902,71 @@ body:has(#welcomeScreen.active) #app {
         padding-bottom: 10px;
     }
 }
+
+
+/* =============================================================
+   SAFE LIFE — HOW IT WORKS CONTENT CLEANUP
+============================================================= */
+#welcomeScreen .landing-how-intro {
+    align-self: center !important;
+    padding-top: 0 !important;
+    transform: translateY(-2px);
+}
+
+#welcomeScreen .landing-how-intro h2 {
+    margin-top: 14px !important;
+}
+
+#welcomeScreen .landing-how-highlight {
+    display: none !important;
+}
+
+#welcomeScreen .landing-how-about {
+    max-width: 470px;
+    margin-top: 24px;
+    padding: 16px 18px;
+    border-left: 3px solid #2f63ff;
+    border-radius: 0 14px 14px 0;
+    background: rgba(255,255,255,.68);
+}
+
+#welcomeScreen .landing-how-about strong {
+    display: block;
+    margin-bottom: 6px;
+    color: #17243c;
+    font-size: 13px;
+}
+
+#welcomeScreen .landing-how-about p {
+    margin: 0;
+    color: #6d7a90;
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+@media (min-width: 901px) {
+    #welcomeScreen .landing-how-main {
+        align-items: center !important;
+        padding-top: 24px !important;
+        padding-bottom: 24px !important;
+    }
+
+    #welcomeScreen .landing-how-intro {
+        align-self: center !important;
+        transform: none;
+    }
+
+    #welcomeScreen .landing-how-process {
+        align-self: center !important;
+    }
+}
+
+@media (max-width: 900px) {
+    #welcomeScreen .landing-how-intro {
+        transform: none;
+    }
+
+    #welcomeScreen .landing-how-about {
+        max-width: 100%;
+    }
+}
