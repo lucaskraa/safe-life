@@ -59,112 +59,149 @@
                     </div>
                 </nav>
 
-                <main class="landing-main">
-                    <section class="landing-hero" aria-labelledby="landingTitle">
-                        <div class="landing-hero-copy">
-                            <span class="landing-kicker"><span aria-hidden="true"></span> Proteção • resgate • acompanhamento</span>
-                            <h1 id="landingTitle">Ajuda animal começa com a informação certa.</h1>
-                            <p class="landing-lead">
-                                Registre emergências, maus-tratos, animais encontrados, pets desaparecidos e pedidos de resgate. O Safe Life organiza cada caso para o atendimento acompanhar do início ao fim.
+                <main class="landing-main landing-v2-main">
+                    <section class="landing-v2-hero" aria-labelledby="landingTitle">
+                        <div class="landing-v2-copy">
+                            <span class="landing-v2-kicker">Rede de proteção animal</span>
+                            <h1 id="landingTitle">Quando um animal precisa de ajuda, cada minuto importa.</h1>
+                            <p>
+                                Registre a situação, envie a localização e acompanhe o atendimento pelo Safe Life.
                             </p>
 
-                            <div class="landing-actions">
-                                <button class="btn landing-primary-cta" onclick="nextScreen('locationScreen')" type="button">
-                                    Registrar uma situação <span aria-hidden="true">→</span>
+                            <div class="landing-v2-actions">
+                                <button class="landing-v2-primary" onclick="nextScreen('locationScreen')" type="button">
+                                    Registrar ocorrência
                                 </button>
-                                <button class="btn landing-secondary-cta" onclick="document.getElementById('landingRecursos').scrollIntoView({behavior:'smooth'})" type="button">
-                                    Ver como funciona
+                                <button class="landing-v2-secondary" onclick="nextScreen('loginScreen')" type="button">
+                                    Já tenho conta
                                 </button>
                             </div>
 
-                            <div class="landing-trust-row" aria-label="Recursos principais do Safe Life">
-                                <span>📍 Localização</span>
-                                <span>🕒 Prazo acompanhado</span>
-                                <span>🔔 Atualizações</span>
+                            <div class="landing-v2-meta" aria-label="Recursos do Safe Life">
+                                <span>Localização</span>
+                                <span>Acompanhamento</span>
+                                <span>Notificações</span>
+                                <span>Prazo de atendimento</span>
                             </div>
-
-                            <p class="landing-note">Do primeiro registro à conclusão, as informações ficam reunidas no mesmo lugar.</p>
                         </div>
 
-                        <div class="landing-hero-visual" aria-label="Animal protegido pelo Safe Life">
-                            <div class="landing-media-card">
-                                <div class="welcome-carousel-simple landing-carousel">
-                                    <img
-                                        id="welcomeCarouselImage"
-                                        src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=1400&q=88"
-                                        alt="Animal protegido pelo Safe Life"
-                                        loading="eager"
-                                        decoding="async"
-                                    >
-                                    <div class="welcome-image-gradient"></div>
-                                    <div class="landing-media-overlay" aria-hidden="true">
-                                        <span class="landing-live-dot"></span>
-                                        <small>Safe Life em ação</small>
-                                        <strong>Chamados organizados do registro à conclusão</strong>
+                        <div class="landing-v2-visual" aria-label="Proteção animal pelo Safe Life">
+                            <div class="landing-v2-photo-wrap">
+                                <img
+                                    id="welcomeCarouselImage"
+                                    src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=1400&q=88"
+                                    alt="Animal protegido pelo Safe Life"
+                                    loading="eager"
+                                    decoding="async"
+                                >
+                                <div class="landing-v2-photo-shade"></div>
+                                <div class="landing-v2-photo-card">
+                                    <span class="landing-v2-status-dot" aria-hidden="true"></span>
+                                    <div>
+                                        <small>Safe Life</small>
+                                        <strong>Do registro à conclusão do chamado</strong>
                                     </div>
-                                    <div
-                                        class="carousel-slider"
-                                        id="welcomeCarouselProgress"
-                                        role="progressbar"
-                                        aria-label="Progresso do carrossel"
-                                        aria-valuemin="1"
-                                        aria-valuemax="5"
-                                        aria-valuenow="1"
-                                    >
-                                        <div class="carousel-slider-thumb" id="carouselSliderThumb"></div>
-                                    </div>
-                                    <span class="carousel-screen-reader" id="welcomeCarouselStatus" aria-live="polite">Imagem 1 de 5</span>
                                 </div>
+                                <div
+                                    class="carousel-slider landing-v2-slider"
+                                    id="welcomeCarouselProgress"
+                                    role="progressbar"
+                                    aria-label="Progresso do carrossel"
+                                    aria-valuemin="1"
+                                    aria-valuemax="5"
+                                    aria-valuenow="1"
+                                >
+                                    <div class="carousel-slider-thumb" id="carouselSliderThumb"></div>
+                                </div>
+                                <span class="carousel-screen-reader" id="welcomeCarouselStatus" aria-live="polite">Imagem 1 de 5</span>
                             </div>
                         </div>
                     </section>
 
-                    <section class="landing-simple-section" id="landingRecursos" aria-labelledby="landingFeaturesTitle">
-                        <div class="landing-section-heading">
-                            <span class="landing-eyebrow">Tudo em um só fluxo</span>
-                            <h2 id="landingFeaturesTitle">Registre. Acompanhe. Saiba o que aconteceu.</h2>
-                            <p>O Safe Life transforma uma situação urgente em um chamado organizado, com localização, evidências, histórico e acompanhamento.</p>
+                    <section class="landing-v2-services" id="landingRecursos" aria-labelledby="landingFeaturesTitle">
+                        <div class="landing-v2-heading">
+                            <span>O que você pode fazer</span>
+                            <h2 id="landingFeaturesTitle">Escolha a situação e siga o fluxo.</h2>
+                            <p>Sem menus confusos: cada tipo de caso tem um caminho direto dentro do sistema.</p>
                         </div>
 
-                        <div class="landing-feature-grid">
-                            <article class="landing-feature-card">
-                                <div class="landing-feature-icon" aria-hidden="true">01</div>
-                                <h3>Emergências e denúncias</h3>
-                                <p>Informe o que aconteceu, envie evidências e compartilhe a localização quando necessário.</p>
-                            </article>
-                            <article class="landing-feature-card">
-                                <div class="landing-feature-icon" aria-hidden="true">02</div>
-                                <h3>Pets desaparecidos</h3>
-                                <p>Cadastre seu animal e crie um alerta com as informações importantes para a busca.</p>
-                            </article>
-                            <article class="landing-feature-card">
-                                <div class="landing-feature-icon" aria-hidden="true">03</div>
-                                <h3>Acompanhamento</h3>
-                                <p>Consulte o andamento do caso e receba atualizações dentro da própria plataforma.</p>
-                            </article>
-                        </div>
-
-                        <aside class="landing-deceased-callout" aria-label="Animal encontrado sem vida">
-                            <div class="landing-deceased-copy">
-                                <span class="landing-deceased-icon" aria-hidden="true">🕯️</span>
-                                <div>
-                                    <span class="landing-eyebrow">Orientação para outra situação</span>
-                                    <h3>Encontrou um animal sem vida?</h3>
-                                    <p>Registre a localização e as condições do local para que a equipe responsável possa avaliar o atendimento adequado.</p>
-                                </div>
-                            </div>
-                            <button class="landing-deceased-button" onclick="nextScreen('locationScreen')" type="button">
-                                Registrar localização <span aria-hidden="true">→</span>
+                        <div class="landing-v2-grid">
+                            <button class="landing-v2-service" onclick="nextScreen('locationScreen')" type="button">
+                                <span class="landing-v2-service-icon" aria-hidden="true">!</span>
+                                <span class="landing-v2-service-copy">
+                                    <strong>Emergência ou denúncia</strong>
+                                    <small>Animal ferido, abandono ou suspeita de maus-tratos.</small>
+                                </span>
+                                <span class="landing-v2-arrow" aria-hidden="true">→</span>
                             </button>
-                        </aside>
+
+                            <button class="landing-v2-service" onclick="nextScreen('locationScreen')" type="button">
+                                <span class="landing-v2-service-icon" aria-hidden="true">⌖</span>
+                                <span class="landing-v2-service-copy">
+                                    <strong>Pet desaparecido</strong>
+                                    <small>Cadastre as informações importantes para ajudar na busca.</small>
+                                </span>
+                                <span class="landing-v2-arrow" aria-hidden="true">→</span>
+                            </button>
+
+                            <button class="landing-v2-service" onclick="nextScreen('locationScreen')" type="button">
+                                <span class="landing-v2-service-icon" aria-hidden="true">+</span>
+                                <span class="landing-v2-service-copy">
+                                    <strong>Solicitar resgate</strong>
+                                    <small>Peça apoio para um animal em situação de risco.</small>
+                                </span>
+                                <span class="landing-v2-arrow" aria-hidden="true">→</span>
+                            </button>
+
+                            <button class="landing-v2-service landing-v2-service-muted" onclick="nextScreen('locationScreen')" type="button">
+                                <span class="landing-v2-service-icon" aria-hidden="true">•</span>
+                                <span class="landing-v2-service-copy">
+                                    <strong>Animal encontrado sem vida</strong>
+                                    <small>Registre o local para encaminhar a situação corretamente.</small>
+                                </span>
+                                <span class="landing-v2-arrow" aria-hidden="true">→</span>
+                            </button>
+                        </div>
                     </section>
 
-                    <section class="landing-compact-cta" aria-label="Começar a usar o Safe Life">
-                        <div>
-                            <span class="landing-eyebrow">Precisa agir agora?</span>
-                            <h2>Registre a situação e deixe as informações prontas para o atendimento.</h2>
+                    <section class="landing-v2-how" aria-labelledby="landingHowTitle">
+                        <div class="landing-v2-heading">
+                            <span>Como funciona</span>
+                            <h2 id="landingHowTitle">Três passos. Só o necessário.</h2>
                         </div>
-                        <button class="btn landing-primary-cta" onclick="nextScreen('locationScreen')" type="button">Começar</button>
+
+                        <div class="landing-v2-steps">
+                            <article>
+                                <span>01</span>
+                                <div>
+                                    <strong>Registre</strong>
+                                    <p>Informe o tipo da situação, o local e envie a evidência solicitada.</p>
+                                </div>
+                            </article>
+                            <article>
+                                <span>02</span>
+                                <div>
+                                    <strong>Acompanhe</strong>
+                                    <p>O chamado entra na fila profissional e recebe atualizações de status.</p>
+                                </div>
+                            </article>
+                            <article>
+                                <span>03</span>
+                                <div>
+                                    <strong>Receba o retorno</strong>
+                                    <p>Você acompanha o prazo e é avisado quando houver movimentação ou conclusão.</p>
+                                </div>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="landing-v2-cta" aria-label="Começar a usar o Safe Life">
+                        <div>
+                            <span>Safe Life</span>
+                            <h2>Viu um animal precisando de ajuda?</h2>
+                            <p>Faça o registro e deixe as informações prontas para o atendimento.</p>
+                        </div>
+                        <button onclick="nextScreen('locationScreen')" type="button">Começar agora</button>
                     </section>
                 </main>
 
