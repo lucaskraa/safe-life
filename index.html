@@ -62,19 +62,28 @@
                 <main class="landing-main">
                     <section class="landing-hero" aria-labelledby="landingTitle">
                         <div class="landing-hero-copy">
-                            <span class="landing-kicker"><span aria-hidden="true"></span> Rede de proteção animal</span>
-                            <h1 id="landingTitle">Proteção animal, sem perder tempo.</h1>
+                            <span class="landing-kicker"><span aria-hidden="true"></span> Proteção • resgate • acompanhamento</span>
+                            <h1 id="landingTitle">Ajuda animal começa com a informação certa.</h1>
                             <p class="landing-lead">
-                                Abra um chamado, denuncie maus-tratos ou compartilhe um pet desaparecido. O Safe Life organiza o caso e aproxima você do atendimento.
+                                Registre emergências, maus-tratos, animais encontrados, pets desaparecidos e pedidos de resgate. O Safe Life organiza cada caso para o atendimento acompanhar do início ao fim.
                             </p>
 
                             <div class="landing-actions">
                                 <button class="btn landing-primary-cta" onclick="nextScreen('locationScreen')" type="button">
-                                    Entrar na rede <span aria-hidden="true">→</span>
+                                    Registrar uma situação <span aria-hidden="true">→</span>
+                                </button>
+                                <button class="btn landing-secondary-cta" onclick="document.getElementById('landingRecursos').scrollIntoView({behavior:'smooth'})" type="button">
+                                    Ver como funciona
                                 </button>
                             </div>
 
-                            <p class="landing-note">Localização, histórico do chamado e atualizações reunidos no mesmo lugar.</p>
+                            <div class="landing-trust-row" aria-label="Recursos principais do Safe Life">
+                                <span>📍 Localização</span>
+                                <span>🕒 Prazo acompanhado</span>
+                                <span>🔔 Atualizações</span>
+                            </div>
+
+                            <p class="landing-note">Do primeiro registro à conclusão, as informações ficam reunidas no mesmo lugar.</p>
                         </div>
 
                         <div class="landing-hero-visual" aria-label="Animal protegido pelo Safe Life">
@@ -88,6 +97,11 @@
                                         decoding="async"
                                     >
                                     <div class="welcome-image-gradient"></div>
+                                    <div class="landing-media-overlay" aria-hidden="true">
+                                        <span class="landing-live-dot"></span>
+                                        <small>Safe Life em ação</small>
+                                        <strong>Chamados organizados do registro à conclusão</strong>
+                                    </div>
                                     <div
                                         class="carousel-slider"
                                         id="welcomeCarouselProgress"
@@ -107,9 +121,9 @@
 
                     <section class="landing-simple-section" id="landingRecursos" aria-labelledby="landingFeaturesTitle">
                         <div class="landing-section-heading">
-                            <span class="landing-eyebrow">O Safe Life resolve o essencial</span>
-                            <h2 id="landingFeaturesTitle">Um caminho simples para agir.</h2>
-                            <p>Você registra a situação e o sistema mantém as informações organizadas para o acompanhamento.</p>
+                            <span class="landing-eyebrow">Tudo em um só fluxo</span>
+                            <h2 id="landingFeaturesTitle">Registre. Acompanhe. Saiba o que aconteceu.</h2>
+                            <p>O Safe Life transforma uma situação urgente em um chamado organizado, com localização, evidências, histórico e acompanhamento.</p>
                         </div>
 
                         <div class="landing-feature-grid">
@@ -129,6 +143,20 @@
                                 <p>Consulte o andamento do caso e receba atualizações dentro da própria plataforma.</p>
                             </article>
                         </div>
+
+                        <aside class="landing-deceased-callout" aria-label="Animal encontrado sem vida">
+                            <div class="landing-deceased-copy">
+                                <span class="landing-deceased-icon" aria-hidden="true">🕯️</span>
+                                <div>
+                                    <span class="landing-eyebrow">Orientação para outra situação</span>
+                                    <h3>Encontrou um animal sem vida?</h3>
+                                    <p>Registre a localização e as condições do local para que a equipe responsável possa avaliar o atendimento adequado.</p>
+                                </div>
+                            </div>
+                            <button class="landing-deceased-button" onclick="nextScreen('locationScreen')" type="button">
+                                Registrar localização <span aria-hidden="true">→</span>
+                            </button>
+                        </aside>
                     </section>
 
                     <section class="landing-compact-cta" aria-label="Começar a usar o Safe Life">
@@ -744,6 +772,21 @@
 
                     <span>
                         Reportar Ocorrência
+                    </span>
+                </button>
+
+                <button
+                    class="btn action-card deceased-card"
+                    onclick="openCitizenForm('deceased')"
+                    type="button"
+                    aria-label="Registrar animal encontrado sem vida"
+                >
+                    <span class="action-icon">
+                        🕯️
+                    </span>
+
+                    <span>
+                        Animal Encontrado Sem Vida
                     </span>
                 </button>
 
