@@ -95,11 +95,31 @@ app.use((req, res, next) => {
     res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
     res.setHeader("Cross-Origin-Resource-Policy", "same-site");
     res.setHeader("X-Permitted-Cross-Domain-Policies", "none");
+
+    if (
+        req.method === "GET" &&
+        !req.path.startsWith("/api/")
+    ) {
+        res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+        res.setHeader("Pragma", "no-cache");
+        res.setHeader("Expires", "0");
+        res.setHeader("Surrogate-Control", "no-store");
+    }
+
     next();
 });
 
 if (fs.existsSync(PUBLIC_DIR)) {
-    app.use(express.static(PUBLIC_DIR));
+    app.use(express.static(PUBLIC_DIR, {
+        etag: false,
+        lastModified: false,
+        maxAge: 0,
+        setHeaders(res) {
+            res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+            res.setHeader("Pragma", "no-cache");
+            res.setHeader("Expires", "0");
+        }
+    }));
 } else {
     const rootStyle = path.join(__dirname, "style.css");
     const rootScript = path.join(__dirname, "script.js");
