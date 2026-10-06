@@ -71,7 +71,8 @@
                 "Animal ferido",
                 "Animal atropelado",
                 "Maus-tratos em andamento",
-                "Animal preso ou em risco"
+                "Animal preso ou em risco",
+                "Animal encontrado sem vida"
             ]
         },
         report: {
@@ -85,19 +86,6 @@
                 "Abandono",
                 "Sem água e comida",
                 "Suspeita de maus-tratos"
-            ]
-        },
-        deceased: {
-            title: "Animal Encontrado Sem Vida",
-            subtitle: "Registre o local e as condições para que a equipe responsável avalie a situação.",
-            tipo: "Animal Encontrado Sem Vida",
-            categoria: "deceased",
-            prioridade: "NORMAL",
-            options: [
-                "Animal encontrado sem vida em via pública",
-                "Animal atropelado encontrado sem vida",
-                "Suspeita de maus-tratos",
-                "Corpo em local de risco ou difícil acesso"
             ]
         },
         rescue: {
@@ -328,6 +316,7 @@
 
     function optionIcon(option) {
         const value = String(option || "").toLowerCase();
+        if (value.includes("sem vida")) return "🕯️";
         if (value.includes("ferido") || value.includes("atropelado")) return "🩹";
         if (value.includes("maus") || value.includes("acorrentado")) return "🚨";
         if (value.includes("abandono") || value.includes("abandonada")) return "🏠";
@@ -1356,6 +1345,7 @@
         const kind = value("formKey") || "report";
         const config = citizenConfigs[kind] || citizenConfigs.report;
         const selected = value("selectedQuickOption");
+        const isDeceased = selected.toLowerCase().includes("sem vida");
         const location = value("formLocation");
         const details = value("formDetails");
         const form = formFromEvent(event, "citizenForm");
@@ -1388,8 +1378,8 @@
                 method: "POST",
                 body: JSON.stringify({
                     usuarioCpf: state.user.cpf,
-                    tipo: config.tipo,
-                    categoria: config.categoria,
+                    tipo: isDeceased ? "Animal Encontrado Sem Vida" : config.tipo,
+                    categoria: isDeceased ? "deceased" : config.categoria,
                     assunto: selected,
                     opcaoEscolhida: selected,
                     localizacao: location,
@@ -1399,7 +1389,7 @@
                     midiaMimeType: evidence.mimeType,
                     midiaNome: evidence.originalName,
                     gps: currentGps(),
-                    prioridade: config.prioridade
+                    prioridade: isDeceased ? "NORMAL" : config.prioridade
                 })
             }, 90000);
 
