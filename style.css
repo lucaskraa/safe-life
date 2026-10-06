@@ -10270,78 +10270,247 @@ body:has(#welcomeScreen.active) #app {
 }
 
 #welcomeScreen .landing-how-dialog {
-    width: min(560px, calc(100vw - 32px));
-    padding: 30px;
-    border: 0;
-    border-radius: 22px;
-    background: #fff;
+    width: min(650px, calc(100vw - 32px));
+    max-height: min(760px, calc(100dvh - 32px));
+    padding: 0;
+    overflow: auto;
+    border: 1px solid rgba(218, 226, 238, .9);
+    border-radius: 26px;
+    background: #ffffff;
     color: #13213d;
-    box-shadow: 0 26px 80px rgba(15, 28, 52, .24);
+    box-shadow: 0 34px 100px rgba(15, 28, 52, .28);
 }
 
 #welcomeScreen .landing-how-dialog::backdrop {
-    background: rgba(12, 21, 38, .48);
-    backdrop-filter: blur(4px);
+    background: rgba(11, 19, 34, .58);
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
 }
 
-#welcomeScreen .landing-how-dialog > span {
+#welcomeScreen .landing-how-head {
+    padding: 32px 34px 24px;
+    border-bottom: 1px solid #e9edf4;
+    background:
+        radial-gradient(circle at 90% 0%, rgba(47, 99, 255, .10), transparent 34%),
+        #ffffff;
+}
+
+#welcomeScreen .landing-how-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     color: #2f63ff;
     font-size: 11px;
     font-weight: 850;
-    letter-spacing: .08em;
+    letter-spacing: .09em;
     text-transform: uppercase;
 }
 
-#welcomeScreen .landing-how-dialog h2 {
-    margin: 8px 42px 22px 0;
+#welcomeScreen .landing-how-kicker::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: #2f63ff;
+    box-shadow: 0 0 0 4px rgba(47, 99, 255, .10);
+}
+
+#welcomeScreen .landing-how-head h2 {
+    margin: 10px 48px 9px 0;
     color: #13213d;
-    font-size: 30px;
-    letter-spacing: -.04em;
+    font-size: clamp(29px, 4vw, 38px);
+    line-height: 1.06;
+    letter-spacing: -.045em;
+}
+
+#welcomeScreen .landing-how-head p {
+    max-width: 510px;
+    margin: 0;
+    color: #6b7890;
+    font-size: 14px;
+    line-height: 1.6;
 }
 
 #welcomeScreen .landing-how-close {
     position: absolute;
-    top: 16px;
-    right: 16px;
-    width: 36px !important;
-    height: 36px !important;
-    min-height: 36px !important;
+    z-index: 2;
+    top: 18px;
+    right: 18px;
+    width: 38px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    display: grid;
+    place-items: center;
     padding: 0 !important;
-    border: 1px solid #e0e6ee !important;
-    border-radius: 11px !important;
-    background: #f8fafc !important;
+    border: 1px solid #dde4ee !important;
+    border-radius: 12px !important;
+    background: rgba(248, 250, 253, .94) !important;
     color: #435169 !important;
-    font-size: 22px !important;
+    font-size: 20px !important;
     line-height: 1 !important;
     cursor: pointer;
+    box-shadow: none !important;
+}
+
+#welcomeScreen .landing-how-close:hover {
+    background: #eef3fa !important;
+    border-color: #cbd5e3 !important;
+    transform: none !important;
 }
 
 #welcomeScreen .landing-how-steps {
     display: grid;
     gap: 10px;
+    padding: 20px 24px 22px;
 }
 
-#welcomeScreen .landing-how-steps > div {
+#welcomeScreen .landing-how-steps article {
+    position: relative;
     display: grid;
-    grid-template-columns: 38px minmax(0, 1fr);
+    grid-template-columns: 38px 44px minmax(0, 1fr);
     gap: 12px;
-    align-items: start;
-    padding: 14px;
-    border: 1px solid #e8edf4;
-    border-radius: 14px;
-    background: #f8fafd;
+    align-items: center;
+    min-height: 92px;
+    padding: 14px 16px;
+    border: 1px solid #e5eaf2;
+    border-radius: 16px;
+    background: #f8fafe;
+}
+
+#welcomeScreen .landing-how-steps article:hover {
+    border-color: #d3dceb;
+    background: #f6f9ff;
+}
+
+#welcomeScreen .landing-how-number {
+    color: #2f63ff;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: .04em;
+}
+
+#welcomeScreen .landing-how-icon {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border-radius: 13px;
+    background: #eaf0ff;
+    color: #2f63ff;
+    font-size: 18px;
+    font-weight: 900;
+}
+
+#welcomeScreen .landing-how-steps article > div {
+    min-width: 0;
 }
 
 #welcomeScreen .landing-how-steps strong {
-    color: #2f63ff;
-    font-size: 12px;
+    display: block;
+    margin-bottom: 4px;
+    color: #17243c;
+    font-size: 14px;
+    line-height: 1.25;
 }
 
 #welcomeScreen .landing-how-steps p {
     margin: 0;
-    color: #647289;
-    font-size: 13px;
+    color: #67758c;
+    font-size: 12px;
     line-height: 1.5;
+}
+
+#welcomeScreen .landing-how-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 18px 24px 22px;
+    border-top: 1px solid #e9edf4;
+    background: #fbfcfe;
+}
+
+#welcomeScreen .landing-how-footer > div strong,
+#welcomeScreen .landing-how-footer > div span {
+    display: block;
+}
+
+#welcomeScreen .landing-how-footer > div strong {
+    color: #182640;
+    font-size: 13px;
+}
+
+#welcomeScreen .landing-how-footer > div span {
+    margin-top: 3px;
+    color: #7a879b;
+    font-size: 11px;
+}
+
+#welcomeScreen .landing-how-cta {
+    flex: 0 0 auto;
+    min-height: 44px !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 0 !important;
+    padding: 0 15px !important;
+    border: 1px solid #2f63ff !important;
+    border-radius: 12px !important;
+    background: #2f63ff !important;
+    color: #ffffff !important;
+    font: inherit !important;
+    font-size: 12px !important;
+    font-weight: 800 !important;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(47, 99, 255, .16) !important;
+}
+
+#welcomeScreen .landing-how-cta:hover {
+    background: #2454df !important;
+    border-color: #2454df !important;
+    transform: translateY(-1px);
+}
+
+@media (max-width: 560px) {
+    #welcomeScreen .landing-how-dialog {
+        width: calc(100vw - 20px);
+        max-height: calc(100dvh - 20px);
+        border-radius: 22px;
+    }
+
+    #welcomeScreen .landing-how-head {
+        padding: 26px 20px 20px;
+    }
+
+    #welcomeScreen .landing-how-head h2 {
+        margin-right: 42px;
+        font-size: 29px;
+    }
+
+    #welcomeScreen .landing-how-steps {
+        padding: 15px 14px 17px;
+    }
+
+    #welcomeScreen .landing-how-steps article {
+        grid-template-columns: 32px minmax(0, 1fr);
+        min-height: 0;
+        padding: 14px;
+    }
+
+    #welcomeScreen .landing-how-icon {
+        display: none;
+    }
+
+    #welcomeScreen .landing-how-footer {
+        align-items: stretch;
+        flex-direction: column;
+        padding: 16px 14px 18px;
+    }
+
+    #welcomeScreen .landing-how-cta {
+        width: 100% !important;
+    }
 }
 
 @media (max-width: 900px) {
