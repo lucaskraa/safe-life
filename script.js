@@ -83,7 +83,7 @@
             prioridade: "NORMAL",
             options: [
                 "Animal na rua",
-                "Abandono",
+                "Animal doente",
                 "Sem água e comida",
                 "Suspeita de maus-tratos"
             ]
@@ -95,19 +95,19 @@
             categoria: "rescue",
             prioridade: "ALTA",
             options: [
-                "Animal ferido",
                 "Ninhada abandonada",
                 "Animal em local perigoso",
-                "Transporte para atendimento"
+                "Animal silvestre em área urbana",
+                "Animal debilitado"
             ]
         }
     };
 
     const anonymousOptions = [
-        "Maus-tratos",
+        "Agressão a animal",
         "Abandono",
         "Animal acorrentado",
-        "Sem água e comida",
+        "Venda ilegal de animais",
         "Criação irregular"
     ];
 
@@ -317,6 +317,11 @@
     function optionIcon(option) {
         const value = String(option || "").toLowerCase();
         if (value.includes("sem vida")) return "🕯️";
+        if (value.includes("agress")) return "🛑";
+        if (value.includes("acorrentado")) return "⛓️";
+        if (value.includes("venda")) return "🚫";
+        if (value.includes("silvestre")) return "🦎";
+        if (value.includes("doente") || value.includes("debilitado")) return "🩺";
         if (value.includes("ferido") || value.includes("atropelado")) return "🩹";
         if (value.includes("maus") || value.includes("acorrentado")) return "🚨";
         if (value.includes("abandono") || value.includes("abandonada")) return "🏠";
