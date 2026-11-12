@@ -273,3 +273,19 @@
   .lp-bubble{display:none;width:190px}
   .lp-spot.is-open{z-index:6}.lp-spot.is-open .lp-bubble{display:block}
 }
+
+/* ---- v4.1: altura menor, garante layout do mapa ---- */
+#welcomeScreen .lp-map {
+    aspect-ratio: auto !important;
+    height: clamp(250px, 24vw, 310px) !important;
+    min-height: 0 !important;
+    background: none !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+    filter: none !important;
+}
+@media (max-width: 900px) { #welcomeScreen .lp-map { height: 300px !important; } }
+
+/* v4.1: mais baixo */
+.lp-map{aspect-ratio:auto !important;height:300px;min-height:0}
+@media(max-width:900px){.lp-map{height:340px}}
