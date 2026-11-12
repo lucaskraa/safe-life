@@ -116,15 +116,42 @@ async function login(cpf, role, password = "123456", extra = {}) {
             gps: {
                 latitude: -25.43,
                 longitude: -49.27,
-                enderecoCompleto: "Rua de Teste, 100, Curitiba - PR",
+                enderecoCompleto: "Rua de Teste, 100, Centro, Araucária - PR",
                 bairro: "Centro",
-                cidade: "Curitiba",
-                estado: "PR"
+                cidade: "Araucária",
+                estado: "Paraná"
             }
         }
     });
 
+    // Regra de negócio: o Safe Life atende somente Araucária – PR.
+    const outOfArea = await request("/api/ocorrencias", {
+        method: "POST",
+        token: citizen.token,
+        expected: [422],
+        body: {
+            tipo: "Resgate",
+            categoria: "resgate",
+            assunto: "Fora da área - CI",
+            opcaoEscolhida: "Fora da área - CI",
+            localizacao: "Rua de Teste, 100",
+            detalhes: "Ocorrência de outra cidade deve ser recusada.",
+            foto: IMAGE_1PX,
+            prioridade: "NORMAL",
+            gps: {
+                latitude: -25.43,
+                longitude: -49.27,
+                enderecoCompleto: "Rua de Teste, 100, Curitiba - PR",
+                bairro: "Centro",
+                cidade: "Curitiba",
+                estado: "Paraná"
+            }
+        }
+    });
+    assert.strictEqual(outOfArea.data.code, "OUT_OF_SERVICE_AREA", "Cidade fora de Araucária deveria ser recusada.");
+
     const occurrence = occurrenceCreated.data.data;
+    assert.strictEqual(occurrence.cidade, "Araucária", "Ocorrência deveria ser gravada com a cidade Araucária.");
     assert(occurrence.id, "Ocorrência não retornou ID.");
     assert(occurrence.previsao_atendimento, "Ocorrência não recebeu previsão inicial.");
 
@@ -161,7 +188,13 @@ async function login(cpf, role, password = "123456", extra = {}) {
             localizacao: "Rua Anônima, 50",
             detalhes: "Denúncia criada pelo teste automatizado.",
             foto: IMAGE_1PX,
-            prioridade: "NORMAL"
+            prioridade: "NORMAL",
+            gps: {
+                enderecoCompleto: "Rua Anônima, 50, Araucária - PR",
+                bairro: "Centro",
+                cidade: "Araucária",
+                estado: "Paraná"
+            }
         }
     });
     assert(anonymous.data.data.id, "Denúncia anônima não retornou ID.");
@@ -215,6 +248,21 @@ async function login(cpf, role, password = "123456", extra = {}) {
             observacao: "Atendimento concluído pelo CI"
         }
     });
+
+    const publicCases = await request("/api/public/casos-atendidos?limit=12", {
+        expected: [200]
+    });
+    assert.strictEqual(publicCases.data.area.cidade, "Araucária", "Casos públicos deveriam ser de Araucária.");
+    assert(publicCases.data.resumo.total >= 1, "Resumo público não contou o caso concluído.");
+    assert(
+        publicCases.data.casos.some((item) => String(item.titulo).includes("Animal ferido - CI")),
+        "Caso concluído não apareceu na landing page."
+    );
+    for (const item of publicCases.data.casos) {
+        for (const campo of ["foto", "detalhes", "localizacao", "endereco_completo", "usuario_id", "cpf"]) {
+            assert(!(campo in item), `Rota pública não pode expor o campo ${campo}.`);
+        }
+    }
 
     const citizenUpdates = await request("/api/users/11111111111/notifications-v18", {
         token: citizen.token,
