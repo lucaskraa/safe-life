@@ -21,14 +21,17 @@
     };
 
     // Dados de exemplo — substitua pelos chamados reais (sem endereço).
+    var IMG = {"dog": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=600&q=80", "cat": "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=600&q=80", "dogs": "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=600&q=80"};
     var cases = [
-        { id: 1, x: 47, y: 42, bairro: "Centro",        tipo: "Maus-tratos",       status: "progress", texto: "Denúncia de abandono de cão em terreno baldio. Equipe a caminho.", data: "há 2 h" },
-        { id: 2, x: 30, y: 30, bairro: "Capela Velha",  tipo: "Resgate",           status: "open",     texto: "Pedido de resgate de gato ferido na via.", data: "há 25 min" },
-        { id: 3, x: 66, y: 28, bairro: "Iguaçu",        tipo: "Emergência",        status: "open",     texto: "Cachorro atropelado. Aguardando equipe.", data: "há 8 min" },
-        { id: 4, x: 58, y: 64, bairro: "Costeira",      tipo: "Pet desaparecido",  status: "progress", texto: "Cadela desaparecida há 2 dias. Divulgação em andamento.", data: "há 1 dia" },
-        { id: 5, x: 24, y: 62, bairro: "Fazenda Velha", tipo: "Maus-tratos",       status: "done",     texto: "Animal resgatado e encaminhado para cuidados veterinários.", data: "ontem" },
-        { id: 6, x: 78, y: 54, bairro: "Tindiquera",    tipo: "Resgate",           status: "done",     texto: "Filhote resgatado e liberado para adoção responsável.", data: "há 3 dias" },
-        { id: 7, x: 40, y: 78, bairro: "Boqueirão",     tipo: "Emergência",        status: "done",     texto: "Ave ferida atendida e entregue a centro de reabilitação.", data: "há 5 dias" }
+        { id: 1, x: 24, y: 30, bairro: "Capela Velha", tipo: "Maus-tratos", status: "done", animal: "Thor", tutor: "Marcos S.", foto: IMG.dog, texto: "Encontrado acorrentado sem água. Resgatado, tratado e adotado.", data: "há 2 dias" },
+        { id: 2, x: 50, y: 52, bairro: "Centro", tipo: "Abandono", status: "progress", animal: "Mel", tutor: "Ana P.", foto: IMG.cat, texto: "Gata abandonada em terreno baldio, em recuperação com a equipe.", data: "há 1 dia" },
+        { id: 3, x: 76, y: 28, bairro: "Iguaçu", tipo: "Resgate", status: "done", animal: "Bidu", tutor: "Carlos R.", foto: IMG.dogs, texto: "Cão ferido na via, resgatado e encaminhado ao veterinário.", data: "há 4 dias" },
+        { id: 4, x: 62, y: 74, bairro: "Costeira", tipo: "Maus-tratos", status: "open", animal: "Luna", tutor: "Julia M.", foto: IMG.dog, texto: "Denúncia de maus-tratos registrada. Aguardando a equipe.", data: "há 20 min" }
+    ];
+    var SLIDES = [
+        { src: IMG.dog, tag: "Abandono", text: "Milhares de animais são abandonados todos os anos. Você pode mudar essa história." },
+        { src: IMG.dogs, tag: "Maus-tratos", text: "Viu um animal sendo maltratado? Denuncie, a equipe vai até o local." },
+        { src: IMG.cat, tag: "Resgate", text: "Cada chamado vira um atendimento acompanhado do início ao fim." }
     ];
 
     var PIN = '<svg viewBox="0 0 24 32" aria-hidden="true"><path d="M12 0C5.4 0 0 5.2 0 11.7 0 20 12 32 12 32s12-12 12-20.3C24 5.2 18.6 0 12 0z"/><circle cx="12" cy="11.5" r="4.4" fill="#fff"/></svg>';
@@ -94,7 +97,7 @@
             b.style.left = c.x + "%";
             b.style.top = c.y + "%";
             b.setAttribute("aria-label", c.tipo + " em " + c.bairro + " — " + st.label);
-            b.innerHTML = PIN;
+            b.innerHTML = '<img src="' + esc(c.foto) + '" alt="' + esc(c.animal) + '"><b>' + esc(c.animal) + "</b>";
             b.addEventListener("click", function (e) {
                 e.stopPropagation();
                 openPopup(c, b);
@@ -110,12 +113,12 @@
         pin.classList.add("is-active");
         popupEl.hidden = false;
         popupEl.innerHTML =
-            '<div class="lp-popup-top"><h4>' + esc(c.tipo) + " · " + esc(c.bairro) + '</h4>' +
-            '<button type="button" aria-label="Fechar">×</button></div>' +
-            "<p>" + esc(c.texto) + "</p>" +
-            '<span class="lp-badge ' + st.cls + '">' + st.label + "</span> " +
-            '<small style="color:#8a94ad"> ' + esc(c.data) + "</small>";
-        popupEl.querySelector("button").addEventListener("click", closePopup);
+            '<img src="' + esc(c.foto) + '" alt="' + esc(c.animal) + '">' +
+            '<button type="button" class="lp-x" aria-label="Fechar">×</button>' +
+            '<div class="lp-popup-body"><h4>' + esc(c.animal) + " · " + esc(c.bairro) + "</h4>" +
+            "<p>" + esc(c.texto) + "</p><p><small>Tutor(a): " + esc(c.tutor) + "</small></p>" +
+            '<span class="lp-badge ' + st.cls + '">' + (c.status === "done" ? "Resgatado" : st.label) + "</span> <small>" + esc(c.data) + "</small></div>";
+        popupEl.querySelector(".lp-x").addEventListener("click", closePopup);
     }
 
     function closePopup() {
@@ -126,27 +129,35 @@
 
     /* ---------- seção "Animais atendidos" ---------- */
     function renderCases() {
-        var statsEl = document.getElementById("lpStats");
-        var listEl = document.getElementById("lpCases-list");
-        if (!statsEl || !listEl) return;
+        var el = document.getElementById("lpStats");
+        if (!el) return;
+        var n = function (f) { return cases.filter(f).length; };
+        el.innerHTML =
+            '<div class="lp-stat"><b>' + n(function (c) { return c.status === "done"; }) + "</b><span>Animais resgatados</span></div>" +
+            '<div class="lp-stat"><b>' + n(function (c) { return c.tipo === "Maus-tratos"; }) + "</b><span>Casos de maus-tratos</span></div>" +
+            '<div class="lp-stat"><b>' + n(function (c) { return c.tipo === "Abandono"; }) + "</b><span>Casos de abandono</span></div>";
+    }
 
-        var done = cases.filter(function (c) { return c.status === "done"; });
-        var prog = cases.filter(function (c) { return c.status === "progress"; });
-
-        statsEl.innerHTML =
-            '<div class="lp-stat"><b>' + cases.length + "</b><span>Chamados registrados</span></div>" +
-            '<div class="lp-stat"><b>' + prog.length + "</b><span>Em atendimento agora</span></div>" +
-            '<div class="lp-stat"><b>' + done.length + "</b><span>Animais atendidos</span></div>";
-
-        if (!done.length) {
-            listEl.innerHTML = '<div class="lp-empty">Os primeiros atendimentos concluídos em Araucária – PR aparecerão aqui.</div>';
-            return;
+    /* ---------- carrossel ---------- */
+    function initCarousel() {
+        var img = document.getElementById("lpCarouselImg");
+        if (!img) return;
+        var tag = document.getElementById("lpCarouselTag"), txt = document.getElementById("lpCarouselText"), dots = document.getElementById("lpDots");
+        var i = 0, t;
+        dots.innerHTML = SLIDES.map(function (_, k) { return '<button type="button" aria-label="Slide ' + (k + 1) + '"></button>'; }).join("");
+        function show(k) {
+            i = (k + SLIDES.length) % SLIDES.length;
+            img.classList.add("is-fading");
+            setTimeout(function () {
+                img.src = SLIDES[i].src; img.alt = SLIDES[i].tag;
+                tag.textContent = SLIDES[i].tag; txt.textContent = SLIDES[i].text;
+                img.classList.remove("is-fading");
+            }, 200);
+            [].forEach.call(dots.children, function (d, j) { d.classList.toggle("on", j === i); });
         }
-        listEl.innerHTML = done.map(function (c) {
-            return '<article class="lp-case"><small>' + esc(c.bairro) + " · " + esc(c.data) + "</small>" +
-                "<h3>" + esc(c.tipo) + "</h3><p>" + esc(c.texto) + "</p>" +
-                '<span class="lp-badge done">Concluído</span></article>';
-        }).join("");
+        function start() { clearInterval(t); t = setInterval(function () { show(i + 1); }, 4800); }
+        [].forEach.call(dots.children, function (d, j) { d.addEventListener("click", function () { show(j); start(); }); });
+        show(0); start();
     }
 
     function renderAll() {
@@ -156,6 +167,7 @@
     }
 
     function init() {
+        initCarousel();
         mapEl = document.getElementById("lpMap");
         popupEl = document.getElementById("lpPopup");
         if (!mapEl || !popupEl) return;
