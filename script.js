@@ -1268,6 +1268,7 @@
         avisarSaidaOnline();
         clearSession();
         nextScreen("welcomeScreen");
+        carregarCasosAtendidos();
         toast("Sessão encerrada.", "info");
     }
 
@@ -1597,6 +1598,51 @@
         }
     }
 
+    /* ---------------------------------------------------------
+     * REGRA DE NEGÓCIO — o Safe Life atende somente Araucária – PR
+     * --------------------------------------------------------- */
+    const SERVICE_AREA = Object.freeze({
+        city: "Araucária",
+        state: "PR",
+        stateName: "Paraná"
+    });
+
+    function normalizePlace(input) {
+        return String(input == null ? "" : input)
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase()
+            .replace(/\s+/g, " ")
+            .trim();
+    }
+
+    function isInServiceArea(address) {
+        const city = normalizePlace(address && address.cidade);
+        const stateValue = normalizePlace(address && address.estado);
+        if (city !== normalizePlace(SERVICE_AREA.city)) return false;
+        return !stateValue ||
+            stateValue === normalizePlace(SERVICE_AREA.state) ||
+            stateValue === normalizePlace(SERVICE_AREA.stateName);
+    }
+
+    function showAreaWarning(address) {
+        const box = byId("areaWarning");
+        if (!box) return;
+        const detected = address && address.cidade
+            ? `Sua localização foi identificada como ${address.cidade}${address.estado ? " – " + address.estado : ""}. `
+            : "Não foi possível identificar a cidade da sua localização. ";
+        text(
+            "areaWarningText",
+            `${detected}O Safe Life atende apenas ${SERVICE_AREA.city} – ${SERVICE_AREA.state}.`
+        );
+        box.classList.remove("hidden");
+    }
+
+    function hideAreaWarning() {
+        const box = byId("areaWarning");
+        if (box) box.classList.add("hidden");
+    }
+
     async function reverseGeocode(latitude, longitude) {
         try {
             const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}&accept-language=pt-BR`);
@@ -1658,14 +1704,27 @@
             text("realCity", address.cidade || "Cidade não identificada");
             text("realState", address.estado || "Estado não identificado");
             text("realCountry", address.pais || "Brasil");
-            text("gpsStatus", "Localização encontrada com sucesso.");
             if (resultBox) resultBox.classList.remove("hidden");
 
             const continueButton = byId("continuarBtn");
-            if (continueButton) {
-                continueButton.classList.remove("hidden");
-                continueButton.style.display = "flex";
-                continueButton.disabled = false;
+            const inServiceArea = isInServiceArea(address);
+
+            if (inServiceArea) {
+                hideAreaWarning();
+                text("gpsStatus", "Localização encontrada com sucesso.");
+                if (continueButton) {
+                    continueButton.classList.remove("hidden");
+                    continueButton.style.display = "flex";
+                    continueButton.disabled = false;
+                }
+            } else {
+                text("gpsStatus", "Localização encontrada, mas fora da área de atendimento.");
+                showAreaWarning(address);
+                if (continueButton) {
+                    continueButton.classList.add("hidden");
+                    continueButton.style.display = "none";
+                    continueButton.disabled = true;
+                }
             }
 
             const mapLink = byId("openMapLink");
@@ -3573,7 +3632,11 @@
         const button = byId("btnLocalizacao");
         const continueButton = byId("continuarBtn");
 
-        if (continueButton && value("userFullAddress")) {
+        if (
+            continueButton &&
+            value("userFullAddress") &&
+            isInServiceArea({ cidade: value("userCity"), estado: value("userState") })
+        ) {
             continueButton.classList.remove("hidden");
             continueButton.style.display = "flex";
             continueButton.disabled = false;
@@ -3588,6 +3651,14 @@
 
             try {
                 await updateCurrentLocation("");
+
+                if (!isInServiceArea(state.gps)) {
+                    toast(
+                        `Fora da área de atendimento. O Safe Life atende apenas ${SERVICE_AREA.city} – ${SERVICE_AREA.state}.`,
+                        "error"
+                    );
+                    return;
+                }
 
                 if (continueButton) {
                     continueButton.classList.remove("hidden");
@@ -3627,7 +3698,69 @@
         });
     }
 
+    /* ---------------------------------------------------------
+     * LANDING — CASOS ATENDIDOS (dados públicos e anonimizados)
+     * --------------------------------------------------------- */
+    function formatCaseDate(value) {
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return "";
+        return date.toLocaleDateString("pt-BR");
+    }
+
+    function renderCasosAtendidos(payload) {
+        const list = byId("landingCasesList");
+        const stats = byId("landingCasesStats");
+        if (!list) return;
+
+        const cases = Array.isArray(payload && payload.casos) ? payload.casos : [];
+        const summary = (payload && payload.resumo) || {};
+
+        if (stats) stats.hidden = cases.length === 0;
+        text("casesStatTotal", summary.total || 0);
+        text("casesStatMonth", summary.noMes || 0);
+        text("casesStatDays", String(Number(summary.mediaDias || 0).toLocaleString("pt-BR")));
+
+        if (!cases.length) {
+            list.innerHTML = '<p class="landing-cases-empty">Os primeiros atendimentos concluídos em Araucária – PR aparecerão aqui.</p>';
+            return;
+        }
+
+        list.innerHTML = cases.map(function (item) {
+            const days = Number(item.diasAtendimento || 0);
+            const daysLabel = days === 0
+                ? "Atendido no mesmo dia"
+                : `Atendido em ${days} ${days === 1 ? "dia" : "dias"}`;
+            const place = item.bairro
+                ? `${escapeHtml(item.bairro)}, ${escapeHtml(SERVICE_AREA.city)} – ${escapeHtml(SERVICE_AREA.state)}`
+                : `${escapeHtml(SERVICE_AREA.city)} – ${escapeHtml(SERVICE_AREA.state)}`;
+
+            return `
+                <article class="landing-case-card">
+                    <span class="landing-case-badge">✓ Caso concluído</span>
+                    <h3>${escapeHtml(item.titulo)}</h3>
+                    <ul class="landing-case-meta">
+                        <li>📍 ${place}</li>
+                        <li>🗓️ Concluído em ${escapeHtml(formatCaseDate(item.concluidoEm))}</li>
+                        <li>⏱️ ${escapeHtml(daysLabel)}</li>
+                    </ul>
+                </article>
+            `;
+        }).join("");
+    }
+
+    async function carregarCasosAtendidos() {
+        const list = byId("landingCasesList");
+        if (!list) return;
+        try {
+            const payload = await api("/api/public/casos-atendidos?limit=6", { method: "GET" }, 15000);
+            renderCasosAtendidos(payload);
+        } catch (_) {
+            list.innerHTML = '<p class="landing-cases-empty">Não foi possível carregar os casos atendidos agora.</p>';
+        }
+    }
+
     function boot() {
+        carregarCasosAtendidos();
         restoreSession();
         repairStaticImages();
         installMasks();
