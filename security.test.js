@@ -23,7 +23,10 @@ const checks = [
     ["citizen receives the five-business-day notice", "equivalente a 5 dias úteis."],
     ["audit listing requires admin", 'app.get("/api/admin/auditoria", verificarAdmin'],
     ["database has business-day helper", "CREATE OR REPLACE FUNCTION adicionar_dias_uteis"],
-    ["occurrence default is five business days", "DEFAULT adicionar_dias_uteis(CURRENT_DATE, 5)"]
+    ["occurrence default is five business days", "DEFAULT adicionar_dias_uteis(CURRENT_DATE, 5)"],
+    ["service area is limited to Araucária - PR", 'cidade: "Araucária"'],
+    ["service area rule is enforced", "validarAreaAtendimento(gps"],
+    ["public served-cases route exists", 'app.get("/api/public/casos-atendidos"']
 ];
 
 for (const [label, fragment] of checks) {
@@ -46,4 +49,15 @@ assert(
     "Falhou: rotas de debug não estão protegidas em produção."
 );
 
-console.log(`✓ ${checks.length + 3} verificações de segurança/integridade passaram.`);
+// A rota pública da landing nunca pode devolver foto, descrição ou dados pessoais.
+const routeStart = server.indexOf('app.get("/api/public/casos-atendidos"');
+const routeEnd = server.indexOf('app.get("/api/empresas"', routeStart);
+const publicRouteBody = server.slice(routeStart, routeEnd);
+const responseStart = publicRouteBody.indexOf("res.json({");
+assert(routeStart > -1 && responseStart > -1, "Falhou: rota pública de casos não encontrada.");
+const publicResponse = publicRouteBody.slice(responseStart);
+for (const forbidden of ["foto", "detalhes", "endereco_completo", "usuario_id", "cpf"]) {
+    assert(!publicResponse.includes(forbidden), `Falhou: rota pública de casos expõe ${forbidden}.`);
+}
+
+console.log(`✓ ${checks.length + 4} verificações de segurança/integridade passaram.`);
