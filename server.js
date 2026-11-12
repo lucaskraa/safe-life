@@ -482,6 +482,75 @@ function montarGps(gps) {
     };
 }
 
+/* =============================================================
+ * REGRA DE NEGÓCIO — ÁREA DE ATENDIMENTO
+ * O Safe Life atende somente o município de Araucária – PR.
+ * Ocorrências e denúncias de outras cidades são recusadas.
+ * ============================================================= */
+const AREA_ATENDIMENTO = Object.freeze({
+    cidade: "Araucária",
+    estado: "PR",
+    estadoNome: "Paraná"
+});
+
+function normalizarLocal(valor) {
+    return String(valor == null ? "" : valor)
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+function validarAreaAtendimento(gps, ...textosLivres) {
+    const cidadeBase = normalizarLocal(AREA_ATENDIMENTO.cidade);
+    const estadosAceitos = [
+        normalizarLocal(AREA_ATENDIMENTO.estado),
+        normalizarLocal(AREA_ATENDIMENTO.estadoNome)
+    ];
+    const cidadeInformada = normalizarLocal(gps && gps.cidade);
+    const estadoInformado = normalizarLocal(gps && gps.estado);
+    const mensagemBase =
+        `O Safe Life atende apenas ${AREA_ATENDIMENTO.cidade} – ${AREA_ATENDIMENTO.estado}.`;
+
+    if (cidadeInformada) {
+        const estadoOk = !estadoInformado || estadosAceitos.includes(estadoInformado);
+
+        if (cidadeInformada === cidadeBase && estadoOk) {
+            return { ok: true };
+        }
+
+        return {
+            ok: false,
+            status: 422,
+            code: "OUT_OF_SERVICE_AREA",
+            error: `${mensagemBase} A localização informada é ${limparTexto(gps.cidade)}${gps.estado ? " – " + limparTexto(gps.estado) : ""}.`
+        };
+    }
+
+    // Sem cidade vinda do GPS: só aceita se o endereço digitado citar Araucária.
+    const texto = normalizarLocal(textosLivres.filter(Boolean).join(" "));
+
+    if (new RegExp(`\\b${cidadeBase}\\b`).test(texto)) {
+        return { ok: true };
+    }
+
+    return {
+        ok: false,
+        status: 422,
+        code: "OUT_OF_SERVICE_AREA",
+        error: `${mensagemBase} Ative a localização ou informe “${AREA_ATENDIMENTO.cidade}” no endereço.`
+    };
+}
+
+function gpsDaAreaAtendimento(gps) {
+    return {
+        ...montarGps(gps),
+        cidade: AREA_ATENDIMENTO.cidade,
+        estado: AREA_ATENDIMENTO.estado
+    };
+}
+
 async function buscarUsuarioPorCpf(cpf) {
     const cpfLimpo = limparCpf(cpf);
 
@@ -2838,6 +2907,115 @@ app.post("/api/admin/profissionais", verificarAdmin, async (req, res) => {
    EMPRESAS / BASES / ONGS
 ===================================================== */
 
+/* =============================================================
+ * LANDING PAGE — CASOS ATENDIDOS (rota pública)
+ * Expõe apenas dados agregados/anonimizados de ocorrências
+ * concluídas em Araucária – PR. Nunca retorna foto, descrição,
+ * endereço completo, CPF ou qualquer dado de quem fez o chamado.
+ * ============================================================= */
+const CASOS_ATENDIDOS_CTE = `
+    WITH atendidos AS (
+        SELECT
+            COALESCE(
+                NULLIF(BTRIM(opcao_escolhida), ''),
+                NULLIF(BTRIM(assunto), ''),
+                tipo
+            ) AS titulo,
+            categoria,
+            bairro,
+            criado_em,
+            concluido_em
+        FROM ocorrencias
+        WHERE status = 'CONCLUIDA'::status_ocorrencia_enum
+          AND concluido_em IS NOT NULL
+          AND LOWER(TRANSLATE(COALESCE(cidade, ''), 'ÁÀÂÃáàâã', 'AAAAaaaa')) = 'araucaria'
+
+        UNION ALL
+
+        SELECT
+            COALESCE(
+                NULLIF(BTRIM(opcao_escolhida), ''),
+                NULLIF(BTRIM(assunto), ''),
+                tipo
+            ) AS titulo,
+            categoria,
+            bairro,
+            criado_em,
+            concluido_em
+        FROM denuncias_anonimas
+        WHERE status = 'CONCLUIDA'::status_ocorrencia_enum
+          AND concluido_em IS NOT NULL
+          AND LOWER(TRANSLATE(COALESCE(cidade, ''), 'ÁÀÂÃáàâã', 'AAAAaaaa')) = 'araucaria'
+    )
+`;
+
+app.get("/api/public/casos-atendidos", async (req, res) => {
+    try {
+        const limite = Math.min(Math.max(parseInt(req.query.limit, 10) || 6, 1), 12);
+
+        const resumoResult = await pool.query(
+            `
+            ${CASOS_ATENDIDOS_CTE}
+            SELECT
+                COUNT(*)::int AS total,
+                COUNT(*) FILTER (
+                    WHERE concluido_em >= date_trunc('month', CURRENT_TIMESTAMP)
+                )::int AS no_mes,
+                COALESCE(
+                    ROUND(AVG(EXTRACT(EPOCH FROM (concluido_em - criado_em)) / 86400)::numeric, 1),
+                    0
+                )::float AS media_dias
+            FROM atendidos
+            `
+        );
+
+        const casosResult = await pool.query(
+            `
+            ${CASOS_ATENDIDOS_CTE}
+            SELECT
+                titulo,
+                categoria,
+                bairro,
+                concluido_em,
+                GREATEST(
+                    0,
+                    FLOOR(EXTRACT(EPOCH FROM (concluido_em - criado_em)) / 86400)
+                )::int AS dias_atendimento
+            FROM atendidos
+            ORDER BY concluido_em DESC
+            LIMIT $1
+            `,
+            [limite]
+        );
+
+        const resumo = resumoResult.rows[0] || {};
+
+        return res.json({
+            area: {
+                cidade: AREA_ATENDIMENTO.cidade,
+                estado: AREA_ATENDIMENTO.estado
+            },
+            resumo: {
+                total: Number(resumo.total || 0),
+                noMes: Number(resumo.no_mes || 0),
+                mediaDias: Number(resumo.media_dias || 0)
+            },
+            casos: casosResult.rows.map((caso) => ({
+                titulo: String(caso.titulo || "Ocorrência").slice(0, 80),
+                categoria: caso.categoria || null,
+                bairro: caso.bairro || null,
+                concluidoEm: caso.concluido_em,
+                diasAtendimento: Number(caso.dias_atendimento || 0)
+            }))
+        });
+    } catch (erro) {
+        console.error("Erro ao listar casos atendidos:", erro.message);
+        return res.status(500).json({
+            error: "Não foi possível carregar os casos atendidos."
+        });
+    }
+});
+
 app.get("/api/empresas", async (req, res) => {
     try {
         const result = await pool.query(
@@ -3581,6 +3759,15 @@ app.post("/api/ocorrencias", verificarSessaoUsuario, exigirPerfis("citizen", "ad
             });
         }
 
+        const area = validarAreaAtendimento(gps, localizacao, gps && gps.enderecoCompleto);
+
+        if (!area.ok) {
+            return res.status(area.status).json({
+                error: area.error,
+                code: area.code
+            });
+        }
+
         const midiaValidada = validarMidiaObrigatoria(foto);
 
         if (!midiaValidada.ok) {
@@ -3604,7 +3791,7 @@ app.post("/api/ocorrencias", verificarSessaoUsuario, exigirPerfis("citizen", "ad
             });
         }
 
-        const gpsLimpo = montarGps(gps);
+        const gpsLimpo = gpsDaAreaAtendimento(gps);
 
         const result = await pool.query(
             `
@@ -3801,6 +3988,15 @@ app.post("/api/ocorrencias/anonima", async (req, res) => {
             });
         }
 
+        const area = validarAreaAtendimento(gps, localizacao, gps && gps.enderecoCompleto);
+
+        if (!area.ok) {
+            return res.status(area.status).json({
+                error: area.error,
+                code: area.code
+            });
+        }
+
         const midiaValidada = validarMidiaObrigatoria(foto);
 
         if (!midiaValidada.ok) {
@@ -3810,7 +4006,7 @@ app.post("/api/ocorrencias/anonima", async (req, res) => {
             });
         }
 
-        const gpsLimpo = montarGps(gps);
+        const gpsLimpo = gpsDaAreaAtendimento(gps);
 
         const result = await pool.query(
             `
