@@ -1,0 +1,217 @@
+/* ==========================================================
+   Safe Life — Landing v2 (mapa de casos + seção de atendidos)
+   Carrega DEPOIS do style.css. Tudo escopado em #welcomeScreen.
+   ========================================================== */
+
+#welcomeScreen {
+    --lp-ink: #0f1a3a;
+    --lp-muted: #5b6785;
+    --lp-blue: #254bfa;
+    --lp-line: #e3e8f3;
+    --lp-bg: #f7f9fe;
+    --lp-open: #e5484d;
+    --lp-progress: #f5a524;
+    --lp-done: #12a36a;
+    overflow-y: auto;
+}
+
+#welcomeScreen .landing-clean-shell,
+#welcomeScreen .lp-container {
+    width: min(1180px, 100% - 48px);
+    margin-inline: auto;
+}
+
+#welcomeScreen .landing-clean-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.02fr) minmax(0, 1fr);
+    gap: clamp(28px, 5vw, 64px);
+    align-items: center;
+    min-height: 0;
+    padding: clamp(24px, 4vw, 48px) 0 clamp(40px, 6vw, 72px);
+}
+
+/* pílula da cidade */
+.lp-city-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 0 22px;
+    padding: 11px 18px;
+    border-radius: 999px;
+    background: #eef2ff;
+    border: 1px solid #dbe3ff;
+    color: var(--lp-muted, #5b6785);
+    font-size: 15px;
+}
+.lp-city-pill strong { color: var(--lp-ink, #0f1a3a); }
+
+/* ---------------- CARD DO MAPA ---------------- */
+.lp-map-card {
+    position: relative;
+    background: #fff;
+    border-radius: 32px;
+    padding: 18px;
+    border: 1px solid var(--lp-line, #e3e8f3);
+    box-shadow: 0 30px 70px rgba(15, 26, 58, 0.14);
+}
+
+.lp-map-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 2px 6px 14px;
+    color: var(--lp-ink, #0f1a3a);
+    font-size: 15px;
+}
+
+.lp-live {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: #e8f8f1;
+    color: #0b7a4f;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .02em;
+}
+.lp-live i {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #12a36a;
+    animation: lpPulse 1.8s ease-out infinite;
+}
+@keyframes lpPulse {
+    0% { box-shadow: 0 0 0 0 rgba(18,163,106,.55); }
+    100% { box-shadow: 0 0 0 9px rgba(18,163,106,0); }
+}
+
+.lp-map {
+    position: relative;
+    aspect-ratio: 6 / 4.6;
+    border-radius: 22px;
+    overflow: hidden;
+    background: #e9ecf2;
+    filter: grayscale(.15);
+}
+.lp-map svg { width: 100%; height: 100%; display: block; }
+
+/* pins */
+.lp-pin {
+    position: absolute;
+    width: 30px; height: 30px;
+    transform: translate(-50%, -100%);
+    border: 0; padding: 0; background: none;
+    cursor: pointer;
+    z-index: 2;
+    transition: transform .18s ease;
+}
+.lp-pin:hover, .lp-pin.is-active { transform: translate(-50%, -108%) scale(1.12); z-index: 5; }
+.lp-pin svg { width: 100%; height: 100%; filter: drop-shadow(0 5px 6px rgba(15,26,58,.28)); }
+.lp-pin.open svg path { fill: var(--lp-open, #e5484d); }
+.lp-pin.progress svg path { fill: var(--lp-progress, #f5a524); }
+.lp-pin.done svg path { fill: var(--lp-done, #12a36a); }
+.lp-pin.open::after {
+    content: ""; position: absolute; left: 50%; bottom: -3px;
+    width: 14px; height: 14px; margin-left: -7px; border-radius: 50%;
+    background: rgba(229,72,77,.35);
+    animation: lpRing 2.2s ease-out infinite;
+    z-index: -1;
+}
+@keyframes lpRing {
+    0% { transform: scale(.6); opacity: .9; }
+    100% { transform: scale(3); opacity: 0; }
+}
+.lp-pin:focus-visible { outline: 3px solid var(--lp-blue, #254bfa); border-radius: 50%; }
+
+/* popup do pedido */
+.lp-popup {
+    position: absolute;
+    left: 50%; bottom: 96px;
+    transform: translateX(-50%);
+    width: min(300px, calc(100% - 48px));
+    padding: 14px 16px;
+    border-radius: 18px;
+    background: #fff;
+    border: 1px solid var(--lp-line, #e3e8f3);
+    box-shadow: 0 22px 50px rgba(15,26,58,.22);
+    z-index: 10;
+    animation: lpPop .18s ease;
+}
+.lp-popup[hidden] { display: none; }
+@keyframes lpPop { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+.lp-popup-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.lp-popup h4 { margin: 0; font-size: 15px; color: var(--lp-ink, #0f1a3a); }
+.lp-popup p { margin: 6px 0 0; font-size: 13px; color: var(--lp-muted, #5b6785); line-height: 1.45; }
+.lp-popup button {
+    border: 0; background: #f1f4fb; width: 26px; height: 26px; border-radius: 50%;
+    cursor: pointer; font-size: 16px; line-height: 1; color: var(--lp-muted, #5b6785);
+}
+.lp-badge {
+    display: inline-block; margin-top: 8px; padding: 4px 10px; border-radius: 999px;
+    font-size: 11.5px; font-weight: 800; color: #fff;
+}
+.lp-badge.open { background: var(--lp-open, #e5484d); }
+.lp-badge.progress { background: var(--lp-progress, #f5a524); }
+.lp-badge.done { background: var(--lp-done, #12a36a); }
+
+.lp-legend {
+    display: flex; flex-wrap: wrap; gap: 8px 18px;
+    padding: 14px 6px 4px;
+    font-size: 12.5px; color: var(--lp-muted, #5b6785);
+}
+.lp-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
+.d-open { background: var(--lp-open, #e5484d); }
+.d-progress { background: var(--lp-progress, #f5a524); }
+.d-done { background: var(--lp-done, #12a36a); }
+.lp-map-note { margin: 4px 6px 2px; font-size: 11.5px; color: #8a94ad; }
+
+/* ---------------- SEÇÃO CASOS ---------------- */
+.lp-section {
+    padding: clamp(40px, 6vw, 80px) 0 clamp(56px, 8vw, 110px);
+    background: #fff;
+    border-top: 1px solid var(--lp-line, #e3e8f3);
+}
+.lp-kicker {
+    font-size: 12px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--lp-blue, #254bfa);
+}
+.lp-section h2 {
+    margin: 10px 0 12px;
+    font-size: clamp(30px, 4.6vw, 52px);
+    line-height: 1.05; letter-spacing: -.03em;
+    color: var(--lp-ink, #0f1a3a);
+}
+.lp-sub { max-width: 640px; margin: 0 0 28px; color: var(--lp-muted, #5b6785); font-size: 16px; line-height: 1.6; }
+
+.lp-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 22px; }
+.lp-stat {
+    padding: 18px 20px; border-radius: 20px; background: var(--lp-bg, #f7f9fe);
+    border: 1px solid var(--lp-line, #e3e8f3);
+}
+.lp-stat b { display: block; font-size: 30px; letter-spacing: -.02em; color: var(--lp-ink, #0f1a3a); }
+.lp-stat span { font-size: 13px; color: var(--lp-muted, #5b6785); }
+
+.lp-cases { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.lp-case {
+    padding: 18px; border-radius: 20px; background: #fff;
+    border: 1px solid var(--lp-line, #e3e8f3);
+    box-shadow: 0 10px 26px rgba(15,26,58,.06);
+}
+.lp-case small { color: var(--lp-muted, #5b6785); font-size: 12px; }
+.lp-case h3 { margin: 6px 0 4px; font-size: 17px; color: var(--lp-ink, #0f1a3a); }
+.lp-case p { margin: 0; color: var(--lp-muted, #5b6785); font-size: 13.5px; line-height: 1.5; }
+.lp-empty {
+    grid-column: 1 / -1; text-align: center; padding: 36px 20px; border-radius: 22px;
+    border: 1.5px dashed #cfd8ee; background: var(--lp-bg, #f7f9fe); color: var(--lp-muted, #5b6785);
+}
+
+/* ---------------- RESPONSIVO ---------------- */
+@media (max-width: 900px) {
+    #welcomeScreen .landing-clean-hero { grid-template-columns: 1fr; }
+    .lp-stats { grid-template-columns: 1fr; }
+    .lp-popup { bottom: 120px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .lp-live i, .lp-pin.open::after { animation: none; }
+}
