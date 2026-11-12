@@ -587,6 +587,10 @@ CREATE INDEX IF NOT EXISTS idx_pets_desaparecidos_reais ON pets(desaparecido_em 
 CREATE INDEX IF NOT EXISTS idx_ocorrencias_fila ON ocorrencias(status, prioridade, criado_em DESC);
 CREATE INDEX IF NOT EXISTS idx_ocorrencias_usuario_status ON ocorrencias(usuario_id, status);
 CREATE INDEX IF NOT EXISTS idx_denuncias_fila ON denuncias_anonimas(status, prioridade, criado_em DESC);
+
+-- Landing page: lista pública de casos atendidos (somente concluídos)
+CREATE INDEX IF NOT EXISTS idx_ocorrencias_concluidas ON ocorrencias(concluido_em DESC) WHERE status = 'CONCLUIDA';
+CREATE INDEX IF NOT EXISTS idx_denuncias_concluidas ON denuncias_anonimas(concluido_em DESC) WHERE status = 'CONCLUIDA';
 CREATE INDEX IF NOT EXISTS idx_notificacoes_usuario_data ON notificacoes(usuario_id, criado_em DESC);
 CREATE INDEX IF NOT EXISTS idx_notificacoes_nao_lidas ON notificacoes(usuario_id, lida) WHERE lida = FALSE;
 CREATE INDEX IF NOT EXISTS idx_eventos_tempo_real_audiencia_id ON eventos_tempo_real(audiencia, usuario_id, id);
