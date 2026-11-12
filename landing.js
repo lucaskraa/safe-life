@@ -21,18 +21,35 @@
     };
 
     // Dados de exemplo — substitua pelos chamados reais (sem endereço).
-    var IMG = {"dog": "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=600&q=80", "cat": "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=600&q=80", "dogs": "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=600&q=80"};
+    // Coloque as fotos na pasta ./img/ com estes nomes (veja LEIA-ME-IMAGENS.txt).
+    // Se um arquivo não existir, aparece a imagem reserva (FALLBACK).
+    var FALLBACK = "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=800&q=80";
+    // Fotos do Unsplash (licença livre, sem marca d'água). Créditos:
+    // cão: 12photostory | aves: Abhinav Anand | gato: yurii liu | galinha: Timothy McAuliffe
+    var IMG = {
+        cao: "https://images.unsplash.com/photo-1675701918017-fda8f5bcbf90?auto=format&fit=crop&w=1400&q=80",
+        ave: "https://images.unsplash.com/photo-1696256369476-59e07ddbe76c?auto=format&fit=crop&w=1400&q=80",
+        gato: "https://images.unsplash.com/photo-1600822089051-b16e78f5708a?auto=format&fit=crop&w=1400&q=80",
+        silvestre: "https://images.unsplash.com/photo-1570818929648-83af2b199822?auto=format&fit=crop&w=1400&q=80"
+    };
     var cases = [
-        { id: 1, x: 24, y: 30, bairro: "Capela Velha", tipo: "Maus-tratos", status: "done", animal: "Thor", tutor: "Marcos S.", foto: IMG.dog, texto: "Encontrado acorrentado sem água. Resgatado, tratado e adotado.", data: "há 2 dias" },
-        { id: 2, x: 50, y: 52, bairro: "Centro", tipo: "Abandono", status: "progress", animal: "Mel", tutor: "Ana P.", foto: IMG.cat, texto: "Gata abandonada em terreno baldio, em recuperação com a equipe.", data: "há 1 dia" },
-        { id: 3, x: 76, y: 28, bairro: "Iguaçu", tipo: "Resgate", status: "done", animal: "Bidu", tutor: "Carlos R.", foto: IMG.dogs, texto: "Cão ferido na via, resgatado e encaminhado ao veterinário.", data: "há 4 dias" },
-        { id: 4, x: 62, y: 74, bairro: "Costeira", tipo: "Maus-tratos", status: "open", animal: "Luna", tutor: "Julia M.", foto: IMG.dog, texto: "Denúncia de maus-tratos registrada. Aguardando a equipe.", data: "há 20 min" }
+        { id: 1, x: 24, y: 30, bairro: "Capela Velha", tipo: "Maus-tratos", status: "done", animal: "Thor", tutor: "Marcos S.", foto: IMG.cao, texto: "Encontrado acorrentado sem água. Resgatado, tratado e adotado.", data: "há 2 dias" },
+        { id: 2, x: 50, y: 52, bairro: "Centro", tipo: "Abandono", status: "progress", animal: "Mel", tutor: "Ana P.", foto: IMG.gato, texto: "Gata abandonada em terreno baldio, em recuperação com a equipe.", data: "há 1 dia" },
+        { id: 3, x: 76, y: 28, bairro: "Iguaçu", tipo: "Resgate", status: "done", animal: "Piu e Pipo", tutor: "Carlos R.", foto: IMG.ave, texto: "Periquitos mantidos presos em gaiola pequena. Resgatados e encaminhados à reabilitação.", data: "há 4 dias" },
+        { id: 4, x: 62, y: 74, bairro: "Costeira", tipo: "Maus-tratos", status: "open", animal: "Tico", tutor: "Julia M.", foto: IMG.silvestre, texto: "Galinha mantida em gaiola apertada. Aguardando a equipe.", data: "há 20 min" }
     ];
     var SLIDES = [
-        { src: IMG.dog, tag: "Abandono", text: "Milhares de animais são abandonados todos os anos. Você pode mudar essa história." },
-        { src: IMG.dogs, tag: "Maus-tratos", text: "Viu um animal sendo maltratado? Denuncie, a equipe vai até o local." },
-        { src: IMG.cat, tag: "Resgate", text: "Cada chamado vira um atendimento acompanhado do início ao fim." }
+        { src: IMG.cao, tag: "Abandono e maus-tratos", text: "Viu um animal abandonado ou maltratado? Denuncie e a equipe vai até o local." },
+        { src: IMG.ave, tag: "Aves em cativeiro", text: "Aves presas em gaiolas pequenas também podem ser resgatadas." },
+        { src: IMG.gato, tag: "Gatos abandonados", text: "Cada chamado vira um atendimento acompanhado do início ao fim." },
+        { src: IMG.silvestre, tag: "Maus-tratos", text: "Ajude a dar uma segunda chance a quem foi deixado para trás." }
     ];
+
+    function fallbackImg(el) {
+        el.addEventListener("error", function () {
+            if (el.src.indexOf("unsplash.com") === -1) el.src = FALLBACK;
+        });
+    }
 
     var PIN = '<svg viewBox="0 0 24 32" aria-hidden="true"><path d="M12 0C5.4 0 0 5.2 0 11.7 0 20 12 32 12 32s12-12 12-20.3C24 5.2 18.6 0 12 0z"/><circle cx="12" cy="11.5" r="4.4" fill="#fff"/></svg>';
 
@@ -102,6 +119,7 @@
                 e.stopPropagation();
                 openPopup(c, b);
             });
+            fallbackImg(b.querySelector("img"));
             mapEl.appendChild(b);
         });
     }
@@ -118,6 +136,7 @@
             '<div class="lp-popup-body"><h4>' + esc(c.animal) + " · " + esc(c.bairro) + "</h4>" +
             "<p>" + esc(c.texto) + "</p><p><small>Tutor(a): " + esc(c.tutor) + "</small></p>" +
             '<span class="lp-badge ' + st.cls + '">' + (c.status === "done" ? "Resgatado" : st.label) + "</span> <small>" + esc(c.data) + "</small></div>";
+        fallbackImg(popupEl.querySelector("img"));
         popupEl.querySelector(".lp-x").addEventListener("click", closePopup);
     }
 
@@ -144,6 +163,7 @@
         if (!img) return;
         var tag = document.getElementById("lpCarouselTag"), txt = document.getElementById("lpCarouselText"), dots = document.getElementById("lpDots");
         var i = 0, t;
+        fallbackImg(img);
         dots.innerHTML = SLIDES.map(function (_, k) { return '<button type="button" aria-label="Slide ' + (k + 1) + '"></button>'; }).join("");
         function show(k) {
             i = (k + SLIDES.length) % SLIDES.length;
