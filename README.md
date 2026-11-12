@@ -68,3 +68,15 @@ O repositório também possui um teste de integração que cobre o fluxo princip
 `database.sql` cria/atualiza a estrutura do PostgreSQL de forma idempotente. O prazo inicial das ocorrências usa cinco dias úteis, considerando segunda a sexta-feira.
 
 `demo_reset.sql` limpa ocorrências e notificações ligadas a ocorrências para restaurar o ambiente de demonstração sem apagar pets, empresas ou usuários.
+
+## Regra de negócio: área de atendimento
+
+O Safe Life atende **somente Araucária – PR**.
+
+- **Front-end:** se o GPS identificar outra cidade, a tela de localização mostra um aviso e bloqueia o botão "Continuar".
+- **Back-end:** `POST /api/ocorrencias` e `POST /api/ocorrencias/anonima` recusam (HTTP 422, `OUT_OF_SERVICE_AREA`) chamados de outras cidades. Sem GPS, o endereço digitado precisa citar "Araucária".
+- **Limitação:** a cidade vem do GPS/endereço enviado pelo cliente; não há validação por polígono do município.
+
+## Landing page: casos atendidos
+
+`GET /api/public/casos-atendidos` (pública) lista ocorrências e denúncias **concluídas** em Araucária, com resumo (total, no mês, média de dias). Não expõe foto, descrição, endereço completo nem dados de quem registrou o chamado.
