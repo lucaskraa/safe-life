@@ -81,22 +81,14 @@
                         </div>
                     </div>
 
-                    <div class="lp-map-card" aria-label="Mapa de casos atendidos em Araucária – PR">
-                        <div class="lp-map-head">
-                            <span class="lp-live"><i></i> Ao vivo</span>
-                            <strong>Chamados em Araucária – PR</strong>
+                    <div class="lp-carousel" id="lpCarousel" aria-roledescription="carrossel">
+                        <img id="lpCarouselImg" alt="" loading="eager" decoding="async">
+                        <div class="lp-carousel-shade"></div>
+                        <div class="lp-carousel-cap">
+                            <span id="lpCarouselTag"></span>
+                            <strong id="lpCarouselText"></strong>
                         </div>
-
-                        <div class="lp-map" id="lpMap" role="group" aria-label="Mapa com ocorrências"></div>
-
-                        <div class="lp-popup" id="lpPopup" hidden></div>
-
-                        <div class="lp-legend">
-                            <span><i class="d-open"></i> Pedido realizado</span>
-                            <span><i class="d-progress"></i> Em atendimento</span>
-                            <span><i class="d-done"></i> Concluído</span>
-                        </div>
-                        <p class="lp-map-note">Localizações aproximadas por bairro. Não exibimos endereços nem dados de quem registrou.</p>
+                        <div class="lp-dots" id="lpDots"></div>
                     </div>
                     </main>
             </div>
@@ -106,10 +98,19 @@
                 <div class="lp-container">
                     <span class="lp-kicker">Casos atendidos</span>
                     <h2 id="lpCasesTitle">Animais atendidos em Araucária – PR</h2>
-                    <p class="lp-sub">Ocorrências concluídas pela equipe do Safe Life. Por privacidade, não exibimos fotos, endereços completos nem dados de quem registrou o chamado.</p>
+                    <p class="lp-sub">Cada ponto no mapa é um animal que recebeu ajuda pela rede Safe Life. Toque num ponto para conhecer a história.</p>
 
                     <div class="lp-stats" id="lpStats"></div>
-                    <div class="lp-cases" id="lpCases-list"></div>
+
+                    <div class="lp-map-card">
+                        <div class="lp-map" id="lpMap" role="group" aria-label="Mapa de animais atendidos em Araucária"></div>
+                        <div class="lp-popup" id="lpPopup" hidden></div>
+                        <div class="lp-legend">
+                            <span><i class="d-open"></i> Pedido realizado</span>
+                            <span><i class="d-progress"></i> Em atendimento</span>
+                            <span><i class="d-done"></i> Resgatado</span>
+                        </div>
+                    </div>
                 </div>
             </section>
 
