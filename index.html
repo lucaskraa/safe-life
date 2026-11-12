@@ -63,6 +63,11 @@
                             O Safe Life organiza o chamado e acompanha cada etapa do atendimento.
                         </p>
 
+                        <p class="landing-clean-area">
+                            <span aria-hidden="true">📍</span>
+                            Atendimento disponível somente em <strong>Araucária – PR</strong>
+                        </p>
+
                         <div class="landing-clean-actions">
                             <button class="landing-clean-primary" onclick="nextScreen('locationScreen')" type="button">
                                 Registrar uma situação
@@ -85,6 +90,36 @@
                         >
                     </div>
                 </main>
+
+                <section class="landing-cases" id="landingCases" aria-labelledby="landingCasesTitle">
+                    <div class="landing-cases-head">
+                        <span class="landing-clean-kicker">Casos atendidos</span>
+                        <h2 id="landingCasesTitle">Animais atendidos em Araucária – PR</h2>
+                        <p>
+                            Ocorrências concluídas pela equipe do Safe Life. Por privacidade, não exibimos
+                            fotos, endereços completos nem dados de quem registrou o chamado.
+                        </p>
+                    </div>
+
+                    <div class="landing-cases-stats" id="landingCasesStats" hidden>
+                        <div class="landing-cases-stat">
+                            <strong id="casesStatTotal">0</strong>
+                            <span>casos concluídos</span>
+                        </div>
+                        <div class="landing-cases-stat">
+                            <strong id="casesStatMonth">0</strong>
+                            <span>concluídos neste mês</span>
+                        </div>
+                        <div class="landing-cases-stat">
+                            <strong id="casesStatDays">0</strong>
+                            <span>dias de atendimento (média)</span>
+                        </div>
+                    </div>
+
+                    <div class="landing-cases-list" id="landingCasesList" aria-live="polite">
+                        <p class="landing-cases-empty">Carregando casos atendidos...</p>
+                    </div>
+                </section>
             </div>
 
             <dialog class="landing-how-dialog" id="landingHowDialog" aria-labelledby="landingHowTitle">
@@ -179,6 +214,7 @@
                 <p class="screen-desc">
                     Permita o acesso à sua localização para o Safe Life identificar
                     rua, bairro, cidade e estado.
+                    O atendimento está disponível somente em <strong>Araucária – PR</strong>.
                 </p>
 
                 <div class="occurrence-card location-card">
@@ -194,6 +230,13 @@
                     <p id="gpsStatus" class="gps-status">
                         Aguardando autorização do GPS...
                     </p>
+
+                    <div id="areaWarning" class="area-warning hidden" role="alert">
+                        <strong>Fora da área de atendimento</strong>
+                        <span id="areaWarningText">
+                            O Safe Life atende apenas Araucária – PR.
+                        </span>
+                    </div>
 
                     <div class="location-result-box">
 
