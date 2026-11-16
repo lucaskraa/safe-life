@@ -259,7 +259,7 @@
 
 #welcomeScreen .lp-stage {
     position: relative;
-    height: clamp(260px, 26vw, 360px);
+    height: clamp(300px, 30vw, 400px);
     border: 1px solid var(--lp-line);
     border-radius: var(--lp-r-lg);
     overflow: hidden;
@@ -267,29 +267,24 @@
     background: var(--lp-map-bg);
     box-shadow: var(--lp-shadow-md);
 }
-#welcomeScreen .lp-map-base { position: absolute; inset: 0; }
-#welcomeScreen .lp-map-svg { display: block; width: 100%; height: 100%; }
-#welcomeScreen .m-bg { fill: var(--lp-map-bg); }
-#welcomeScreen .m-block { fill: var(--lp-map-block); }
-#welcomeScreen .m-park { fill: var(--lp-map-park); }
-#welcomeScreen .m-water-a { fill: none; stroke: var(--lp-map-water-a); stroke-linecap: round; }
-#welcomeScreen .m-water-b { fill: none; stroke: var(--lp-map-water-b); stroke-linecap: round; }
-#welcomeScreen .m-road { fill: none; stroke: var(--lp-map-road); stroke-linecap: round; }
-
-#welcomeScreen .lp-label {
+#welcomeScreen .lp-map-base {
     position: absolute;
-    transform: translate(-50%, -50%);
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: .01em;
-    color: #55617f;
-    white-space: nowrap;
-    pointer-events: none;
-    text-shadow: 0 0 3px rgba(255, 255, 255, .95), 0 0 8px rgba(255, 255, 255, .8);
-    transition: color .2s;
+    inset: 0;
+    background-color: var(--lp-map-bg);
+    background-image:
+        linear-gradient(rgba(255, 255, 255, .6) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, .6) 1px, transparent 1px);
+    background-size: 48px 48px;
 }
-#welcomeScreen .lp-label.is-active { color: var(--lp-blue); }
-
+#welcomeScreen .lp-map.is-pending .lp-pins { visibility: hidden; }
+#welcomeScreen .lp-map.is-pending .lp-stage::after {
+    content: "Carregando mapa…";
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 14px;
+    color: var(--lp-muted);
+}
 #welcomeScreen .lp-pins { position: absolute; inset: 0; }
 
 #welcomeScreen .lp-pin {
@@ -357,24 +352,39 @@
 #welcomeScreen .lp-map-empty[hidden] { display: none; }
 
 /* Mapa real (Leaflet): o JS ativa .is-leaflet quando o carregamento funciona */
+#welcomeScreen .lp-map.is-leaflet .lp-stage { height: clamp(360px, 36vw, 480px); }
 #welcomeScreen .lp-map.is-leaflet .lp-map-base,
-#welcomeScreen .lp-map.is-leaflet .lp-labels,
 #welcomeScreen .lp-map.is-leaflet .lp-pins,
-#welcomeScreen .lp-map.is-leaflet .lp-map-empty { display: none; }
-#welcomeScreen .lp-leaflet { position: absolute; inset: 0; z-index: 1; font: inherit; background: var(--lp-map-bg); }
+#welcomeScreen .lp-map.is-leaflet .lp-map-empty,
+#welcomeScreen .lp-map.is-leaflet .lp-detail { display: none; }
+#welcomeScreen .lp-leaflet { position: absolute; inset: 0; z-index: 1; background: var(--lp-map-bg); font: inherit; }
+
+/* Isolamento: impede que CSS global do site (img, emoji, ícones) interfira no Leaflet.
+   !important só aqui, por tratar-se de biblioteca de terceiros. */
+#welcomeScreen .lp-leaflet .leaflet-tile,
+#welcomeScreen .lp-leaflet .leaflet-marker-icon,
+#welcomeScreen .lp-leaflet .leaflet-marker-shadow { max-width: none !important; max-height: none !important; }
+#welcomeScreen .lp-leaflet .leaflet-marker-icon::before,
+#welcomeScreen .lp-leaflet .leaflet-marker-icon::after { content: none !important; }
 #welcomeScreen .lp-lmark {
     display: grid;
     place-items: center;
-    background: none;
-    border: 0;
+    width: 32px !important; height: 32px !important;
+    margin: -16px 0 0 -16px;
+    padding: 0;
+    border: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
     border-radius: 50%;
+    font-size: 11px !important;
+    line-height: 1;
 }
-#welcomeScreen .lp-lmark:focus-visible { outline: 3px solid var(--lp-blue); outline-offset: 0; }
+#welcomeScreen .lp-lmark:focus-visible { outline: 3px solid var(--lp-blue); }
+#welcomeScreen .lp-lmark:hover .lp-pin-dot { transform: scale(1.14); }
 #welcomeScreen .lp-lmark.is-selected .lp-pin-dot {
     transform: scale(1.22);
     box-shadow: 0 0 0 5px var(--c-ring), 0 2px 6px rgba(15, 26, 58, .35);
 }
-#welcomeScreen .lp-lmark:hover .lp-pin-dot { transform: scale(1.14); }
 #welcomeScreen .lp-lmark .lp-pin-dot[data-status="open"]::after {
     content: "";
     position: absolute;
@@ -385,16 +395,35 @@
     z-index: -1;
     animation: lpRing 2.4s ease-out infinite;
 }
-#welcomeScreen .lp-map.is-leaflet .lp-detail {
-    position: static;
-    width: auto;
-    margin-top: 12px;
-    box-shadow: var(--lp-shadow-md);
+#welcomeScreen .lp-lmark[data-status="progress"] .lp-pin-dot { color: #3d2a00; }
+
+/* Controles de zoom discretos */
+#welcomeScreen .lp-leaflet .leaflet-bar { border: 1px solid var(--lp-line); box-shadow: var(--lp-shadow-sm); border-radius: var(--lp-r-sm); overflow: hidden; }
+#welcomeScreen .lp-leaflet .leaflet-bar a { width: 30px; height: 30px; line-height: 30px; font-size: 16px; color: var(--lp-ink); border-bottom-color: var(--lp-line); }
+#welcomeScreen .lp-leaflet .leaflet-control-attribution { font-size: 11px; }
+
+/* Popup do marcador */
+#welcomeScreen .lp-leaflet .leaflet-popup-content-wrapper {
+    padding: 0;
+    border-radius: var(--lp-r-md);
+    box-shadow: var(--lp-shadow-lg);
+    color: var(--lp-ink);
 }
-#welcomeScreen .lp-map.is-leaflet .lp-detail::after { display: none; }
+#welcomeScreen .lp-leaflet .leaflet-popup-content { margin: 14px 16px 16px; font-size: 13.5px; line-height: 1.5; }
+#welcomeScreen .lp-leaflet .leaflet-popup-content p { margin: 0 0 6px; }
+#welcomeScreen .lp-leaflet .leaflet-popup-content h3 { margin: 2px 0 8px; }
+#welcomeScreen .lp-popup-top { margin: 0 24px 8px 0; }
+#welcomeScreen .lp-popup-title { font-size: 16px; line-height: 1.3; color: var(--lp-ink); }
+#welcomeScreen .lp-popup-demo {
+    margin: 10px 0 0 !important;
+    padding-top: 8px;
+    border-top: 1px dashed var(--lp-line);
+    font-size: 12px;
+    color: var(--lp-subtle);
+}
 #welcomeScreen .lp-detail-action { margin: 10px 0 0; font-size: 13.5px; line-height: 1.5; color: var(--lp-ink); }
 
-/* Painel de detalhe (balão no desktop, cartão fixo no celular) */
+/* Painel de detalhe (só no mapa ilustrativo de reserva) (balão no desktop, cartão fixo no celular) */
 #welcomeScreen .lp-detail {
     position: absolute;
     z-index: 20;
@@ -683,7 +712,6 @@
     #welcomeScreen .lp-carousel-cap { left: 16px; right: 16px; bottom: 44px; }
 
     #welcomeScreen .lp-stage { height: clamp(280px, 78vw, 380px); }
-    #welcomeScreen .lp-label { font-size: 10px; }
 
     /* Detalhe vira cartão fixo abaixo do mapa, sem balão flutuante */
     #welcomeScreen .lp-detail {
