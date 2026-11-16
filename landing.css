@@ -77,8 +77,8 @@
 
 #welcomeScreen .landing-clean-hero {
     display: grid;
-    grid-template-columns: minmax(0, 1.02fr) minmax(0, 1fr);
-    gap: clamp(28px, 5vw, 64px);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr);
+    gap: clamp(28px, 4.5vw, 56px);
     align-items: center;
     min-height: 0;
     padding: clamp(24px, 4vw, 48px) 0 clamp(32px, 5vw, 56px);
@@ -98,6 +98,24 @@
     font-size: 15px;
 }
 #welcomeScreen .lp-city-pill strong { color: var(--lp-ink); }
+
+/* Título e texto de apresentação: menores e equilibrados */
+#welcomeScreen .landing-clean-hero h1 {
+    max-width: 17em;
+    margin: 0 0 16px;
+    font-size: clamp(28px, 3.4vw, 42px);
+    line-height: 1.14;
+    letter-spacing: -.02em;
+    font-weight: 700;
+    text-wrap: balance;
+}
+#welcomeScreen .landing-clean-hero h1 + p {
+    max-width: 34em;
+    margin: 0 0 22px;
+    font-size: clamp(16px, 1.3vw, 18px);
+    line-height: 1.6;
+    color: var(--lp-muted);
+}
 
 /* Cartão antigo (v2), mantido oculto por compatibilidade com HTML legado.
    Pode ser removido do HTML. */
@@ -231,26 +249,6 @@
 }
 #welcomeScreen .lp-dots button[aria-current="true"]::before { width: 22px; background: #fff; }
 
-#welcomeScreen .lp-car-btn {
-    position: absolute;
-    z-index: 3;
-    display: grid;
-    place-items: center;
-    width: 40px; height: 40px;
-    padding: 0;
-    border: 0;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, .92);
-    color: var(--lp-ink);
-    box-shadow: var(--lp-shadow-sm);
-    cursor: pointer;
-    transition: opacity .2s, background-color .2s;
-}
-#welcomeScreen .lp-car-btn:hover { background: #fff; }
-#welcomeScreen .lp-car-btn svg { width: 18px; height: 18px; display: block; }
-#welcomeScreen .lp-car-prev { left: 12px; top: 50%; transform: translateY(-50%); }
-#welcomeScreen .lp-car-next { right: 12px; top: 50%; transform: translateY(-50%); }
-#welcomeScreen .lp-car-pause { right: 12px; top: 12px; width: 36px; height: 36px; }
 
 /* ---------- 5. MAPA ---------- */
 #welcomeScreen .lp-map {
@@ -265,6 +263,7 @@
     border: 1px solid var(--lp-line);
     border-radius: var(--lp-r-lg);
     overflow: hidden;
+    isolation: isolate;
     background: var(--lp-map-bg);
     box-shadow: var(--lp-shadow-md);
 }
@@ -356,6 +355,44 @@
     text-align: center;
 }
 #welcomeScreen .lp-map-empty[hidden] { display: none; }
+
+/* Mapa real (Leaflet): o JS ativa .is-leaflet quando o carregamento funciona */
+#welcomeScreen .lp-map.is-leaflet .lp-map-base,
+#welcomeScreen .lp-map.is-leaflet .lp-labels,
+#welcomeScreen .lp-map.is-leaflet .lp-pins,
+#welcomeScreen .lp-map.is-leaflet .lp-map-empty { display: none; }
+#welcomeScreen .lp-leaflet { position: absolute; inset: 0; z-index: 1; font: inherit; background: var(--lp-map-bg); }
+#welcomeScreen .lp-lmark {
+    display: grid;
+    place-items: center;
+    background: none;
+    border: 0;
+    border-radius: 50%;
+}
+#welcomeScreen .lp-lmark:focus-visible { outline: 3px solid var(--lp-blue); outline-offset: 0; }
+#welcomeScreen .lp-lmark.is-selected .lp-pin-dot {
+    transform: scale(1.22);
+    box-shadow: 0 0 0 5px var(--c-ring), 0 2px 6px rgba(15, 26, 58, .35);
+}
+#welcomeScreen .lp-lmark:hover .lp-pin-dot { transform: scale(1.14); }
+#welcomeScreen .lp-lmark .lp-pin-dot[data-status="open"]::after {
+    content: "";
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    background: var(--c);
+    opacity: .3;
+    z-index: -1;
+    animation: lpRing 2.4s ease-out infinite;
+}
+#welcomeScreen .lp-map.is-leaflet .lp-detail {
+    position: static;
+    width: auto;
+    margin-top: 12px;
+    box-shadow: var(--lp-shadow-md);
+}
+#welcomeScreen .lp-map.is-leaflet .lp-detail::after { display: none; }
+#welcomeScreen .lp-detail-action { margin: 10px 0 0; font-size: 13.5px; line-height: 1.5; color: var(--lp-ink); }
 
 /* Painel de detalhe (balão no desktop, cartão fixo no celular) */
 #welcomeScreen .lp-detail {
@@ -553,6 +590,19 @@
     border-color: var(--lp-blue);
     color: var(--lp-blue);
 }
+#welcomeScreen .lp-demo-note {
+    margin: 0 0 14px;
+    padding: 10px 14px;
+    border: 1px dashed #cfd8ee;
+    border-radius: var(--lp-r-sm);
+    background: var(--lp-bg);
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--lp-muted);
+}
+#welcomeScreen .lp-demo-note[hidden] { display: none; }
+#welcomeScreen .lp-case.is-selected { border-color: var(--lp-blue); box-shadow: 0 0 0 1px var(--lp-blue); }
+#welcomeScreen .lp-case-action { color: var(--lp-ink); }
 #welcomeScreen .lp-demo-tag {
     margin-left: auto;
     padding: 4px 10px;
@@ -631,7 +681,6 @@
 
     #welcomeScreen .lp-carousel { aspect-ratio: 4 / 3.4; }
     #welcomeScreen .lp-carousel-cap { left: 16px; right: 16px; bottom: 44px; }
-    #welcomeScreen .lp-car-prev, #welcomeScreen .lp-car-next { width: 36px; height: 36px; }
 
     #welcomeScreen .lp-stage { height: clamp(280px, 78vw, 380px); }
     #welcomeScreen .lp-label { font-size: 10px; }
@@ -659,15 +708,10 @@
     #welcomeScreen .lp-stat span { margin-top: 0; }
 }
 
-@media (hover: hover) {
-    #welcomeScreen .lp-car-btn { opacity: 0; }
-    #welcomeScreen .lp-carousel:hover .lp-car-btn,
-    #welcomeScreen .lp-carousel:focus-within .lp-car-btn { opacity: 1; }
-}
-
 /* ---------- 8. MOVIMENTO REDUZIDO ---------- */
 @media (prefers-reduced-motion: reduce) {
-    #welcomeScreen .lp-pin[data-status="open"] .lp-pin-dot::after { animation: none; }
+    #welcomeScreen .lp-pin[data-status="open"] .lp-pin-dot::after,
+    #welcomeScreen .lp-lmark .lp-pin-dot[data-status="open"]::after { animation: none; }
     #welcomeScreen .lp-detail { animation: none; }
     #welcomeScreen .lp-carousel img,
     #welcomeScreen .lp-carousel-cap,
