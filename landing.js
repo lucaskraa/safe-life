@@ -5,9 +5,12 @@
 
    Integração com dados reais (API pública, inalterada):
      window.SafeLifeLanding.setCases([
-       { id, x, y, bairro, tipo, status, texto, data }   // animal é opcional
+       { id, x, y, bairro, tipo, status, texto, data,
+         titulo, acao, lat, lng, animal }   // os 5 últimos são opcionais
      ]);
-   - x / y: posição em % dentro do mapa (0–100). O mapa é ilustrativo.
+   - x / y: posição em % no mapa ilustrativo (0–100), usado quando não há lat/lng.
+   - lat / lng: posição aproximada do BAIRRO (nunca do endereço). Se TODOS os chamados
+     tiverem lat/lng, o mapa real (Leaflet + OpenStreetMap) é carregado.
    - status: "open" | "progress" | "done".
    - Use sempre localização aproximada por bairro, nunca endereço.
    - Só os campos acima são lidos; qualquer outro campo é ignorado.
@@ -18,12 +21,16 @@
     /* ---------- constantes e dados de exemplo ---------- */
 
     var CAROUSEL_DELAY = 5000;
-    var MAX_LEN = { bairro: 60, tipo: 60, animal: 60, texto: 320 };
+    var MAX_LEN = { bairro: 60, tipo: 60, animal: 60, titulo: 80, texto: 320, acao: 320 };
+    var DEMO_TEXT = "Dados demonstrativos do TCC — ocorrências fictícias utilizadas para apresentar as funcionalidades do Safe Life.";
+    var LEAFLET_CSS = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css";
+    var LEAFLET_JS = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js";
+    var ARAUCARIA = [-25.593, -49.405];
 
     var STATUS = {
-        open:     { label: "Aberta",       stat: "Chamados abertos",        glyph: "!" },
-        progress: { label: "Em andamento", stat: "Em andamento",            glyph: "…" },
-        done:     { label: "Concluída",    stat: "Atendimentos concluídos", glyph: "✓" }
+        open:     { label: "Em análise",   stat: "Em análise",              glyph: "!" },
+        progress: { label: "Em atendimento", stat: "Em atendimento",        glyph: "…" },
+        done:     { label: "Concluído",    stat: "Concluídos",              glyph: "✓" }
     };
     var STATUS_ORDER = ["open", "progress", "done"];
 
@@ -57,12 +64,25 @@
         { src: IMG.silvestre, tag: "Maus-tratos", text: "Ajude a dar uma segunda chance a quem foi deixado para trás." }
     ];
 
-    // Dados demonstrativos (substituídos quando setCases for chamado).
+    // Quatro denúncias FICTÍCIAS, só para demonstração (TCC).
+    // lat/lng = referência aproximada do bairro (arredondada), não o local de uma denúncia real.
     var cases = [
-        { id: "1", x: 14, y: 62, bairro: "Capela Velha", tipo: "Maus-tratos", status: "done",     animal: "Thor",       texto: "Cão encontrado acorrentado e sem água. Resgatado, tratado e adotado." },
-        { id: "2", x: 38, y: 38, bairro: "Centro",       tipo: "Abandono",    status: "progress", animal: "Mel",        texto: "Gata abandonada em terreno baldio. Em recuperação com a equipe." },
-        { id: "3", x: 62, y: 62, bairro: "Iguaçu",       tipo: "Cativeiro",   status: "done",     animal: "Piu e Pipo", texto: "Periquitos presos em gaiola pequena. Resgatados e reabilitados." },
-        { id: "4", x: 86, y: 38, bairro: "Costeira",     tipo: "Maus-tratos", status: "open",     animal: "Tico",       texto: "Galinha mantida em gaiola apertada. Aguardando a equipe." }
+        { id: "1", x: 38, y: 40, lat: -25.592, lng: -49.409, bairro: "Centro", tipo: "Abandono", status: "done", data: "2026-10-06",
+          titulo: "Animal abandonado",
+          texto: "Cão encontrado próximo a uma praça, aparentemente sem identificação e necessitando de cuidados.",
+          acao: "A ocorrência foi registrada, a equipe foi acionada e o animal foi encaminhado para avaliação e acolhimento." },
+        { id: "2", x: 14, y: 30, lat: -25.553, lng: -49.404, bairro: "Capela Velha", tipo: "Maus-tratos", status: "progress", data: "2026-10-20",
+          titulo: "Suspeita de maus-tratos",
+          texto: "Moradores relataram um cão mantido em condições inadequadas.",
+          acao: "A denúncia foi registrada e encaminhada para verificação pela equipe responsável." },
+        { id: "3", x: 62, y: 62, lat: -25.598, lng: -49.398, bairro: "Iguaçu", tipo: "Desaparecimento", status: "open", data: "2026-11-03",
+          titulo: "Animal desaparecido",
+          texto: "Gato rajado desaparecido. O tutor informou o local onde o animal foi visto pela última vez.",
+          acao: "As informações foram organizadas para auxiliar na busca e facilitar a divulgação do desaparecimento." },
+        { id: "4", x: 86, y: 60, lat: -25.606, lng: -49.372, bairro: "Costeira", tipo: "Resgate", status: "done", data: "2026-11-10",
+          titulo: "Pedido de resgate",
+          texto: "Filhote encontrado em uma situação de risco, necessitando de atendimento.",
+          acao: "O pedido foi registrado e foram fornecidas orientações para o atendimento e encaminhamento do animal." }
     ];
     var demo = true;
 
@@ -109,11 +129,18 @@
         return cleanStr(v, 30);
     }
 
+    function toCoord(v, lim) {
+        var n = typeof v === "string" ? parseFloat(v) : v;
+        return typeof n === "number" && isFinite(n) && Math.abs(n) <= lim ? n : null;
+    }
+
     // Aceita só campos conhecidos; descarta qualquer outra informação (privacidade).
     function sanitizeCase(raw, index) {
         if (!raw || typeof raw !== "object") return null;
         var x = toPct(raw.x), y = toPct(raw.y);
         if (x === null || y === null) return null;
+        var lat = toCoord(raw.lat, 90), lng = toCoord(raw.lng, 180);
+        if (lat === null || lng === null) { lat = null; lng = null; }
         return {
             id: raw.id != null && raw.id !== "" ? String(raw.id) : "caso-" + index,
             x: x,
@@ -122,6 +149,10 @@
             bairro: cleanStr(raw.bairro, MAX_LEN.bairro) || "Bairro não informado",
             tipo: cleanStr(raw.tipo, MAX_LEN.tipo) || "Ocorrência",
             animal: cleanStr(raw.animal, MAX_LEN.animal),
+            titulo: cleanStr(raw.titulo, MAX_LEN.titulo),
+            acao: cleanStr(raw.acao, MAX_LEN.acao),
+            lat: lat,
+            lng: lng,
             texto: cleanStr(raw.texto, MAX_LEN.texto),
             data: fmtDate(raw.data)
         };
@@ -143,13 +174,6 @@
        CARROSSEL
        ========================================================== */
 
-    var ICON = {
-        prev: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>',
-        next: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>',
-        pause: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>',
-        play: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>'
-    };
-
     function initCarousel() {
         var img = byId("lpCarouselImg");
         if (!img || !SLIDES.length) return;
@@ -168,19 +192,6 @@
         root.setAttribute("aria-roledescription", "carrossel");
         root.setAttribute("aria-label", "Imagens sobre a causa animal");
         img.decoding = "async";
-
-        // Controles criados via DOM (nenhuma alteração de HTML necessária)
-        function makeBtn(cls, label, svg) {
-            var b = el("button", "lp-car-btn " + cls);
-            b.type = "button";
-            b.setAttribute("aria-label", label);
-            b.innerHTML = svg; // SVG estático definido neste arquivo
-            return b;
-        }
-        var prevBtn = makeBtn("lp-car-prev", "Slide anterior", ICON.prev);
-        var nextBtn = makeBtn("lp-car-next", "Próximo slide", ICON.next);
-        var pauseBtn = makeBtn("lp-car-pause", "Pausar apresentação de slides", ICON.pause);
-        root.append(prevBtn, nextBtn, pauseBtn);
 
         if (dotsEl) {
             dotsEl.textContent = "";
@@ -208,10 +219,7 @@
         }
 
         function updateControls() {
-            var playing = !flags.user;
-            pauseBtn.innerHTML = playing ? ICON.pause : ICON.play;
-            pauseBtn.setAttribute("aria-label", playing ? "Pausar apresentação de slides" : "Iniciar apresentação de slides");
-            if (capEl) capEl.setAttribute("aria-live", playing ? "off" : "polite");
+            if (capEl) capEl.setAttribute("aria-live", "off");
         }
 
         function updateDots() {
@@ -275,14 +283,7 @@
 
         function go(k) { show(k); schedule(); }
 
-        // Navegação manual
-        prevBtn.addEventListener("click", function () { go(index - 1); });
-        nextBtn.addEventListener("click", function () { go(index + 1); });
-        pauseBtn.addEventListener("click", function () {
-            flags.user = !flags.user;
-            updateControls();
-            schedule();
-        });
+        // Apenas as bolinhas e o gesto de arrastar; sem botões extras
         if (dotsEl) {
             dotsEl.addEventListener("click", function (e) {
                 var b = e.target.closest("button");
@@ -342,12 +343,14 @@
        ========================================================== */
 
     var mapEl = null, stage, pinLayer, labelLayer, emptyEl;
-    var detail, dBadgeSlot, dClose, dBairro, dTitle, dAnimalValue, dText, dDate;
+    var detail, dBadgeSlot, dClose, dBairro, dTitle, dTipoValue, dAnimalRow, dAnimalValue, dText, dAction, dActionBody, dDate;
     var listEl, noteEl;
     var pinEls = new Map();
     var caseIndex = new Map();
     var selectedId = null;
     var mapReady = false;
+    var leafletActive = false, leafletPromise = null, lmap = null, lLayer = null;
+    var markers = new Map();
     var isMobile = window.matchMedia("(max-width: 720px)");
 
     function buildBaseMap() {
@@ -419,12 +422,18 @@
         dBairro = el("p", "lp-detail-bairro");
         dTitle = el("h3", "lp-detail-title");
         dTitle.id = "lpDetailTitle";
-        var animalRow = el("p", "lp-detail-animal");
+        var tipoRow = el("p", "lp-detail-animal");
+        dTipoValue = el("span", "lp-detail-v");
+        tipoRow.append(el("span", "lp-detail-k", "Tipo:"), dTipoValue);
+        dAnimalRow = el("p", "lp-detail-animal");
         dAnimalValue = el("span", "lp-detail-v");
-        animalRow.append(el("span", "lp-detail-k", "Animal:"), dAnimalValue);
+        dAnimalRow.append(el("span", "lp-detail-k", "Animal:"), dAnimalValue);
         dText = el("p", "lp-detail-text");
+        dAction = el("p", "lp-detail-action");
+        dActionBody = el("span");
+        dAction.append(el("strong", null, "O que foi feito: "), dActionBody);
         dDate = el("p", "lp-detail-date");
-        detail.append(top, dBairro, dTitle, animalRow, dText, dDate);
+        detail.append(top, dBairro, dTitle, tipoRow, dAnimalRow, dText, dAction, dDate);
 
         // Lista alternativa (visível apenas no celular via CSS)
         var listWrap = el("div", "lp-list-wrap");
@@ -511,17 +520,24 @@
     }
 
     function renderNote() {
-        noteEl.textContent = "Mapa ilustrativo, com posições aproximadas por bairro." + (demo ? " Dados demonstrativos." : "");
+        var t = leafletActive
+            ? "Marcadores indicam a região do bairro, nunca o endereço."
+            : "Representação ilustrativa, sem localização real.";
+        noteEl.textContent = t + (demo ? " " + DEMO_TEXT : "");
     }
 
     function fillDetail(c) {
         dBadgeSlot.replaceWith(dBadgeSlot = badgeEl(c.status));
         dBairro.textContent = c.bairro;
-        dTitle.textContent = c.tipo;
-        dAnimalValue.textContent = c.animal || "Não identificado";
+        dTitle.textContent = c.titulo || c.tipo;
+        dTipoValue.textContent = c.tipo;
+        dAnimalValue.textContent = c.animal;
+        dAnimalRow.hidden = !c.animal;
         dText.textContent = c.texto;
         dText.hidden = !c.texto;
-        dDate.textContent = c.data ? "Registrado em " + c.data : "";
+        dActionBody.textContent = c.acao;
+        dAction.hidden = !c.acao;
+        dDate.textContent = c.data ? (demo ? "Data demonstrativa: " : "Registrado em ") + c.data : "";
         dDate.hidden = !c.data;
     }
 
@@ -536,6 +552,16 @@
             if (b.dataset.id === selectedId) b.setAttribute("aria-current", "true");
             else b.removeAttribute("aria-current");
         });
+        markers.forEach(function (m, id) {
+            var node = m.getElement();
+            if (node) node.classList.toggle("is-selected", id === selectedId);
+            m.setZIndexOffset(id === selectedId ? 1000 : 0);
+        });
+        if (casesEl) {
+            Array.prototype.forEach.call(casesEl.querySelectorAll(".lp-case"), function (card) {
+                card.classList.toggle("is-selected", card.dataset.id === selectedId);
+            });
+        }
         var key = sel ? normKey(sel.bairro) : null;
         Array.prototype.forEach.call(labelLayer.children, function (s) {
             s.classList.toggle("is-active", s.dataset.key === key);
@@ -545,7 +571,7 @@
     // Posiciona o balão sem ultrapassar o mapa nem a janela
     function placeDetail() {
         if (!selectedId || detail.hidden) return;
-        if (isMobile.matches) {
+        if (isMobile.matches || leafletActive) {
             detail.style.left = detail.style.top = "";
             detail.removeAttribute("data-place");
             return;
@@ -582,7 +608,8 @@
         detail.hidden = false;
         syncSelection();
         placeDetail();
-        if (isMobile.matches) {
+        if (opts.pan && leafletActive && lmap && c.lat != null) lmap.panTo([c.lat, c.lng]);
+        if (isMobile.matches || leafletActive) {
             detail.scrollIntoView({ block: "nearest", behavior: reducedMotion.matches ? "auto" : "smooth" });
         }
         if (opts.focusDetail) dClose.focus({ preventScroll: true });
@@ -598,6 +625,7 @@
 
     function bindMapEvents() {
         stage.addEventListener("click", function (e) {
+            if (leafletActive) return; // no mapa real, quem trata é o Leaflet
             var pin = e.target.closest(".lp-pin");
             if (!pin) { if (selectedId) closeDetail(false); return; }
             if (pin.dataset.id === selectedId) closeDetail(false);
@@ -605,7 +633,7 @@
         });
         listEl.addEventListener("click", function (e) {
             var b = e.target.closest(".lp-list-item");
-            if (b) selectCase(b.dataset.id, {});
+            if (b) selectCase(b.dataset.id, { pan: true });
         });
         dClose.addEventListener("click", function () { closeDetail(true); });
 
@@ -636,6 +664,109 @@
         mapReady = true;
     }
 
+    /* ---------- mapa real (Leaflet + OpenStreetMap), com fallback ilustrativo ---------- */
+
+    function ensureLeaflet() {
+        if (window.L && window.L.map) return Promise.resolve(true);
+        if (!leafletPromise) {
+            leafletPromise = new Promise(function (resolve) {
+                var link = document.createElement("link");
+                link.rel = "stylesheet";
+                link.href = LEAFLET_CSS;
+                var script = document.createElement("script");
+                script.src = LEAFLET_JS;
+                script.async = true;
+                script.onload = function () { resolve(!!(window.L && window.L.map)); };
+                script.onerror = function () { resolve(false); };
+                document.head.append(link, script);
+                setTimeout(function () { resolve(false); }, 8000);
+            });
+        }
+        return leafletPromise;
+    }
+
+    function wantLeaflet() {
+        return cases.length > 0 && cases.every(function (c) { return c.lat != null && c.lng != null; });
+    }
+
+    function createLeafletMap() {
+        var host = el("div", "lp-leaflet");
+        stage.appendChild(host);
+        lmap = L.map(host, {
+            scrollWheelZoom: false,
+            dragging: !L.Browser.mobile,
+            worldCopyJump: false
+        }).setView(ARAUCARIA, 12);
+        L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 18,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'
+        }).addTo(lmap);
+        lLayer = L.layerGroup().addTo(lmap);
+        lmap.on("click", function () { if (selectedId) closeDetail(false); });
+    }
+
+    function renderMarkers() {
+        var seen = new Set();
+        cases.forEach(function (c) {
+            var label = pinLabel(c);
+            var icon = L.divIcon({
+                className: "lp-lmark",
+                iconSize: [32, 32],
+                // marcação montada só com constantes e status validado
+                html: '<span class="lp-pin-dot" data-status="' + c.status + '" aria-hidden="true">' + STATUS[c.status].glyph + "</span>"
+            });
+            var m = markers.get(c.id);
+            if (!m) {
+                m = L.marker([c.lat, c.lng], { icon: icon, title: label, alt: label, keyboard: true });
+                (function (id) {
+                    m.on("click", function () {
+                        if (id === selectedId) closeDetail(false);
+                        else selectCase(id, {});
+                    });
+                })(c.id);
+                m.addTo(lLayer);
+                markers.set(c.id, m);
+            } else {
+                m.setLatLng([c.lat, c.lng]);
+                m.setIcon(icon);
+            }
+            seen.add(c.id);
+        });
+        markers.forEach(function (m, id) {
+            if (!seen.has(id)) { lLayer.removeLayer(m); markers.delete(id); }
+        });
+    }
+
+    function fitMarkers() {
+        var pts = cases.map(function (c) { return [c.lat, c.lng]; });
+        if (pts.length === 1) lmap.setView(pts[0], 14);
+        else lmap.fitBounds(pts, { padding: [48, 48], maxZoom: 14 });
+    }
+
+    function setLeaflet(on) {
+        if (on === leafletActive && !on) return;
+        leafletActive = on;
+        mapEl.classList.toggle("is-leaflet", on);
+        if (on) {
+            if (!lmap) createLeafletMap();
+            renderMarkers();
+            lmap.invalidateSize();
+            fitMarkers();
+        }
+        renderNote();
+        syncSelection();
+        placeDetail();
+    }
+
+    function applyMode() {
+        if (!mapReady) return;
+        if (!wantLeaflet()) { setLeaflet(false); return; }
+        ensureLeaflet().then(function (ok) {
+            try { setLeaflet(ok && wantLeaflet()); }
+            catch (err) { console.error("[SafeLifeLanding] mapa real indisponível, usando mapa ilustrativo:", err); setLeaflet(false); }
+        });
+    }
+
     /* ==========================================================
        SEÇÃO DE CASOS E INDICADORES (opcional: usa .lp-cases e .lp-stats se existirem)
        ========================================================== */
@@ -660,8 +791,8 @@
                 b.dataset.label = f[1];
                 filtersEl.appendChild(b);
             });
-        demoTag = el("span", "lp-demo-tag", "Dados demonstrativos");
-        filtersEl.appendChild(demoTag);
+        demoTag = el("p", "lp-demo-note", DEMO_TEXT);
+        casesEl.parentNode.insertBefore(demoTag, casesEl);
         casesEl.parentNode.insertBefore(filtersEl, casesEl);
 
         filtersEl.addEventListener("click", function (e) {
@@ -673,7 +804,7 @@
         casesEl.addEventListener("click", function (e) {
             var b = e.target.closest(".lp-case-link");
             if (!b || !mapEl) return;
-            selectCase(b.dataset.id, {});
+            selectCase(b.dataset.id, { pan: true });
             mapEl.scrollIntoView({ block: "center", behavior: reducedMotion.matches ? "auto" : "smooth" });
         });
     }
@@ -694,7 +825,7 @@
             statsEl.appendChild(box);
         });
         if (demo) {
-            statsEl.appendChild(el("p", "lp-stats-note", "Valores demonstrativos, calculados a partir dos exemplos exibidos."));
+            statsEl.appendChild(el("p", "lp-stats-note", "Valores demonstrativos, calculados a partir das quatro ocorrências fictícias."));
         }
         statsEl.setAttribute("data-live", "");
     }
@@ -702,20 +833,26 @@
     function caseCard(c) {
         var card = el("article", "lp-case");
         card.setAttribute("data-status", c.status);
+        card.dataset.id = c.id;
 
         var top = el("div", "lp-case-top");
         top.append(el("span", "lp-case-type", c.tipo), badgeEl(c.status));
 
-        var meta = c.bairro + (c.data ? ", " + c.data : "");
-        card.append(top, el("h3", null, c.animal || c.tipo), el("p", "lp-case-meta", meta));
+        var meta = c.bairro + (c.data ? ", " + (demo ? "data demonstrativa " : "") + c.data : "");
+        card.append(top, el("h3", null, c.titulo || c.animal || c.tipo), el("p", "lp-case-meta", meta));
         if (c.texto) card.appendChild(el("p", null, c.texto));
+        if (c.acao) {
+            var act = el("p", "lp-case-action");
+            act.append(el("strong", null, "Providência: "), document.createTextNode(c.acao));
+            card.appendChild(act);
+        }
 
         if (mapEl) {
-            var link = el("button", "lp-case-link", "Ver no mapa");
+            var link = el("button", "lp-case-link", "Ver detalhes no mapa");
             link.type = "button";
             link.dataset.id = c.id;
             link.setAttribute("data-keep-map", "");
-            link.setAttribute("aria-label", "Ver no mapa: " + c.tipo + " em " + c.bairro);
+            link.setAttribute("aria-label", "Ver detalhes no mapa: " + (c.titulo || c.tipo) + ", " + c.bairro);
             card.appendChild(link);
         }
         return card;
@@ -750,6 +887,7 @@
             renderPins();
             renderList();
             renderNote();
+            applyMode();
             if (selectedId && !caseIndex.has(selectedId)) {
                 closeDetail(false);
             } else if (selectedId) {
