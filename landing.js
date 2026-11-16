@@ -26,6 +26,7 @@
     var LEAFLET_CSS = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css";
     var LEAFLET_JS = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js";
     var ARAUCARIA = [-25.593, -49.405];
+    var POPUP_DEMO = "Ocorrência fictícia. Ponto demonstrativo na região do bairro, não é um endereço.";
 
     var STATUS = {
         open:     { label: "Em análise",   stat: "Em análise",              glyph: "!" },
@@ -33,12 +34,6 @@
         done:     { label: "Concluído",    stat: "Concluídos",              glyph: "✓" }
     };
     var STATUS_ORDER = ["open", "progress", "done"];
-
-    // Rótulos de bairros no mapa ilustrativo: [nome, x%, y%] (centro do rótulo)
-    var LABELS = [
-        ["Capela Velha", 14, 22], ["Centro", 38, 80], ["Iguaçu", 62, 22],
-        ["Costeira", 86, 80], ["Fazenda Velha", 17, 90], ["Tindiquera", 86, 22]
-    ];
 
     // Imagem reserva embutida (funciona offline).
     var PLACEHOLDER = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(
@@ -138,9 +133,10 @@
     function sanitizeCase(raw, index) {
         if (!raw || typeof raw !== "object") return null;
         var x = toPct(raw.x), y = toPct(raw.y);
-        if (x === null || y === null) return null;
+        if (x === null || y === null) { x = null; y = null; }
         var lat = toCoord(raw.lat, 90), lng = toCoord(raw.lng, 180);
         if (lat === null || lng === null) { lat = null; lng = null; }
+        if (x === null && lat === null) return null; // sem nenhuma posição
         return {
             id: raw.id != null && raw.id !== "" ? String(raw.id) : "caso-" + index,
             x: x,
@@ -342,7 +338,7 @@
        MAPA
        ========================================================== */
 
-    var mapEl = null, stage, pinLayer, labelLayer, emptyEl;
+    var mapEl = null, stage, pinLayer, emptyEl;
     var detail, dBadgeSlot, dClose, dBairro, dTitle, dTipoValue, dAnimalRow, dAnimalValue, dText, dAction, dActionBody, dDate;
     var listEl, noteEl;
     var pinEls = new Map();
@@ -353,32 +349,6 @@
     var markers = new Map();
     var isMobile = window.matchMedia("(max-width: 720px)");
 
-    function buildBaseMap() {
-        var blocks = "";
-        for (var r = 0; r < 8; r++) {
-            for (var c = 0; c < 26; c++) {
-                var x = 12 + c * 46 + (r % 2) * 8;
-                var y = 8 + r * 50;
-                var w = 34 + ((c * 7 + r * 3) % 8);
-                var h = 32 + ((c * 5 + r * 11) % 8);
-                blocks += '<rect class="m-block" x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="5"/>';
-            }
-        }
-        var river = "M-10 330 C 200 290, 380 370, 620 335 S 980 290, 1210 345";
-        return '<svg class="lp-map-svg" viewBox="0 0 1200 400" preserveAspectRatio="none" aria-hidden="true" focusable="false">' +
-            '<rect class="m-bg" width="1200" height="400"/>' + blocks +
-            '<rect class="m-park" x="860" y="250" width="150" height="70" rx="16"/>' +
-            '<rect class="m-park" x="120" y="290" width="130" height="60" rx="16"/>' +
-            '<path class="m-water-a" d="' + river + '" stroke-width="30"/>' +
-            '<path class="m-water-b" d="' + river + '" stroke-width="16"/>' +
-            '<path class="m-road" d="M-10 190 L 1210 170" stroke-width="14"/>' +
-            '<path class="m-road" d="M-10 90 C 300 120, 700 60, 1210 110" stroke-width="8"/>' +
-            '<path class="m-road" d="M300 -10 C 320 120, 280 280, 310 410" stroke-width="10"/>' +
-            '<path class="m-road" d="M600 -10 C 590 120, 620 280, 600 410" stroke-width="14"/>' +
-            '<path class="m-road" d="M900 -10 C 920 120, 880 280, 910 410" stroke-width="10"/>' +
-            '</svg>';
-    }
-
     function buildMapDom() {
         mapEl.textContent = "";
 
@@ -388,22 +358,11 @@
 
         var base = el("div", "lp-map-base");
         base.setAttribute("aria-hidden", "true");
-        base.innerHTML = buildBaseMap(); // marcação estática, sem dados externos
-
-        labelLayer = el("div", "lp-labels");
-        LABELS.forEach(function (l) {
-            var s = el("span", "lp-label", l[0]);
-            s.dataset.key = normKey(l[0]);
-            s.style.left = l[1] + "%";
-            s.style.top = l[2] + "%";
-            s.setAttribute("aria-hidden", "true");
-            labelLayer.appendChild(s);
-        });
 
         pinLayer = el("div", "lp-pins");
         emptyEl = el("p", "lp-map-empty", "Nenhum chamado para exibir no momento.");
         emptyEl.hidden = true;
-        stage.append(base, labelLayer, pinLayer, emptyEl);
+        stage.append(base, pinLayer, emptyEl);
 
         // Painel de detalhe (balão no desktop; cartão abaixo do mapa no celular)
         detail = el("div", "lp-detail");
@@ -488,6 +447,7 @@
     function renderPins() {
         var seen = new Set();
         cases.forEach(function (c) {
+            if (c.x === null) return; // sem posição percentual: só aparece no mapa real
             var b = pinEls.get(c.id);
             if (!b) {
                 b = createPin(c.id);
@@ -522,7 +482,7 @@
     function renderNote() {
         var t = leafletActive
             ? "Marcadores indicam a região do bairro, nunca o endereço."
-            : "Representação ilustrativa, sem localização real.";
+            : "Mapa real indisponível: pontos em posição ilustrativa, sem localização real.";
         noteEl.textContent = t + (demo ? " " + DEMO_TEXT : "");
     }
 
@@ -542,7 +502,6 @@
     }
 
     function syncSelection() {
-        var sel = selectedId ? caseIndex.get(selectedId) : null;
         pinEls.forEach(function (b, id) {
             var on = id === selectedId;
             b.classList.toggle("is-selected", on);
@@ -562,10 +521,6 @@
                 card.classList.toggle("is-selected", card.dataset.id === selectedId);
             });
         }
-        var key = sel ? normKey(sel.bairro) : null;
-        Array.prototype.forEach.call(labelLayer.children, function (s) {
-            s.classList.toggle("is-active", s.dataset.key === key);
-        });
     }
 
     // Posiciona o balão sem ultrapassar o mapa nem a janela
@@ -604,21 +559,33 @@
         var c = caseIndex.get(id);
         if (!c) { closeDetail(false); return; }
         selectedId = id;
+        syncSelection();
+
+        // Mapa real: o detalhe é o popup do próprio marcador
+        var marker = leafletActive ? markers.get(id) : null;
+        if (marker) {
+            detail.hidden = true;
+            if (opts.pan) lmap.panTo(marker.getLatLng(), { animate: !reducedMotion.matches });
+            marker.openPopup();
+            stage.scrollIntoView({ block: "nearest", behavior: reducedMotion.matches ? "auto" : "smooth" });
+            return;
+        }
+
         fillDetail(c);
         detail.hidden = false;
-        syncSelection();
         placeDetail();
-        if (opts.pan && leafletActive && lmap && c.lat != null) lmap.panTo([c.lat, c.lng]);
-        if (isMobile.matches || leafletActive) {
+        if (isMobile.matches) {
             detail.scrollIntoView({ block: "nearest", behavior: reducedMotion.matches ? "auto" : "smooth" });
         }
         if (opts.focusDetail) dClose.focus({ preventScroll: true });
     }
 
     function closeDetail(returnFocus) {
-        var pin = selectedId ? pinEls.get(selectedId) : null;
+        var id = selectedId;
+        var pin = id ? pinEls.get(id) : null;
         selectedId = null;
         detail.hidden = true;
+        if (leafletActive && lmap) lmap.closePopup();
         syncSelection();
         if (returnFocus && pin) pin.focus();
     }
@@ -661,32 +628,73 @@
         if (!mapEl) return;
         buildMapDom();
         bindMapEvents();
+        mapEl.classList.add("is-pending");
         mapReady = true;
     }
 
-    /* ---------- mapa real (Leaflet + OpenStreetMap), com fallback ilustrativo ---------- */
+    /* ---------- mapa real (Leaflet + OpenStreetMap) ----------
+       Se o Leaflet não carregar, aparece um painel neutro com os pontos em
+       posição percentual (sem desenho de ruas), avisando que é ilustrativo. */
 
     function ensureLeaflet() {
-        if (window.L && window.L.map) return Promise.resolve(true);
-        if (!leafletPromise) {
-            leafletPromise = new Promise(function (resolve) {
+        if (leafletPromise) return leafletPromise;
+        leafletPromise = new Promise(function (resolve) {
+            var finished = false;
+            function finish(ok) { if (!finished) { finished = true; resolve(ok); } }
+            var needCss = !document.querySelector('link[href*="leaflet"]');
+            var needJs = !(window.L && window.L.map);
+            var pending = (needCss ? 1 : 0) + (needJs ? 1 : 0);
+            if (!pending) { finish(true); return; }
+            // O CSS precisa estar carregado ANTES de criar o mapa; senão as imagens
+            // dos tiles ficam sem posicionamento e cobrem a área toda.
+            function step() { if (--pending <= 0) finish(!!(window.L && window.L.map)); }
+            if (needCss) {
                 var link = document.createElement("link");
                 link.rel = "stylesheet";
                 link.href = LEAFLET_CSS;
+                link.onload = step;
+                link.onerror = function () { finish(false); };
+                document.head.appendChild(link);
+            }
+            if (needJs) {
                 var script = document.createElement("script");
                 script.src = LEAFLET_JS;
                 script.async = true;
-                script.onload = function () { resolve(!!(window.L && window.L.map)); };
-                script.onerror = function () { resolve(false); };
-                document.head.append(link, script);
-                setTimeout(function () { resolve(false); }, 8000);
-            });
-        }
+                script.onload = step;
+                script.onerror = function () { finish(false); };
+                document.head.appendChild(script);
+            }
+            setTimeout(function () { finish(false); }, 10000);
+        });
         return leafletPromise;
     }
 
     function wantLeaflet() {
-        return cases.length > 0 && cases.every(function (c) { return c.lat != null && c.lng != null; });
+        return cases.length > 0 && cases.every(function (c) { return c.lat !== null && c.lng !== null; });
+    }
+
+    function buildPopup(c) {
+        var box = el("div", "lp-popup");
+        var top = el("div", "lp-popup-top");
+        top.appendChild(badgeEl(c.status));
+        box.append(top, el("p", "lp-detail-bairro", c.bairro), el("h3", "lp-popup-title", c.titulo || c.tipo));
+
+        function row(label, value) {
+            var p = el("p", "lp-detail-animal");
+            p.append(el("span", "lp-detail-k", label), el("span", "lp-detail-v", value));
+            box.appendChild(p);
+        }
+        row("Tipo:", c.tipo);
+        if (c.animal) row("Animal:", c.animal);
+        if (c.texto) box.appendChild(el("p", "lp-detail-text", c.texto));
+        if (c.acao) {
+            var act = el("p", "lp-detail-action");
+            act.append(el("strong", null, "O que foi feito: "), document.createTextNode(c.acao));
+            box.appendChild(act);
+        }
+        if (c.data) box.appendChild(el("p", "lp-detail-date", (demo ? "Data demonstrativa: " : "Registrado em ") + c.data));
+        if (demo) box.appendChild(el("p", "lp-popup-demo", POPUP_DEMO));
+        return box;
     }
 
     function createLeafletMap() {
@@ -695,14 +703,23 @@
         lmap = L.map(host, {
             scrollWheelZoom: false,
             dragging: !L.Browser.mobile,
-            worldCopyJump: false
+            attributionControl: true
         }).setView(ARAUCARIA, 12);
         L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
             maxZoom: 18,
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'
         }).addTo(lmap);
         lLayer = L.layerGroup().addTo(lmap);
-        lmap.on("click", function () { if (selectedId) closeDetail(false); });
+
+        // A tela inicial pode estar oculta quando o mapa é criado: reajusta ao ganhar tamanho
+        if ("ResizeObserver" in window) {
+            var first = true;
+            new ResizeObserver(function () {
+                if (!lmap) return;
+                lmap.invalidateSize();
+                if (first && host.clientWidth > 0) { first = false; fitMarkers(); }
+            }).observe(host);
+        }
     }
 
     function renderMarkers() {
@@ -712,23 +729,25 @@
             var icon = L.divIcon({
                 className: "lp-lmark",
                 iconSize: [32, 32],
-                // marcação montada só com constantes e status validado
+                iconAnchor: [16, 16],
+                popupAnchor: [0, -14],
+                // marcação montada só com constantes e status já validado
                 html: '<span class="lp-pin-dot" data-status="' + c.status + '" aria-hidden="true">' + STATUS[c.status].glyph + "</span>"
             });
             var m = markers.get(c.id);
             if (!m) {
                 m = L.marker([c.lat, c.lng], { icon: icon, title: label, alt: label, keyboard: true });
+                m.bindPopup(buildPopup(c), { minWidth: 230, maxWidth: 300, autoPanPadding: [24, 24] });
                 (function (id) {
-                    m.on("click", function () {
-                        if (id === selectedId) closeDetail(false);
-                        else selectCase(id, {});
-                    });
+                    m.on("popupopen", function () { selectedId = id; syncSelection(); });
+                    m.on("popupclose", function () { if (selectedId === id) { selectedId = null; syncSelection(); } });
                 })(c.id);
                 m.addTo(lLayer);
                 markers.set(c.id, m);
             } else {
                 m.setLatLng([c.lat, c.lng]);
                 m.setIcon(icon);
+                m.setPopupContent(buildPopup(c));
             }
             seen.add(c.id);
         });
@@ -738,13 +757,31 @@
     }
 
     function fitMarkers() {
+        if (!lmap || !cases.length) return;
         var pts = cases.map(function (c) { return [c.lat, c.lng]; });
         if (pts.length === 1) lmap.setView(pts[0], 14);
-        else lmap.fitBounds(pts, { padding: [48, 48], maxZoom: 14 });
+        else lmap.fitBounds(pts, { padding: [56, 56], maxZoom: 14 });
+    }
+
+    // Aviso de diagnóstico: algum elemento de FORA do mapa está por cima dele?
+    function warnOverlays() {
+        try {
+            var r = stage.getBoundingClientRect();
+            if (!r.width || !r.height) return;
+            [0.25, 0.5, 0.75].forEach(function (f) {
+                var stack = document.elementsFromPoint(r.left + r.width * f, r.top + r.height / 2);
+                for (var i = 0; i < stack.length; i++) {
+                    if (mapEl.contains(stack[i])) break;
+                    if (stack[i] === document.documentElement || stack[i] === document.body) break;
+                    console.warn("[SafeLifeLanding] elemento de fora cobre o mapa:", stack[i]);
+                }
+            });
+        } catch (err) { /* diagnóstico opcional */ }
     }
 
     function setLeaflet(on) {
-        if (on === leafletActive && !on) return;
+        mapEl.classList.remove("is-pending");
+        var changed = on !== leafletActive;
         leafletActive = on;
         mapEl.classList.toggle("is-leaflet", on);
         if (on) {
@@ -752,7 +789,11 @@
             renderMarkers();
             lmap.invalidateSize();
             fitMarkers();
+            setTimeout(warnOverlays, 800);
+        } else if (changed && lmap) {
+            lmap.closePopup();
         }
+        if (!on) detail.hidden = !selectedId;
         renderNote();
         syncSelection();
         placeDetail();
@@ -763,7 +804,10 @@
         if (!wantLeaflet()) { setLeaflet(false); return; }
         ensureLeaflet().then(function (ok) {
             try { setLeaflet(ok && wantLeaflet()); }
-            catch (err) { console.error("[SafeLifeLanding] mapa real indisponível, usando mapa ilustrativo:", err); setLeaflet(false); }
+            catch (err) {
+                console.error("[SafeLifeLanding] mapa real indisponível:", err);
+                setLeaflet(false);
+            }
         });
     }
 
@@ -910,6 +954,7 @@
     function init() {
         if (started) return;
         started = true;
+        cases = cases.map(sanitizeCase).filter(Boolean); // normaliza os exemplos (datas, limites)
         safely("carrossel", initCarousel);
         safely("mapa", initMap);
         safely("seção de casos", initSections);
@@ -927,7 +972,7 @@
                 list.forEach(function (raw, i) {
                     var c = sanitizeCase(raw, i);
                     if (!c) {
-                        console.warn("[SafeLifeLanding] chamado ignorado (x e y precisam ser números):", raw);
+                        console.warn("[SafeLifeLanding] chamado ignorado (informe x/y ou lat/lng numéricos):", raw);
                         return;
                     }
                     var base = c.id, n = 1;
