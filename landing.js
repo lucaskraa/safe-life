@@ -33,9 +33,9 @@
     /* Fotografias documentais (Unsplash, licença livre).
        A 1ª que carregar é usada; a última é a reserva offline. */
     var HERO_CANDIDATES = [
+        "https://images.unsplash.com/photo-1675701918064-0723acdfe0f8?auto=format&fit=crop&w=1400&q=85",
         "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=1200&q=80",
-        "https://images.unsplash.com/photo-1548767797-d8c844163c4c?auto=format&fit=crop&w=1200&q=80",
-        "https://images.unsplash.com/photo-1675701918017-fda8f5bcbf90?auto=format&fit=crop&w=1200&q=80"
+        "https://images.unsplash.com/photo-1548767797-d8c844163c4c?auto=format&fit=crop&w=1200&q=80"
     ];
     var HERO_PLACEHOLDER = ""; // sem ilustração genérica: mantém um fundo sóbrio se as fotos falharem.
 
