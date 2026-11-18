@@ -757,3 +757,8 @@
 /* logo: tamanho garantido */
 #welcomeScreen .sl-logo{display:inline-block;width:32px;height:32px}
 #welcomeScreen .sl-logo svg{display:block;width:100%;height:100%}
+
+/* integração com o app original: landing em largura total */
+body:has(#welcomeScreen.active){background:#f5f7fb !important}
+body:has(#welcomeScreen.active) #app{width:100% !important;max-width:none !important;margin:0 !important;padding:0 !important}
+#welcomeScreen{min-height:100vh}
