@@ -20,7 +20,7 @@
     var POPUP_DEMO = "Dado fictício para demonstração do TCC. O marcador é ilustrativo e não indica endereço real.";
     var LEAFLET_CSS = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css";
     var LEAFLET_JS = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js";
-    var TILES = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+    var TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
     var TILES_ATTRIB = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>';
     var ARAUCARIA = [-25.593, -49.405];
 
@@ -385,8 +385,7 @@
 
             L.tileLayer(TILES, {
                 attribution: TILES_ATTRIB,
-                maxZoom: 19,
-                subdomains: "abcd"
+                maxZoom: 19
             }).addTo(lmap);
 
             // O scroll do mapa só é ativado depois que a pessoa interage com ele.
