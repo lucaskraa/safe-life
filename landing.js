@@ -17,11 +17,11 @@
     /* ---------- constantes ---------- */
 
     var MAX_LEN = { bairro: 60, tipo: 60, animal: 60, titulo: 80, texto: 320, acao: 320 };
-    var POPUP_DEMO = "Ocorrência fictícia. Ponto aproximado na região do bairro, não é um endereço.";
+    var POPUP_DEMO = "Dado fictício para demonstração do TCC. O marcador é ilustrativo e não indica endereço real.";
     var LEAFLET_CSS = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css";
     var LEAFLET_JS = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js";
-    var TILES = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
-    var TILES_ATTRIB = 'Dados &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>';
+    var TILES = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+    var TILES_ATTRIB = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>';
     var ARAUCARIA = [-25.593, -49.405];
 
     var STATUS = {
@@ -334,16 +334,17 @@
         markerObjs.clear();
         markerLayer = markerLayer || L.layerGroup().addTo(lmap);
 
-        cases.forEach(function (c) {
+        cases.forEach(function (c, index) {
             if (c.lat === null || c.lng === null) return;
             var latlng = [c.lat, c.lng];
+            var number = String(index + 1).padStart(2, "0");
             var icon = L.divIcon({
-                className: "",
+                className: "sl-map-marker",
                 html: '<span class="sl-pin" data-status="' + c.status + '" aria-hidden="true">' +
-                      STATUS[c.status].glyph + "</span>",
-                iconSize: [26, 26],
-                iconAnchor: [13, 13],
-                popupAnchor: [0, -16]
+                      number + "</span>",
+                iconSize: [32, 32],
+                iconAnchor: [16, 16],
+                popupAnchor: [0, -18]
             });
             var marker = L.marker(latlng, {
                 icon: icon,
@@ -378,8 +379,9 @@
                 zoom: 12,
                 scrollWheelZoom: false,
                 attributionControl: true,
-                zoomControl: true
+                zoomControl: false
             });
+            L.control.zoom({ position: "topright" }).addTo(lmap);
 
             L.tileLayer(TILES, {
                 attribution: TILES_ATTRIB,
@@ -392,8 +394,12 @@
             lmap.on("mouseout", function () { lmap.scrollWheelZoom.disable(); });
 
             renderMarkers();
+            if (markerLayer && markerLayer.getLayers().length) {
+                var bounds = markerLayer.getBounds();
+                if (bounds.isValid()) lmap.fitBounds(bounds.pad(0.22), { maxZoom: 13, animate: false });
+            }
             var refresh = window.requestAnimationFrame || function (fn) { return window.setTimeout(fn, 30); };
-            refresh(function () { if (lmap) lmap.invalidateSize(); });
+            refresh(function () { if (lmap) lmap.invalidateSize({ pan: false }); });
 
             if (window.ResizeObserver) {
                 var ro = new ResizeObserver(function () { if (lmap) lmap.invalidateSize({ pan: false }); });
