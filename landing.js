@@ -5,7 +5,7 @@
    Integração com dados reais (API pública, inalterada):
      window.SafeLifeLanding.setCases([
        { id, bairro, tipo, status, texto, data,
-         titulo, acao, animal, lat, lng, x, y }  // opcionais: lat/lng, x/y, animal
+         titulo, acao, animal, lat, lng }  // lat/lng são opcionais
      ]);
    - lat/lng: referência aproximada do BAIRRO (nunca endereço).
    - status: "open" | "progress" | "done".
@@ -17,7 +17,6 @@
     /* ---------- constantes ---------- */
 
     var MAX_LEN = { bairro: 60, tipo: 60, animal: 60, titulo: 80, texto: 320, acao: 320 };
-    var DEMO_NOTE = "Dados demonstrativos do TCC — ocorrências fictícias utilizadas para demonstração do projeto.";
     var POPUP_DEMO = "Ocorrência fictícia. Ponto aproximado na região do bairro, não é um endereço.";
     var LEAFLET_CSS = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css";
     var LEAFLET_JS = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js";
@@ -38,13 +37,7 @@
         "https://images.unsplash.com/photo-1548767797-d8c844163c4c?auto=format&fit=crop&w=1200&q=80",
         "https://images.unsplash.com/photo-1675701918017-fda8f5bcbf90?auto=format&fit=crop&w=1200&q=80"
     ];
-    var HERO_PLACEHOLDER = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 900">' +
-        '<rect width="800" height="900" fill="#c9d2e2"/>' +
-        '<g fill="#a9b6cf"><ellipse cx="400" cy="560" rx="130" ry="100"/>' +
-        '<ellipse cx="262" cy="400" rx="48" ry="64"/><ellipse cx="352" cy="310" rx="48" ry="64"/>' +
-        '<ellipse cx="448" cy="310" rx="48" ry="64"/><ellipse cx="538" cy="400" rx="48" ry="64"/></g></svg>'
-    );
+    var HERO_PLACEHOLDER = ""; // sem ilustração genérica: mantém um fundo sóbrio se as fotos falharem.
 
     /* Quatro ocorrências FICTÍCIAS para demonstração (TCC).
        lat/lng = referência aproximada do bairro, arredondada. */
@@ -90,17 +83,29 @@
     function fmtDate(v) {
         if (v == null || v === "") return "";
         if (typeof v === "string") {
-            var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(v);
+            var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(v.trim());
             if (m) return m[3] + "/" + m[2] + "/" + m[1];
+            return cleanStr(v, 30);
         }
-        var d = v instanceof Date ? v : (typeof v === "number" ? new Date(v) : null);
-        if (d && !isNaN(d.getTime())) return d.toLocaleDateString("pt-BR");
+        if (v instanceof Date) {
+            return isNaN(v.getTime()) ? "" : v.toLocaleDateString("pt-BR");
+        }
+        if (typeof v === "number" && isFinite(v)) {
+            // APIs costumam enviar segundos; Date espera milissegundos.
+            var stamp = Math.abs(v) < 100000000000 ? v * 1000 : v;
+            var d = new Date(stamp);
+            return isNaN(d.getTime()) ? "" : d.toLocaleDateString("pt-BR");
+        }
         return cleanStr(v, 30);
     }
 
     function toCoord(v, lim) {
-        var n = typeof v === "string" ? parseFloat(v) : v;
-        return typeof n === "number" && isFinite(n) && Math.abs(n) <= lim ? n : null;
+        if (typeof v === "string") {
+            var value = v.trim();
+            if (!/^-?(?:\d+(?:\.\d+)?|\.\d+)$/.test(value)) return null;
+            v = Number(value);
+        }
+        return typeof v === "number" && isFinite(v) && Math.abs(v) <= lim ? v : null;
     }
 
     /* Aceita só campos conhecidos (privacidade). */
@@ -128,22 +133,27 @@
     function initHero() {
         var img = byId("slHeroImg");
         if (!img) return;
-        img.onerror = function () {
-            if (img.dataset.idx !== undefined) {
-                var next = parseInt(img.dataset.idx, 10) + 1;
-                load(next);
-            }
-        };
-        function load(i) {
-            if (i >= HERO_CANDIDATES.length) {
+        var frame = img.closest(".sl-hero-media") || img.parentElement;
+        var index = 0;
+
+        function loadNext() {
+            if (index >= HERO_CANDIDATES.length) {
                 img.onerror = null;
-                img.src = HERO_PLACEHOLDER;
+                img.removeAttribute("src");
+                if (frame) frame.classList.add("is-image-fallback");
                 return;
             }
-            img.dataset.idx = String(i);
-            img.src = HERO_CANDIDATES[i];
+            img.dataset.idx = String(index);
+            img.src = HERO_CANDIDATES[index];
+            index += 1;
         }
-        load(0);
+
+        img.onerror = loadNext;
+        img.onload = function () {
+            if (frame) frame.classList.remove("is-image-fallback");
+        };
+        if (frame) frame.classList.remove("is-image-fallback");
+        loadNext();
     }
 
     /* ---------- estado das ocorrências ---------- */
@@ -179,6 +189,7 @@
             li.dataset.id = c.id;
             li.setAttribute("tabindex", "0");
             li.setAttribute("role", "button");
+            li.setAttribute("aria-pressed", "false");
             li.setAttribute("aria-label", c.titulo + ", " + c.bairro + ", " + STATUS[c.status].label);
 
             var top = el("div", "sl-case-top");
@@ -218,6 +229,7 @@
         activeId = id;
         cardEls.forEach(function (li, key) {
             li.classList.toggle("is-active", key === id);
+            li.setAttribute("aria-pressed", key === id ? "true" : "false");
         });
         markerObjs.forEach(function (m, key) {
             var pin = m.marker.getElement() && m.marker.getElement().querySelector(".sl-pin");
@@ -241,10 +253,22 @@
     var lmap = null;
     var mapStarted = false;
 
+    var leafletPromise = null;
+    var leafletCssPromise = null;
+
     function loadScript(src) {
         return new Promise(function (resolve, reject) {
+            var existing = document.querySelector('script[data-safelife-leaflet="true"]');
+            if (window.L) { resolve(); return; }
+            if (existing) {
+                existing.addEventListener("load", resolve, { once: true });
+                existing.addEventListener("error", reject, { once: true });
+                return;
+            }
             var s = document.createElement("script");
             s.src = src;
+            s.async = true;
+            s.dataset.safelifeLeaflet = "true";
             s.onload = resolve;
             s.onerror = reject;
             document.head.appendChild(s);
@@ -252,10 +276,38 @@
     }
 
     function loadCss(href) {
-        var l = document.createElement("link");
-        l.rel = "stylesheet";
-        l.href = href;
-        document.head.appendChild(l);
+        if (leafletCssPromise) return leafletCssPromise;
+        var existing = document.querySelector('link[data-safelife-leaflet="true"]');
+        if (existing) {
+            leafletCssPromise = Promise.resolve();
+            return leafletCssPromise;
+        }
+        leafletCssPromise = new Promise(function (resolve, reject) {
+            var link = document.createElement("link");
+            link.rel = "stylesheet";
+            link.href = href;
+            link.dataset.safelifeLeaflet = "true";
+            link.onload = resolve;
+            link.onerror = reject;
+            document.head.appendChild(link);
+        });
+        return leafletCssPromise;
+    }
+
+    function ensureLeaflet() {
+        if (window.L) return loadCss(LEAFLET_CSS);
+        if (!leafletPromise) {
+            leafletPromise = loadCss(LEAFLET_CSS)
+                .then(function () { return loadScript(LEAFLET_JS); })
+                .then(function () {
+                    if (!window.L) throw new Error("Leaflet indisponível");
+                })
+                .catch(function (err) {
+                    leafletPromise = null;
+                    throw err;
+                });
+        }
+        return leafletPromise;
     }
 
     function popupHtml(c) {
@@ -274,19 +326,52 @@
         return wrap;
     }
 
+    var markerLayer = null;
+
+    function renderMarkers() {
+        if (!lmap || !window.L) return;
+        if (markerLayer) markerLayer.clearLayers();
+        markerObjs.clear();
+        markerLayer = markerLayer || L.layerGroup().addTo(lmap);
+
+        cases.forEach(function (c) {
+            if (c.lat === null || c.lng === null) return;
+            var latlng = [c.lat, c.lng];
+            var icon = L.divIcon({
+                className: "",
+                html: '<span class="sl-pin" data-status="' + c.status + '" aria-hidden="true">' +
+                      STATUS[c.status].glyph + "</span>",
+                iconSize: [26, 26],
+                iconAnchor: [13, 13],
+                popupAnchor: [0, -16]
+            });
+            var marker = L.marker(latlng, {
+                icon: icon,
+                title: c.titulo + " — " + c.bairro,
+                alt: c.titulo + " — " + c.bairro
+            }).addTo(markerLayer);
+            marker.bindPopup(popupHtml(c));
+            marker.on("click", function () { setActive(c.id); });
+            markerObjs.set(c.id, { marker: marker, latlng: latlng });
+        });
+
+        if (activeId && markerObjs.has(activeId)) {
+            var activeMarker = markerObjs.get(activeId).marker;
+            var activePin = activeMarker.getElement() && activeMarker.getElement().querySelector(".sl-pin");
+            if (activePin) activePin.classList.add("is-active");
+        }
+    }
+
     function startMap() {
-        if (mapStarted) return;
-        mapStarted = true;
-
         var holder = byId("slMap");
-        if (!holder) return;
-
+        if (mapStarted || !holder) return;
+        mapStarted = true;
         holder.classList.add("is-pending");
 
-        loadCss(LEAFLET_CSS);
-        loadScript(LEAFLET_JS).then(function () {
-            if (!window.L) throw new Error("Leaflet indisponível");
+        ensureLeaflet().then(function () {
+            if (!holder.isConnected) return;
             holder.classList.remove("is-pending");
+            holder.textContent = "";
 
             lmap = L.map(holder, {
                 center: ARAUCARIA,
@@ -302,31 +387,23 @@
                 subdomains: "abcd"
             }).addTo(lmap);
 
-            // liberar zoom com rolagem só depois de clique/interação
-            lmap.on("click focus", function () { lmap.scrollWheelZoom.enable(); });
+            // O scroll do mapa só é ativado depois que a pessoa interage com ele.
+            lmap.on("click", function () { lmap.scrollWheelZoom.enable(); });
+            lmap.on("mouseout", function () { lmap.scrollWheelZoom.disable(); });
 
-            cases.forEach(function (c) {
-                if (c.lat === null || c.lng === null) return;
-                var latlng = [c.lat, c.lng];
-                var icon = L.divIcon({
-                    className: "",
-                    html: '<span class="sl-pin" data-status="' + c.status + '" aria-hidden="true">' +
-                          STATUS[c.status].glyph + "</span>",
-                    iconSize: [26, 26],
-                    iconAnchor: [13, 13],
-                    popupAnchor: [0, -16]
-                });
-                var marker = L.marker(latlng, { icon: icon, title: c.titulo + " — " + c.bairro }).addTo(lmap);
-                marker.bindPopup(popupHtml(c));
-                marker.on("click", function () { setActive(c.id); });
-                markerObjs.set(c.id, { marker: marker, latlng: latlng });
-            });
+            renderMarkers();
+            var refresh = window.requestAnimationFrame || function (fn) { return window.setTimeout(fn, 30); };
+            refresh(function () { if (lmap) lmap.invalidateSize(); });
 
-            // fecha popup clicando fora; desseleciona card
-            lmap.on("popupclose", function () { /* mantém seleção no card, apenas suave */ });
+            if (window.ResizeObserver) {
+                var ro = new ResizeObserver(function () { if (lmap) lmap.invalidateSize({ pan: false }); });
+                ro.observe(holder);
+                holder._slMapResizeObserver = ro;
+            }
         }).catch(function () {
             holder.classList.remove("is-pending");
-            holder.textContent = "Não foi possível carregar o mapa agora. Veja as ocorrências na lista ao lado.";
+            holder.textContent = "Não foi possível carregar o mapa agora. Consulte as ocorrências na lista ao lado.";
+            mapStarted = false;
         });
     }
 
@@ -351,20 +428,21 @@
     window.SafeLifeLanding = {
         setCases: function (list) {
             if (!Array.isArray(list)) return;
-            var next = list.map(sanitizeCase).filter(Boolean);
-            // sem dados reais, mantém os exemplos fictícios de demonstração
+            var seen = new Set();
+            var next = list.map(sanitizeCase).filter(function (item) {
+                if (!item || seen.has(item.id)) return false;
+                seen.add(item.id);
+                return true;
+            });
+
+            // Se a API não entregar ocorrências válidas, mantém os quatro exemplos do TCC.
             cases = next.length ? next : DEMO_CASES.map(sanitizeCase).filter(Boolean);
             rebuildIndex();
-            markerObjs.clear();
             activeId = null;
             renderCards();
-            // se o mapa já existe, recria os marcadores
-            if (lmap) {
-                mapStarted = false;
-                lmap.remove();
-                lmap = null;
-                startMap();
-            }
+
+            // Atualiza somente os marcadores; não recria o mapa nem perde o zoom do usuário.
+            if (lmap) renderMarkers();
         }
     };
 
@@ -374,6 +452,8 @@
         initHero();
         rebuildIndex();
         renderCards();
+        var note = byId("slDemoNote");
+        if (note) note.textContent = "Dados demonstrativos do TCC — ocorrências fictícias utilizadas para demonstração do projeto.";
         initMapLazy();
     }
 
