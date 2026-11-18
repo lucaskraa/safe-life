@@ -1,749 +1,645 @@
 /* ==========================================================
-   Safe Life — Landing v5 (CSS consolidado)
-   Carrega DEPOIS do style.css. Tudo escopado em #welcomeScreen.
-
-   Organização:
-   1. Tokens
-   2. Layout base (shell, hero, pílula)
-   3. Componentes compartilhados (badge, focus)
-   4. Carrossel
-   5. Mapa (palco, rótulos, pins, painel de detalhe, legenda, lista)
-   6. Seção de casos (indicadores, filtros, cards)
-   7. Responsivo (agrupado)
-   8. Movimento reduzido
+   Safe Life — Landing v6 (redesign editorial)
+   Carregar DEPOIS do style.css. Tudo escopado em #welcomeScreen.
+   Paleta: navy #142440 · azul #3264F5 · fundo #F5F7FB · branco
+   Tipografia: Manrope (títulos) + Inter (texto)
    ========================================================== */
 
-/* ---------- 1. TOKENS ---------- */
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap");
+
+/* ---------- tokens ---------- */
 #welcomeScreen {
-    --lp-ink: #0f1a3a;
-    --lp-muted: #5b6785;
-    --lp-subtle: #6b7694;
-    --lp-blue: #254bfa;
-    --lp-blue-soft: #eef2ff;
-    --lp-blue-line: #dbe3ff;
-    --lp-line: #e3e8f3;
-    --lp-bg: #f7f9fe;
-    --lp-surface: #fff;
+    --sl-navy: #142440;
+    --sl-navy-soft: #1d3050;
+    --sl-blue: #3264f5;
+    --sl-blue-ink: #2448b0;
+    --sl-bg: #f5f7fb;
+    --sl-surface: #ffffff;
+    --sl-line: #e4e9f1;
+    --sl-ink: #1c2a42;
+    --sl-muted: #5c6b80;
+    --sl-subtle: #8b97a9;
 
-    --lp-open: #e5484d;
-    --lp-open-bg: #fdecec;
-    --lp-open-ink: #a82129;
-    --lp-open-ring: rgba(229, 72, 77, .28);
-    --lp-progress: #f5a524;
-    --lp-progress-bg: #fff3d9;
-    --lp-progress-ink: #7a4d00;
-    --lp-progress-ring: rgba(245, 165, 36, .32);
-    --lp-done: #12a36a;
-    --lp-done-bg: #e2f6ec;
-    --lp-done-ink: #0a6b43;
-    --lp-done-ring: rgba(18, 163, 106, .28);
+    /* status (sóbrios) */
+    --sl-open: #b02a37;
+    --sl-open-bg: #faebed;
+    --sl-open-ink: #7e1e28;
+    --sl-progress: #b0741c;
+    --sl-progress-bg: #faf2e2;
+    --sl-progress-ink: #6e4a12;
+    --sl-done: #1b7a4e;
+    --sl-done-bg: #e9f4ee;
+    --sl-done-ink: #13593a;
 
-    --lp-map-bg: #e4e9f2;
-    --lp-map-block: #eef1f7;
-    --lp-map-park: #d3e5da;
-    --lp-map-water-a: #c9d9ee;
-    --lp-map-water-b: #d9e4f3;
-    --lp-map-road: #fff;
+    --sl-r: 14px;
+    --sl-ease: cubic-bezier(.2, .7, .2, 1);
 
-    --lp-r-sm: 10px;
-    --lp-r-md: 14px;
-    --lp-r-lg: 20px;
-    --lp-shadow-sm: 0 1px 2px rgba(15, 26, 58, .06);
-    --lp-shadow-md: 0 8px 24px rgba(15, 26, 58, .08);
-    --lp-shadow-lg: 0 18px 44px rgba(15, 26, 58, .16);
-    --lp-ease: cubic-bezier(.2, .7, .2, 1);
-
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--sl-ink);
+    background: var(--sl-surface);
     overflow-x: hidden;
     overflow-y: auto;
+    -webkit-font-smoothing: antialiased;
+    scroll-behavior: smooth;
 }
 
-/* Cores por status (usadas por badge, pin, legenda, lista, estatísticas) */
-#welcomeScreen [data-status="open"] {
-    --c: var(--lp-open); --c-bg: var(--lp-open-bg); --c-ink: var(--lp-open-ink); --c-ring: var(--lp-open-ring);
-}
-#welcomeScreen [data-status="progress"] {
-    --c: var(--lp-progress); --c-bg: var(--lp-progress-bg); --c-ink: var(--lp-progress-ink); --c-ring: var(--lp-progress-ring);
-}
-#welcomeScreen [data-status="done"] {
-    --c: var(--lp-done); --c-bg: var(--lp-done-bg); --c-ink: var(--lp-done-ink); --c-ring: var(--lp-done-ring);
+/* compensa o cabeçalho fixo nas âncoras */
+#welcomeScreen [id] { scroll-margin-top: 76px; }
+
+#welcomeScreen h1,
+#welcomeScreen h2,
+#welcomeScreen h3,
+#welcomeScreen .sl-brand-text strong {
+    font-family: "Manrope", "Inter", system-ui, sans-serif;
 }
 
-/* ---------- 2. LAYOUT BASE ---------- */
-#welcomeScreen .landing-clean-shell,
-#welcomeScreen .lp-container {
-    width: min(1180px, 100% - 48px);
+/* ---------- base ---------- */
+#welcomeScreen .sl-shell {
+    width: min(1120px, 100% - 48px);
     margin-inline: auto;
 }
 
-#welcomeScreen .landing-clean-hero {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr);
-    gap: clamp(28px, 4.5vw, 56px);
-    align-items: center;
-    min-height: 0;
-    padding: clamp(24px, 4vw, 48px) 0 clamp(32px, 5vw, 56px);
+#welcomeScreen :where(a) { color: inherit; }
+#welcomeScreen :where(button, a):focus-visible {
+    outline: 3px solid var(--sl-blue);
+    outline-offset: 2px;
+    border-radius: 4px;
 }
-#welcomeScreen .landing-clean-hero > * { min-width: 0; }
 
-#welcomeScreen .lp-city-pill {
+#welcomeScreen .sl-kicker {
+    margin: 0 0 14px;
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--sl-blue);
+}
+
+#welcomeScreen h1 {
+    margin: 0 0 18px;
+    font-size: clamp(30px, 4.2vw, 46px);
+    line-height: 1.12;
+    letter-spacing: -.022em;
+    font-weight: 800;
+    color: var(--sl-navy);
+    text-wrap: balance;
+}
+
+#welcomeScreen h2 {
+    margin: 0 0 14px;
+    font-size: clamp(24px, 3vw, 34px);
+    line-height: 1.18;
+    letter-spacing: -.02em;
+    font-weight: 700;
+    color: var(--sl-navy);
+    text-wrap: balance;
+}
+
+#welcomeScreen .sl-lead {
+    margin: 0;
+    font-size: clamp(16px, 1.4vw, 18px);
+    line-height: 1.65;
+    color: var(--sl-muted);
+}
+
+#welcomeScreen .sl-muted {
+    margin: 0;
+    font-size: 15.5px;
+    line-height: 1.65;
+    color: var(--sl-muted);
+}
+
+/* ---------- header ---------- */
+#welcomeScreen .sl-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(255, 255, 255, .92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--sl-line);
+}
+
+#welcomeScreen .sl-header-in {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 62px;
+}
+
+#welcomeScreen .sl-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+}
+
+#welcomeScreen .sl-logo { width: 32px; height: 32px; flex: none; }
+
+#welcomeScreen .sl-brand-text { display: grid; line-height: 1.15; }
+#welcomeScreen .sl-brand-text strong { font-size: 16.5px; font-weight: 800; color: var(--sl-navy); letter-spacing: -.01em; }
+#welcomeScreen .sl-brand-text small { font-size: 11.5px; font-weight: 600; color: var(--sl-subtle); }
+
+#welcomeScreen .sl-nav { display: flex; align-items: center; gap: 26px; }
+#welcomeScreen .sl-nav a {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--sl-muted);
+    text-decoration: none;
+    transition: color .15s;
+}
+#welcomeScreen .sl-nav a:hover { color: var(--sl-navy); }
+
+/* ---------- hero ---------- */
+#welcomeScreen .sl-hero { padding: clamp(36px, 5vw, 72px) 0 clamp(44px, 6vw, 88px); }
+
+#welcomeScreen .sl-hero-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, .94fr);
+    gap: clamp(32px, 5vw, 64px);
+    align-items: center;
+}
+#welcomeScreen .sl-hero-grid > * { min-width: 0; }
+
+#welcomeScreen .sl-city {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    margin: 4px 0 22px;
-    padding: 10px 16px;
-    border-radius: 999px;
-    background: var(--lp-blue-soft);
-    border: 1px solid var(--lp-blue-line);
-    color: var(--lp-muted);
-    font-size: 15px;
+    margin: 18px 0 26px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--sl-muted);
 }
-#welcomeScreen .lp-city-pill strong { color: var(--lp-ink); }
-
-/* Título e texto de apresentação: menores e equilibrados */
-#welcomeScreen .landing-clean-hero h1 {
-    max-width: 17em;
-    margin: 0 0 16px;
-    font-size: clamp(28px, 3.4vw, 42px);
-    line-height: 1.14;
-    letter-spacing: -.02em;
-    font-weight: 700;
-    text-wrap: balance;
-}
-#welcomeScreen .landing-clean-hero h1 + p {
-    max-width: 34em;
-    margin: 0 0 22px;
-    font-size: clamp(16px, 1.3vw, 18px);
-    line-height: 1.6;
-    color: var(--lp-muted);
-}
-
-/* Cartão antigo (v2), mantido oculto por compatibilidade com HTML legado.
-   Pode ser removido do HTML. */
-#welcomeScreen .lp-map-card { display: none; }
-
-/* ---------- 3. COMPARTILHADOS ---------- */
-#welcomeScreen :where(button, a):focus-visible {
-    outline: 3px solid var(--lp-blue);
-    outline-offset: 2px;
-}
-
-#welcomeScreen .lp-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 3px 10px;
-    border-radius: 999px;
-    background: var(--c-bg);
-    color: var(--c-ink);
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 1.5;
-    white-space: nowrap;
-}
-#welcomeScreen .lp-badge::before {
+#welcomeScreen .sl-city::before {
     content: "";
     width: 6px; height: 6px;
     border-radius: 50%;
-    background: var(--c);
-}
-
-/* Marcador pequeno com glifo (não depende só da cor) */
-#welcomeScreen .lp-glyph {
-    display: inline-grid;
-    place-items: center;
+    background: var(--sl-blue);
     flex: none;
-    width: 18px; height: 18px;
-    border-radius: 50%;
-    background: var(--c);
-    border: 2px solid #fff;
-    box-shadow: 0 0 0 1px var(--lp-line);
-    color: #fff;
-    font-size: 10px;
-    font-weight: 800;
-    line-height: 1;
-}
-#welcomeScreen [data-status="progress"] > .lp-glyph,
-#welcomeScreen [data-status="progress"] .lp-pin-dot { color: #3d2a00; }
-
-/* ---------- 4. CARROSSEL ---------- */
-#welcomeScreen .lp-carousel {
-    position: relative;
-    aspect-ratio: 5 / 4.4;
-    border-radius: var(--lp-r-lg);
-    overflow: hidden;
-    background: #cfd6e6;
-    border: 1px solid var(--lp-line);
-    box-shadow: var(--lp-shadow-lg);
-    isolation: isolate;
-    touch-action: pan-y;
-}
-#welcomeScreen .lp-carousel img {
-    position: absolute;
-    inset: 0;
-    width: 100%; height: 100%;
-    object-fit: cover;
-    object-position: center 35%;
-    display: block;
-    transition: opacity .35s var(--lp-ease);
-}
-#welcomeScreen .lp-carousel.is-fading img { opacity: 0; }
-
-#welcomeScreen .lp-carousel-shade {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    pointer-events: none;
-    background: linear-gradient(180deg, rgba(15, 26, 58, 0) 38%, rgba(15, 26, 58, .5) 66%, rgba(15, 26, 58, .86) 100%);
-}
-#welcomeScreen .lp-carousel-cap {
-    position: absolute;
-    z-index: 2;
-    left: 24px; right: 24px; bottom: 50px;
-    display: grid;
-    gap: 6px;
-    color: #fff;
-    transition: opacity .3s var(--lp-ease), transform .3s var(--lp-ease);
-}
-#welcomeScreen .lp-carousel.is-fading .lp-carousel-cap { opacity: 0; transform: translateY(4px); }
-#welcomeScreen .lp-carousel-cap span {
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: .02em;
-    color: rgba(255, 255, 255, .88);
-}
-#welcomeScreen .lp-carousel-cap strong {
-    font-size: clamp(17px, 2vw, 22px);
-    line-height: 1.28;
-    font-weight: 700;
-    text-shadow: 0 1px 12px rgba(15, 26, 58, .45);
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
 }
 
-#welcomeScreen .lp-dots {
-    position: absolute;
-    z-index: 3;
-    left: 0; right: 0; bottom: 10px;
-    display: flex;
+#welcomeScreen .sl-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+
+#welcomeScreen .sl-btn {
+    display: inline-flex;
+    align-items: center;
     justify-content: center;
+    min-height: 46px;
+    padding: 0 22px;
+    border-radius: 10px;
+    font-size: 14.5px;
+    font-weight: 700;
+    font-family: inherit;
+    text-decoration: none;
+    transition: background-color .16s var(--sl-ease), color .16s, border-color .16s;
 }
-#welcomeScreen .lp-dots button {
+
+#welcomeScreen .sl-btn-solid {
+    background: var(--sl-navy);
+    color: #fff;
+    border: 1px solid var(--sl-navy);
+}
+#welcomeScreen .sl-btn-solid:hover { background: var(--sl-navy-soft); border-color: var(--sl-navy-soft); }
+
+#welcomeScreen .sl-btn-line {
+    background: transparent;
+    color: var(--sl-navy);
+    border: 1px solid #c9d3e3;
+}
+#welcomeScreen .sl-btn-line:hover { border-color: var(--sl-navy); }
+
+/* fotografia documental do hero */
+#welcomeScreen .sl-hero-media {
     position: relative;
-    width: 24px; height: 24px;
-    padding: 0; border: 0;
-    background: none;
-    cursor: pointer;
-    border-radius: 6px;
+    margin: 0;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #cfd6e2;
+    box-shadow: 0 22px 48px -18px rgba(20, 36, 64, .35);
+    aspect-ratio: 4 / 4.6;
+    max-height: 560px;
 }
-#welcomeScreen .lp-dots button::before {
+
+#welcomeScreen .sl-hero-media img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 40%;
+    display: block;
+}
+
+#welcomeScreen .sl-hero-media::after {
     content: "";
     position: absolute;
-    left: 50%; top: 50%;
-    width: 8px; height: 8px;
-    border-radius: 99px;
-    background: rgba(255, 255, 255, .55);
-    transform: translate(-50%, -50%);
-    transition: width .25s var(--lp-ease), background-color .25s;
-}
-#welcomeScreen .lp-dots button[aria-current="true"]::before { width: 22px; background: #fff; }
-
-
-/* ---------- 5. MAPA ---------- */
-#welcomeScreen .lp-map {
-    position: relative;
-    width: 100%;
-    margin-top: 8px;
-}
-
-#welcomeScreen .lp-stage {
-    position: relative;
-    height: clamp(300px, 30vw, 400px);
-    border: 1px solid var(--lp-line);
-    border-radius: var(--lp-r-lg);
-    overflow: hidden;
-    isolation: isolate;
-    background: var(--lp-map-bg);
-    box-shadow: var(--lp-shadow-md);
-}
-#welcomeScreen .lp-map-base {
-    position: absolute;
     inset: 0;
-    background-color: var(--lp-map-bg);
-    background-image:
-        linear-gradient(rgba(255, 255, 255, .6) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, .6) 1px, transparent 1px);
-    background-size: 48px 48px;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgba(20, 36, 64, 0) 52%, rgba(20, 36, 64, .72) 100%);
 }
-#welcomeScreen .lp-map.is-pending .lp-pins { visibility: hidden; }
-#welcomeScreen .lp-map.is-pending .lp-stage::after {
-    content: "Carregando mapa…";
-    position: absolute;
-    left: 50%; top: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 14px;
-    color: var(--lp-muted);
-}
-#welcomeScreen .lp-pins { position: absolute; inset: 0; }
 
-#welcomeScreen .lp-pin {
+#welcomeScreen .sl-hero-caption {
     position: absolute;
     z-index: 2;
-    display: grid;
-    place-items: center;
-    width: 44px; height: 44px;
-    margin: 0; padding: 0;
-    border: 0;
-    border-radius: 50%;
-    background: none;
-    transform: translate(-50%, -50%);
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
+    left: 22px;
+    right: 22px;
+    bottom: 18px;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.45;
+    color: #fff;
+    text-shadow: 0 1px 10px rgba(20, 36, 64, .55);
 }
-#welcomeScreen .lp-pin.is-selected { z-index: 6; }
-#welcomeScreen .lp-pin-dot {
+
+/* ---------- seções ---------- */
+#welcomeScreen .sl-section { padding: clamp(56px, 8vw, 104px) 0; }
+
+#welcomeScreen .sl-sobre { background: var(--sl-bg); }
+
+#welcomeScreen .sl-sobre-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: clamp(28px, 5vw, 72px);
+    align-items: start;
+}
+
+#welcomeScreen .sl-sobre-body { display: grid; gap: 14px; max-width: 560px; }
+
+/* ---------- ocorrências ---------- */
+#welcomeScreen .sl-occ-sub { margin-top: 4px; }
+
+#welcomeScreen .sl-demo-note {
+    margin: 26px 0 18px;
+    padding: 10px 14px;
+    border: 1px dashed #cfd8ea;
+    border-radius: 10px;
+    background: var(--sl-bg);
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--sl-muted);
+}
+
+#welcomeScreen .sl-occ-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr);
+    gap: clamp(18px, 2.5vw, 28px);
+    align-items: start;
+}
+
+/* mapa */
+#welcomeScreen .sl-map {
+    position: relative;
+    height: clamp(340px, 40vw, 460px);
+    border: 1px solid var(--sl-line);
+    border-radius: var(--sl-r);
+    overflow: hidden;
+    background: #e8edf5;
+    box-shadow: 0 10px 30px -14px rgba(20, 36, 64, .18);
+    font-family: inherit;
+}
+
+#welcomeScreen .sl-map .leaflet-container {
+    height: 100%;
+    width: 100%;
+    font: inherit;
+    background: #e8edf5;
+}
+
+/* isolamento da lib de terceiros */
+#welcomeScreen .sl-map .leaflet-tile,
+#welcomeScreen .sl-map .leaflet-marker-icon,
+#welcomeScreen .sl-map .leaflet-marker-shadow { max-width: none !important; max-height: none !important; }
+#welcomeScreen .sl-map .leaflet-marker-icon::before,
+#welcomeScreen .sl-map .leaflet-marker-icon::after { content: none !important; }
+
+#welcomeScreen .sl-map .leaflet-bar {
+    border: 1px solid var(--sl-line);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(20, 36, 64, .12);
+}
+#welcomeScreen .sl-map .leaflet-bar a {
+    width: 30px; height: 30px;
+    line-height: 30px;
+    font-size: 16px;
+    color: var(--sl-navy);
+    border-bottom-color: var(--sl-line);
+}
+#welcomeScreen .sl-map .leaflet-control-attribution {
+    font-size: 10.5px;
+    color: var(--sl-subtle);
+    background: rgba(255, 255, 255, .85);
+}
+#welcomeScreen .sl-map .leaflet-control-attribution a { color: var(--sl-muted); }
+
+/* marcador (divIcon) */
+#welcomeScreen .sl-pin {
     position: relative;
     display: grid;
     place-items: center;
-    width: 22px; height: 22px;
+    width: 26px; height: 26px;
     border-radius: 50%;
     border: 2.5px solid #fff;
-    background: var(--c);
-    box-shadow: 0 2px 6px rgba(15, 26, 58, .35);
+    background: var(--sl-open);
+    box-shadow: 0 2px 8px rgba(20, 36, 64, .4);
     color: #fff;
     font-size: 11px;
     font-weight: 800;
     line-height: 1;
-    transition: transform .18s var(--lp-ease), box-shadow .18s var(--lp-ease);
+    transition: transform .18s var(--sl-ease), box-shadow .18s;
 }
-#welcomeScreen .lp-pin:hover .lp-pin-dot { transform: scale(1.14); }
-#welcomeScreen .lp-pin.is-selected .lp-pin-dot {
-    transform: scale(1.22);
-    box-shadow: 0 0 0 5px var(--c-ring), 0 2px 6px rgba(15, 26, 58, .35);
-}
-#welcomeScreen .lp-pin[data-status="open"] .lp-pin-dot::after {
-    content: "";
-    position: absolute;
-    inset: -6px;
-    border-radius: 50%;
-    background: var(--c);
-    opacity: .3;
-    z-index: -1;
-    animation: lpRing 2.4s ease-out infinite;
-}
-@keyframes lpRing {
-    0% { transform: scale(.6); opacity: .45; }
-    100% { transform: scale(2.1); opacity: 0; }
+#welcomeScreen .sl-pin[data-status="progress"] { background: var(--sl-progress); color: #3d2a00; }
+#welcomeScreen .sl-pin[data-status="done"] { background: var(--sl-done); }
+
+#welcomeScreen .sl-pin.is-active {
+    transform: scale(1.25);
+    box-shadow: 0 0 0 5px rgba(50, 100, 245, .25), 0 2px 8px rgba(20, 36, 64, .4);
+    z-index: 1000;
 }
 
-#welcomeScreen .lp-map-empty {
-    position: absolute;
-    left: 50%; top: 50%;
-    margin: 0;
-    transform: translate(-50%, -50%);
-    padding: 10px 16px;
-    border-radius: var(--lp-r-md);
-    background: rgba(255, 255, 255, .92);
-    color: var(--lp-muted);
-    font-size: 14px;
-    text-align: center;
+/* popup */
+#welcomeScreen .sl-map .leaflet-popup-content-wrapper {
+    border-radius: 12px;
+    box-shadow: 0 16px 40px -12px rgba(20, 36, 64, .35);
+    color: var(--sl-ink);
 }
-#welcomeScreen .lp-map-empty[hidden] { display: none; }
-
-/* Mapa real (Leaflet): o JS ativa .is-leaflet quando o carregamento funciona */
-#welcomeScreen .lp-map.is-leaflet .lp-stage { height: clamp(360px, 36vw, 480px); }
-#welcomeScreen .lp-map.is-leaflet .lp-map-base,
-#welcomeScreen .lp-map.is-leaflet .lp-pins,
-#welcomeScreen .lp-map.is-leaflet .lp-map-empty,
-#welcomeScreen .lp-map.is-leaflet .lp-detail { display: none; }
-#welcomeScreen .lp-leaflet { position: absolute; inset: 0; z-index: 1; background: var(--lp-map-bg); font: inherit; }
-
-/* Isolamento: impede que CSS global do site (img, emoji, ícones) interfira no Leaflet.
-   !important só aqui, por tratar-se de biblioteca de terceiros. */
-#welcomeScreen .lp-leaflet .leaflet-tile,
-#welcomeScreen .lp-leaflet .leaflet-marker-icon,
-#welcomeScreen .lp-leaflet .leaflet-marker-shadow { max-width: none !important; max-height: none !important; }
-#welcomeScreen .lp-leaflet .leaflet-marker-icon::before,
-#welcomeScreen .lp-leaflet .leaflet-marker-icon::after { content: none !important; }
-#welcomeScreen .lp-lmark {
-    display: grid;
-    place-items: center;
-    width: 32px !important; height: 32px !important;
-    margin: -16px 0 0 -16px;
-    padding: 0;
-    border: 0 !important;
-    background: none !important;
-    box-shadow: none !important;
-    border-radius: 50%;
-    font-size: 11px !important;
-    line-height: 1;
-}
-#welcomeScreen .lp-lmark:focus-visible { outline: 3px solid var(--lp-blue); }
-#welcomeScreen .lp-lmark:hover .lp-pin-dot { transform: scale(1.14); }
-#welcomeScreen .lp-lmark.is-selected .lp-pin-dot {
-    transform: scale(1.22);
-    box-shadow: 0 0 0 5px var(--c-ring), 0 2px 6px rgba(15, 26, 58, .35);
-}
-#welcomeScreen .lp-lmark .lp-pin-dot[data-status="open"]::after {
-    content: "";
-    position: absolute;
-    inset: -6px;
-    border-radius: 50%;
-    background: var(--c);
-    opacity: .3;
-    z-index: -1;
-    animation: lpRing 2.4s ease-out infinite;
-}
-#welcomeScreen .lp-lmark[data-status="progress"] .lp-pin-dot { color: #3d2a00; }
-
-/* Controles de zoom discretos */
-#welcomeScreen .lp-leaflet .leaflet-bar { border: 1px solid var(--lp-line); box-shadow: var(--lp-shadow-sm); border-radius: var(--lp-r-sm); overflow: hidden; }
-#welcomeScreen .lp-leaflet .leaflet-bar a { width: 30px; height: 30px; line-height: 30px; font-size: 16px; color: var(--lp-ink); border-bottom-color: var(--lp-line); }
-#welcomeScreen .lp-leaflet .leaflet-control-attribution { font-size: 11px; }
-
-/* Popup do marcador */
-#welcomeScreen .lp-leaflet .leaflet-popup-content-wrapper {
-    padding: 0;
-    border-radius: var(--lp-r-md);
-    box-shadow: var(--lp-shadow-lg);
-    color: var(--lp-ink);
-}
-#welcomeScreen .lp-leaflet .leaflet-popup-content { margin: 14px 16px 16px; font-size: 13.5px; line-height: 1.5; }
-#welcomeScreen .lp-leaflet .leaflet-popup-content p { margin: 0 0 6px; }
-#welcomeScreen .lp-leaflet .leaflet-popup-content h3 { margin: 2px 0 8px; }
-#welcomeScreen .lp-popup-top { margin: 0 24px 8px 0; }
-#welcomeScreen .lp-popup-title { font-size: 16px; line-height: 1.3; color: var(--lp-ink); }
-#welcomeScreen .lp-popup-demo {
-    margin: 10px 0 0 !important;
+#welcomeScreen .sl-map .leaflet-popup-content { margin: 14px 16px 15px; font-size: 13px; line-height: 1.5; }
+#welcomeScreen .sl-map .leaflet-popup-content h3 { margin: 0 0 2px; font-size: 15px; }
+#welcomeScreen .sl-popup-bairro { margin: 0 0 6px; font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--sl-subtle); }
+#welcomeScreen .sl-popup-text { margin: 0 0 8px; color: var(--sl-muted); }
+#welcomeScreen .sl-popup-acao { margin: 0 0 8px; color: var(--sl-ink); }
+#welcomeScreen .sl-popup-acao strong { font-weight: 600; }
+#welcomeScreen .sl-popup-demo {
+    margin: 0 !important;
     padding-top: 8px;
-    border-top: 1px dashed var(--lp-line);
-    font-size: 12px;
-    color: var(--lp-subtle);
-}
-#welcomeScreen .lp-detail-action { margin: 10px 0 0; font-size: 13.5px; line-height: 1.5; color: var(--lp-ink); }
-
-/* Painel de detalhe (só no mapa ilustrativo de reserva) (balão no desktop, cartão fixo no celular) */
-#welcomeScreen .lp-detail {
-    position: absolute;
-    z-index: 20;
-    left: 0; top: 0;
-    width: min(300px, calc(100% - 16px));
-    padding: 14px 16px 16px;
-    border: 1px solid var(--lp-line);
-    border-radius: var(--lp-r-md);
-    background: var(--lp-surface);
-    box-shadow: var(--lp-shadow-lg);
-    text-align: left;
-    animation: lpFadeIn .16s ease;
-}
-#welcomeScreen .lp-detail[hidden] { display: none; }
-@keyframes lpFadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-#welcomeScreen .lp-detail::after {
-    content: "";
-    position: absolute;
-    left: var(--arrow, 50%);
-    width: 12px; height: 12px;
-    background: var(--lp-surface);
-    transform: translateX(-50%) rotate(45deg);
-}
-#welcomeScreen .lp-detail[data-place="above"]::after {
-    bottom: -7px;
-    border-right: 1px solid var(--lp-line);
-    border-bottom: 1px solid var(--lp-line);
-}
-#welcomeScreen .lp-detail[data-place="below"]::after {
-    top: -7px;
-    border-left: 1px solid var(--lp-line);
-    border-top: 1px solid var(--lp-line);
+    border-top: 1px dashed var(--sl-line);
+    font-size: 11.5px;
+    color: var(--sl-subtle);
 }
 
-#welcomeScreen .lp-detail-top {
+/* cards de ocorrências */
+#welcomeScreen .sl-cases {
+    display: grid;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+#welcomeScreen .sl-case {
+    padding: 16px 18px;
+    border: 1px solid var(--sl-line);
+    border-radius: var(--sl-r);
+    background: var(--sl-surface);
+    cursor: pointer;
+    transition: border-color .18s var(--sl-ease), box-shadow .18s var(--sl-ease);
+}
+#welcomeScreen .sl-case:hover { border-color: #c9d3e3; }
+#welcomeScreen .sl-case.is-active {
+    border-color: var(--sl-blue);
+    box-shadow: 0 0 0 1px var(--sl-blue), 0 10px 26px -14px rgba(50, 100, 245, .35);
+}
+
+#welcomeScreen .sl-case-top {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 10px;
     margin-bottom: 8px;
 }
-#welcomeScreen .lp-detail-close {
-    display: grid;
-    place-items: center;
-    width: 32px; height: 32px;
-    margin: -4px -6px -4px 0;
-    padding: 0;
-    border: 0;
-    border-radius: 50%;
-    background: #f1f4fb;
-    color: var(--lp-muted);
-    font-size: 18px;
-    line-height: 1;
-    cursor: pointer;
-    transition: background-color .15s;
-}
-#welcomeScreen .lp-detail-close:hover { background: #e6ebf7; }
-#welcomeScreen .lp-detail-bairro { margin: 0; font-size: 12.5px; font-weight: 600; color: var(--lp-muted); }
-#welcomeScreen .lp-detail-title { margin: 2px 0 8px; font-size: 16px; line-height: 1.3; color: var(--lp-ink); }
-#welcomeScreen .lp-detail-animal { margin: 0 0 6px; font-size: 13px; color: var(--lp-ink); }
-#welcomeScreen .lp-detail-k { color: var(--lp-muted); margin-right: 6px; }
-#welcomeScreen .lp-detail-v { font-weight: 700; }
-#welcomeScreen .lp-detail-text { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--lp-muted); }
-#welcomeScreen .lp-detail-date { margin: 10px 0 0; font-size: 12px; color: var(--lp-subtle); }
-#welcomeScreen .lp-detail-date[hidden] { display: none; }
-
-/* Legenda e nota */
-#welcomeScreen .lp-map-foot {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px 24px;
-    padding: 12px 4px 0;
-}
-#welcomeScreen .lp-legend {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px 18px;
-    margin: 0; padding: 0;
-    list-style: none;
-    font-size: 13px;
-    color: var(--lp-muted);
-}
-#welcomeScreen .lp-legend li { display: inline-flex; align-items: center; gap: 8px; }
-/* compatibilidade com legendas antigas do HTML */
-#welcomeScreen .lp-legend i { display: inline-block; width: 9px; height: 9px; margin-right: 6px; border-radius: 50%; }
-#welcomeScreen .d-open { background: var(--lp-open); }
-#welcomeScreen .d-progress { background: var(--lp-progress); }
-#welcomeScreen .d-done { background: var(--lp-done); }
-#welcomeScreen .lp-map-note { margin: 0; font-size: 12px; color: var(--lp-subtle); }
-
-/* Lista de chamados (alternativa ao toque nos pins, só no celular) */
-#welcomeScreen .lp-list-wrap { display: none; }
-#welcomeScreen .lp-list-title { margin: 0 0 8px; font-size: 13px; font-weight: 700; color: var(--lp-muted); }
-#welcomeScreen .lp-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
-#welcomeScreen .lp-list-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-    min-height: 56px;
-    padding: 10px 12px;
-    border: 1px solid var(--lp-line);
-    border-radius: var(--lp-r-md);
-    background: var(--lp-surface);
-    color: var(--lp-ink);
-    font: inherit;
-    text-align: left;
-    cursor: pointer;
-}
-#welcomeScreen .lp-list-item[aria-current="true"] { border-color: var(--lp-blue); box-shadow: 0 0 0 1px var(--lp-blue); }
-#welcomeScreen .lp-list-text { display: grid; gap: 1px; flex: 1; min-width: 0; }
-#welcomeScreen .lp-list-text strong { font-size: 14px; }
-#welcomeScreen .lp-list-text small { font-size: 12.5px; color: var(--lp-muted); }
-
-/* ---------- 6. SEÇÃO DE CASOS ---------- */
-#welcomeScreen .lp-section {
-    padding: clamp(40px, 6vw, 80px) 0 clamp(56px, 8vw, 104px);
-    background: var(--lp-surface);
-    border-top: 1px solid var(--lp-line);
-}
-#welcomeScreen .lp-kicker {
-    font-size: 14px;
+#welcomeScreen .sl-case-bairro {
+    font-size: 12px;
     font-weight: 700;
-    color: var(--lp-blue);
-}
-#welcomeScreen .lp-section h2 {
-    margin: 8px 0 12px;
-    font-size: clamp(28px, 4.2vw, 46px);
-    line-height: 1.08;
-    letter-spacing: -.025em;
-    color: var(--lp-ink);
-}
-#welcomeScreen .lp-sub {
-    max-width: 640px;
-    margin: 0 0 28px;
-    color: var(--lp-muted);
-    font-size: 16px;
-    line-height: 1.6;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--sl-subtle);
 }
 
-/* Indicadores: só aparecem quando preenchidos pelo JS */
-#welcomeScreen .lp-stats:not([data-live]) { display: none; }
-#welcomeScreen .lp-stats {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-    margin-bottom: 24px;
-}
-#welcomeScreen .lp-stat {
-    padding: 16px 18px;
-    border: 1px solid var(--lp-line);
-    border-radius: var(--lp-r-md);
-    background: var(--lp-bg);
-}
-#welcomeScreen .lp-stat b {
-    display: block;
-    font-size: clamp(26px, 3vw, 34px);
-    line-height: 1.1;
-    letter-spacing: -.02em;
-    font-variant-numeric: tabular-nums;
-    color: var(--lp-ink);
-}
-#welcomeScreen .lp-stat span {
+#welcomeScreen .sl-badge {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    margin-top: 6px;
-    font-size: 13.5px;
-    color: var(--lp-muted);
-}
-#welcomeScreen .lp-stats-note { grid-column: 1 / -1; margin: 0; font-size: 12.5px; color: var(--lp-subtle); }
-
-#welcomeScreen .lp-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 16px; }
-#welcomeScreen .lp-filter {
-    min-height: 40px;
-    padding: 8px 14px;
-    border: 1px solid var(--lp-line);
+    gap: 6px;
+    padding: 3px 10px;
     border-radius: 999px;
-    background: var(--lp-surface);
-    color: var(--lp-muted);
-    font: inherit;
+    font-size: 11.5px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+#welcomeScreen .sl-badge::before {
+    content: "";
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+#welcomeScreen .sl-badge[data-status="open"] { background: var(--sl-open-bg); color: var(--sl-open-ink); }
+#welcomeScreen .sl-badge[data-status="progress"] { background: var(--sl-progress-bg); color: var(--sl-progress-ink); }
+#welcomeScreen .sl-badge[data-status="done"] { background: var(--sl-done-bg); color: var(--sl-done-ink); }
+
+#welcomeScreen .sl-case h3 {
+    margin: 0 0 4px;
+    font-size: 16.5px;
+    line-height: 1.3;
+    color: var(--sl-navy);
+}
+#welcomeScreen .sl-case .sl-case-tipo {
+    margin: 0 0 6px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--sl-muted);
+}
+#welcomeScreen .sl-case .sl-case-texto {
+    margin: 0 0 8px;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: var(--sl-muted);
+}
+#welcomeScreen .sl-case .sl-case-acao {
+    margin: 0;
+    padding-top: 8px;
+    border-top: 1px solid var(--sl-line);
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--sl-ink);
+}
+#welcomeScreen .sl-case .sl-case-acao strong { font-weight: 600; color: var(--sl-navy); }
+#welcomeScreen .sl-case .sl-case-data {
+    margin: 8px 0 0;
+    font-size: 11.5px;
+    color: var(--sl-subtle);
+}
+
+#welcomeScreen .sl-cases-empty {
+    padding: 32px 20px;
+    border: 1.5px dashed #cfd8ea;
+    border-radius: var(--sl-r);
+    background: var(--sl-bg);
+    color: var(--sl-muted);
+    text-align: center;
+    font-size: 14px;
+}
+
+/* estado "carregando mapa" */
+#welcomeScreen .sl-map.is-pending::after {
+    content: "Carregando mapa…";
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 13.5px;
+    color: var(--sl-muted);
+}
+
+/* ---------- como funciona ---------- */
+#welcomeScreen .sl-how-head { max-width: 560px; margin-bottom: clamp(32px, 4vw, 56px); }
+
+#welcomeScreen .sl-steps {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(24px, 3.5vw, 48px);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: step;
+}
+
+#welcomeScreen .sl-step {
+    border-top: 1px solid var(--sl-line);
+    padding-top: 22px;
+}
+
+#welcomeScreen .sl-step-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+#welcomeScreen .sl-step-n {
+    font-family: "Manrope", sans-serif;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: .08em;
+    color: var(--sl-blue);
+    font-variant-numeric: tabular-nums;
+}
+
+#welcomeScreen .sl-step-ico { width: 26px; height: 26px; color: var(--sl-navy); opacity: .75; }
+
+#welcomeScreen .sl-step h3 {
+    margin: 0 0 8px;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--sl-navy);
+}
+
+#welcomeScreen .sl-step p {
+    margin: 0;
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--sl-muted);
+}
+
+/* ---------- chamada final ---------- */
+#welcomeScreen .sl-cta {
+    background: var(--sl-navy);
+    color: #fff;
+    padding: clamp(56px, 8vw, 96px) 0;
+}
+
+#welcomeScreen .sl-cta-in {
+    display: grid;
+    gap: 12px;
+    max-width: 720px;
+}
+
+#welcomeScreen .sl-cta h2 {
+    margin: 0;
+    color: #fff;
+    font-size: clamp(26px, 3.6vw, 40px);
+    letter-spacing: -.02em;
+}
+
+#welcomeScreen .sl-cta p {
+    margin: 0;
+    font-size: clamp(15px, 1.5vw, 17.5px);
+    line-height: 1.6;
+    color: rgba(255, 255, 255, .72);
+}
+
+/* ---------- rodapé ---------- */
+#welcomeScreen .sl-footer {
+    background: #0d1830;
+    color: rgba(255, 255, 255, .78);
+    padding: 36px 0;
+}
+
+#welcomeScreen .sl-footer-in {
+    display: grid;
+    gap: 6px;
+    justify-items: start;
+}
+
+#welcomeScreen .sl-brand-foot .sl-brand-text strong { color: #fff; }
+#welcomeScreen .sl-brand-foot .sl-brand-text small { color: rgba(255, 255, 255, .55); }
+
+#welcomeScreen .sl-footer-tag {
+    margin: 2px 0 0;
     font-size: 14px;
     font-weight: 600;
-    cursor: pointer;
-    transition: background-color .15s, border-color .15s, color .15s;
-}
-#welcomeScreen .lp-filter:hover { border-color: var(--lp-blue-line); color: var(--lp-ink); }
-#welcomeScreen .lp-filter[aria-pressed="true"] {
-    background: var(--lp-blue-soft);
-    border-color: var(--lp-blue);
-    color: var(--lp-blue);
-}
-#welcomeScreen .lp-demo-note {
-    margin: 0 0 14px;
-    padding: 10px 14px;
-    border: 1px dashed #cfd8ee;
-    border-radius: var(--lp-r-sm);
-    background: var(--lp-bg);
-    font-size: 13px;
-    line-height: 1.5;
-    color: var(--lp-muted);
-}
-#welcomeScreen .lp-demo-note[hidden] { display: none; }
-#welcomeScreen .lp-case.is-selected { border-color: var(--lp-blue); box-shadow: 0 0 0 1px var(--lp-blue); }
-#welcomeScreen .lp-case-action { color: var(--lp-ink); }
-#welcomeScreen .lp-demo-tag {
-    margin-left: auto;
-    padding: 4px 10px;
-    border: 1px dashed #cfd8ee;
-    border-radius: 999px;
-    font-size: 12.5px;
-    color: var(--lp-subtle);
+    color: rgba(255, 255, 255, .88);
 }
 
-#welcomeScreen .lp-cases {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 270px), 1fr));
-    gap: 14px;
-}
-#welcomeScreen .lp-case {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    min-width: 0;
-    padding: 18px;
-    border: 1px solid var(--lp-line);
-    border-radius: var(--lp-r-md);
-    background: var(--lp-surface);
-    box-shadow: var(--lp-shadow-sm);
-    transition: box-shadow .2s var(--lp-ease), border-color .2s;
-}
-#welcomeScreen .lp-case:hover { border-color: var(--lp-blue-line); box-shadow: var(--lp-shadow-md); }
-#welcomeScreen .lp-case-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-#welcomeScreen .lp-case-type { font-size: 13px; font-weight: 700; color: var(--lp-muted); }
-#welcomeScreen .lp-case h3 { margin: 2px 0 0; font-size: 18px; line-height: 1.3; color: var(--lp-ink); }
-#welcomeScreen .lp-case-meta { margin: 0; font-size: 13px; color: var(--lp-subtle); }
-#welcomeScreen .lp-case p:not(.lp-case-meta) { margin: 4px 0 0; font-size: 14px; line-height: 1.55; color: var(--lp-muted); }
-#welcomeScreen .lp-case-link {
-    align-self: flex-start;
-    margin-top: auto;
-    padding: 10px 0 0;
-    border: 0;
-    background: none;
-    color: var(--lp-blue);
-    font: inherit;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-}
-#welcomeScreen .lp-case-link:hover { text-decoration: underline; }
-#welcomeScreen .lp-empty {
-    grid-column: 1 / -1;
+#welcomeScreen .sl-footer-meta {
     margin: 0;
-    padding: 36px 20px;
-    border: 1.5px dashed #cfd8ee;
-    border-radius: var(--lp-r-md);
-    background: var(--lp-bg);
-    color: var(--lp-muted);
-    text-align: center;
+    font-size: 12.5px;
+    color: rgba(255, 255, 255, .5);
 }
 
-/* ---------- 7. RESPONSIVO ---------- */
-@media (min-width: 1440px) {
-    #welcomeScreen .landing-clean-shell,
-    #welcomeScreen .lp-container { width: min(1280px, 100% - 96px); }
-    #welcomeScreen .lp-stage { height: 380px; }
-}
-
+/* ==========================================================
+   RESPONSIVO
+   ========================================================== */
 @media (max-width: 1024px) {
-    #welcomeScreen .lp-stage { height: 300px; }
+    #welcomeScreen .sl-hero-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    #welcomeScreen .sl-occ-grid { grid-template-columns: 1fr; }
+    #welcomeScreen .sl-map { height: clamp(300px, 52vw, 420px); }
 }
 
 @media (max-width: 900px) {
-    #welcomeScreen .landing-clean-hero { grid-template-columns: 1fr; }
-    #welcomeScreen .lp-carousel { aspect-ratio: 16 / 11; }
+    #welcomeScreen .sl-hero-grid { grid-template-columns: 1fr; }
+    #welcomeScreen .sl-hero-media { aspect-ratio: 16 / 11; max-height: 420px; order: -1; }
+    #welcomeScreen .sl-sobre-grid { grid-template-columns: 1fr; }
+    #welcomeScreen .sl-steps { grid-template-columns: 1fr; gap: 20px; }
 }
 
 @media (max-width: 720px) {
-    #welcomeScreen .landing-clean-shell,
-    #welcomeScreen .lp-container { width: min(1180px, 100% - 32px); }
+    #welcomeScreen .sl-shell { width: min(1120px, 100% - 32px); }
 
-    #welcomeScreen .lp-carousel { aspect-ratio: 4 / 3.4; }
-    #welcomeScreen .lp-carousel-cap { left: 16px; right: 16px; bottom: 44px; }
+    #welcomeScreen .sl-header-in { min-height: 56px; }
+    #welcomeScreen .sl-nav { gap: 16px; }
+    #welcomeScreen .sl-nav a { font-size: 13px; }
+    #welcomeScreen .sl-brand-text small { display: none; }
 
-    #welcomeScreen .lp-stage { height: clamp(280px, 78vw, 380px); }
+    #welcomeScreen .sl-hero { padding-top: 24px; }
+    #welcomeScreen .sl-hero-media { aspect-ratio: 4 / 3; }
 
-    /* Detalhe vira cartão fixo abaixo do mapa, sem balão flutuante */
-    #welcomeScreen .lp-detail {
-        position: static;
-        width: auto;
-        margin-top: 12px;
-        box-shadow: var(--lp-shadow-md);
-    }
-    #welcomeScreen .lp-detail::after { display: none; }
+    #welcomeScreen .sl-actions .sl-btn { flex: 1 1 100%; }
 
-    #welcomeScreen .lp-list-wrap { display: block; margin-top: 18px; }
-    #welcomeScreen .lp-map-foot { flex-direction: column; align-items: flex-start; }
-
-    #welcomeScreen .lp-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-    #welcomeScreen .lp-stat { padding: 12px; }
-    #welcomeScreen .lp-demo-tag { margin-left: 0; }
+    #welcomeScreen .sl-map { height: 300px; }
+    #welcomeScreen .sl-demo-note { margin-top: 18px; }
 }
 
 @media (max-width: 480px) {
-    #welcomeScreen .lp-stats { grid-template-columns: 1fr; }
-    #welcomeScreen .lp-stat { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-    #welcomeScreen .lp-stat span { margin-top: 0; }
+    #welcomeScreen .sl-nav { gap: 10px; }
+    #welcomeScreen .sl-nav a { font-size: 12px; }
+    #welcomeScreen .sl-hero-media { aspect-ratio: 1 / 1; }
+    #welcomeScreen .sl-hero-caption { left: 14px; right: 14px; bottom: 12px; font-size: 13.5px; }
+    #welcomeScreen .sl-case { padding: 14px; }
 }
 
-/* ---------- 8. MOVIMENTO REDUZIDO ---------- */
+/* ---------- movimento reduzido ---------- */
 @media (prefers-reduced-motion: reduce) {
-    #welcomeScreen .lp-pin[data-status="open"] .lp-pin-dot::after,
-    #welcomeScreen .lp-lmark .lp-pin-dot[data-status="open"]::after { animation: none; }
-    #welcomeScreen .lp-detail { animation: none; }
-    #welcomeScreen .lp-carousel img,
-    #welcomeScreen .lp-carousel-cap,
-    #welcomeScreen .lp-dots button::before,
-    #welcomeScreen .lp-pin-dot,
-    #welcomeScreen .lp-case { transition: none; }
+    #welcomeScreen *, #welcomeScreen *::before, #welcomeScreen *::after {
+        transition: none !important;
+        animation: none !important;
+        scroll-behavior: auto !important;
+    }
 }
