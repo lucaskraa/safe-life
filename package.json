@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "check": "node --check server.js && node --check script.js && node --check landing.js && node security.test.js",
+    "check": "node --check server.js && node --check script.js && node --check landing.js && node security.test.js && node landing.smoke.test.js",
     "integration": "node integration.test.js"
   },
   "engines": {
