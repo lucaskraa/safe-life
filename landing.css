@@ -827,7 +827,7 @@ body:has(#welcomeScreen.active) #app{width:100% !important;max-width:none !impor
              linear-gradient(0deg,rgba(3,10,21,.58) 0%,transparent 43%)!important;
 }
 #welcomeScreen .sl-hero-media.is-image-fallback {
- background:#121f32 url("https://images.unsplash.com/photo-1450778869180-41d0601e046e?auto=format&fit=crop&w=1800&q=82") center / cover;
+ background:#121f32 url("./hero-photo.jpg") center / cover;
 }
 #welcomeScreen .sl-hero-media.is-image-fallback img {display:none}
 #welcomeScreen .sl-hero-copy {position:relative;z-index:2;max-width:575px;padding:0!important}
@@ -862,7 +862,7 @@ body:has(#welcomeScreen.active) #app{width:100% !important;max-width:none !impor
 }
 #welcomeScreen .sl-about-photo {
  width:100%;min-height:260px;align-self:stretch;border-radius:35% 30% 33% 26%;
- background:#c6d3de url("https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=900&q=85") center / cover no-repeat;
+ background:#c6d3de url("./about-photo.jpg") center / cover no-repeat;
  box-shadow:0 20px 45px -35px rgba(5,20,50,.4);
 }
 #welcomeScreen .sl-sobre-grid h2 {max-width:330px;font-size:clamp(25px,2.8vw,36px)}
@@ -901,7 +901,7 @@ body:has(#welcomeScreen.active) #app{width:100% !important;max-width:none !impor
 #welcomeScreen .sl-cta {position:relative;isolation:isolate;overflow:hidden;background:#0b1a32!important}
 #welcomeScreen .sl-cta-in {position:relative;z-index:1;max-width:1150px;min-height:235px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:42px 0}
 #welcomeScreen .sl-cta h2,#welcomeScreen .sl-cta p {position:relative;z-index:2;max-width:680px}
-#welcomeScreen .sl-cta-photo {position:absolute;inset:-35% -5% -45% 55%;z-index:0;opacity:.42;background:url("https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=900&q=80") center / cover no-repeat;mask-image:linear-gradient(90deg,transparent,#000 50%)}
+#welcomeScreen .sl-cta-photo {position:absolute;inset:-35% -5% -45% 55%;z-index:0;opacity:.42;background:url("./cta-cat-photo.jpg") center / cover no-repeat;mask-image:linear-gradient(90deg,transparent,#000 50%)}
 #welcomeScreen .sl-cta-actions {position:relative;z-index:2}
 #welcomeScreen .sl-footer {background:#071321!important;color:#dbe5f3}
 #welcomeScreen .sl-footer .sl-brand-text strong {color:#fff}
