@@ -18,8 +18,8 @@
 
     var MAX_LEN = { bairro: 60, tipo: 60, animal: 60, titulo: 80, texto: 320, acao: 320 };
     var POPUP_DEMO = "Dado fictício para demonstração do TCC. O marcador é ilustrativo e não indica endereço real.";
-    var LEAFLET_CSS = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css";
-    var LEAFLET_JS = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js";
+    var LEAFLET_CSS = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css";
+    var LEAFLET_JS = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js";
     var TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
     var TILES_ATTRIB = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>';
     var ARAUCARIA = [-25.593, -49.405];
@@ -44,22 +44,150 @@
     /* Quatro ocorrências FICTÍCIAS para demonstração (TCC).
        lat/lng = referência aproximada do bairro, arredondada. */
     var DEMO_CASES = [
-        { id: "1", lat: -25.592, lng: -49.409, bairro: "Centro", tipo: "Abandono", status: "done", data: "2026-10-06",
-          titulo: "Animal abandonado",
-          texto: "Cão encontrado próximo a uma praça, aparentemente sem identificação e necessitando de cuidados.",
-          acao: "Ocorrência registrada, equipe acionada e animal encaminhado para avaliação e acolhimento." },
-        { id: "2", lat: -25.553, lng: -49.404, bairro: "Capela Velha", tipo: "Maus-tratos", status: "progress", data: "2026-10-20",
-          titulo: "Suspeita de maus-tratos",
-          texto: "Moradores relataram um cão mantido em condições inadequadas.",
-          acao: "Denúncia registrada e encaminhada para verificação pela equipe responsável." },
-        { id: "3", lat: -25.598, lng: -49.398, bairro: "Iguaçu", tipo: "Desaparecimento", status: "open", data: "2026-11-03",
-          titulo: "Animal desaparecido",
-          texto: "Gato rajado desaparecido. O tutor informou o local onde o animal foi visto pela última vez.",
-          acao: "Informações organizadas para auxiliar na busca e facilitar a divulgação do desaparecimento." },
-        { id: "4", lat: -25.606, lng: -49.372, bairro: "Costeira", tipo: "Resgate", status: "done", data: "2026-11-10",
-          titulo: "Pedido de resgate",
-          texto: "Filhote encontrado em uma situação de risco, necessitando de atendimento.",
-          acao: "Pedido registrado e orientações fornecidas para o atendimento e encaminhamento do animal." }
+        {
+            "id": "1",
+            "bairro": "Centro",
+            "tipo": "Abandono",
+            "titulo": "Animal abandonado",
+            "texto": "Cão encontrado desacompanhado em uma praça, aparentemente debilitado.",
+            "acao": "Simulação de acolhimento e avaliação veterinária.",
+            "status": "done",
+            "lat": -25.592,
+            "lng": -49.409,
+            "data": "2026-11-01"
+        },
+        {
+            "id": "2",
+            "bairro": "Capela Velha",
+            "tipo": "Maus-tratos",
+            "titulo": "Suspeita de maus-tratos",
+            "texto": "Relato fictício de cão mantido sem abrigo adequado.",
+            "acao": "Registro demonstrativo encaminhado para vistoria.",
+            "status": "progress",
+            "lat": -25.553,
+            "lng": -49.404,
+            "data": "2026-11-01"
+        },
+        {
+            "id": "3",
+            "bairro": "Iguaçu",
+            "tipo": "Desaparecimento",
+            "titulo": "Gato desaparecido",
+            "texto": "Tutor procura gato rajado desaparecido nas proximidades do bairro.",
+            "acao": "Divulgação demonstrativa e organização das informações.",
+            "status": "open",
+            "lat": -25.598,
+            "lng": -49.398,
+            "data": "2026-11-01"
+        },
+        {
+            "id": "4",
+            "bairro": "Costeira",
+            "tipo": "Resgate",
+            "titulo": "Filhote em risco",
+            "texto": "Filhote localizado em área de risco durante chuva.",
+            "acao": "Simulação de encaminhamento para equipe de resgate.",
+            "status": "done",
+            "lat": -25.606,
+            "lng": -49.372,
+            "data": "2026-11-01"
+        },
+        {
+            "id": "5",
+            "bairro": "Fazenda Velha",
+            "tipo": "Abandono",
+            "titulo": "Ninhada abandonada",
+            "texto": "Ninhada encontrada sem responsável próximo a uma área verde.",
+            "acao": "Solicitação demonstrativa de acolhimento.",
+            "status": "progress",
+            "lat": -25.583,
+            "lng": -49.394,
+            "data": "2026-11-01"
+        },
+        {
+            "id": "6",
+            "bairro": "Porto das Laranjeiras",
+            "tipo": "Maus-tratos",
+            "titulo": "Animal sem cuidados",
+            "texto": "Relato fictício de animal sem acesso regular à água.",
+            "acao": "Registro demonstrativo em análise.",
+            "status": "open",
+            "lat": -25.578,
+            "lng": -49.431,
+            "data": "2026-11-01"
+        },
+        {
+            "id": "7",
+            "bairro": "Estação",
+            "tipo": "Resgate",
+            "titulo": "Cão ferido",
+            "texto": "Cão encontrado com dificuldade de locomoção.",
+            "acao": "Simulação de atendimento e encaminhamento clínico.",
+            "status": "done",
+            "lat": -25.591,
+            "lng": -49.42,
+            "data": "2026-11-01"
+        },
+        {
+            "id": "8",
+            "bairro": "Tindiquera",
+            "tipo": "Desaparecimento",
+            "titulo": "Cachorra desaparecida",
+            "texto": "Família busca cadela de porte médio desaparecida.",
+            "acao": "Divulgação demonstrativa nas proximidades.",
+            "status": "open",
+            "lat": -25.614,
+            "lng": -49.414,
+            "data": "2026-11-01"
+        },
+        {
+            "id": "9",
+            "bairro": "Thomaz Coelho",
+            "tipo": "Abandono",
+            "titulo": "Cão deixado na rua",
+            "texto": "Cão encontrado desacompanhado em via pública.",
+            "acao": "Simulação de acionamento da rede de apoio.",
+            "status": "progress",
+            "lat": -25.568,
+            "lng": -49.366,
+            "data": "2026-11-01"
+        },
+        {
+            "id": "10",
+            "bairro": "Campina da Barra",
+            "tipo": "Maus-tratos",
+            "titulo": "Suspeita de negligência",
+            "texto": "Moradores relatam animal exposto ao tempo sem abrigo.",
+            "acao": "Registro fictício para avaliação de prioridade.",
+            "status": "open",
+            "lat": -25.627,
+            "lng": -49.405,
+            "data": "2026-11-01"
+        },
+        {
+            "id": "11",
+            "bairro": "Cachoeira",
+            "tipo": "Resgate",
+            "titulo": "Gato preso",
+            "texto": "Gato encontrado em local de difícil acesso.",
+            "acao": "Simulação de resgate realizado em segurança.",
+            "status": "done",
+            "lat": -25.557,
+            "lng": -49.435,
+            "data": "2026-11-01"
+        },
+        {
+            "id": "12",
+            "bairro": "Boqueirão",
+            "tipo": "Abandono",
+            "titulo": "Animal em situação de rua",
+            "texto": "Animal aparentemente sem tutor visto próximo a comércio.",
+            "acao": "Solicitação fictícia de avaliação e acolhimento.",
+            "status": "progress",
+            "lat": -25.608,
+            "lng": -49.447,
+            "data": "2026-11-01"
+        }
     ];
 
     /* ---------- utilitários ---------- */
@@ -409,7 +537,7 @@
             }
         }).catch(function () {
             holder.classList.remove("is-pending");
-            holder.textContent = "Não foi possível carregar o mapa agora. Consulte as ocorrências na lista ao lado.";
+            holder.textContent = "Mapa temporariamente indisponível. As 12 ocorrências demonstrativas continuam disponíveis na lista.";
             mapStarted = false;
         });
     }
@@ -447,6 +575,8 @@
             rebuildIndex();
             activeId = null;
             renderCards();
+            var count = document.querySelector("#welcomeScreen .sl-map-count");
+            if (count) count.textContent = String(cases.length).padStart(2, "0") + " pontos demonstrativos";
 
             // Atualiza somente os marcadores; não recria o mapa nem perde o zoom do usuário.
             if (lmap) renderMarkers();
@@ -460,7 +590,9 @@
         rebuildIndex();
         renderCards();
         var note = byId("slDemoNote");
-        if (note) note.textContent = "Dados demonstrativos do TCC — ocorrências fictícias utilizadas para demonstração do projeto.";
+        if (note) note.textContent = "12 ocorrências fictícias para demonstração do TCC. Nenhum marcador representa uma denúncia real ou endereço exato."; 
+        var count = document.querySelector("#welcomeScreen .sl-map-count");
+        if (count) count.textContent = String(cases.length).padStart(2, "0") + " pontos demonstrativos";
         initMapLazy();
     }
 
