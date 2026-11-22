@@ -827,7 +827,7 @@ body:has(#welcomeScreen.active) #app{width:100% !important;max-width:none !impor
              linear-gradient(0deg,rgba(3,10,21,.58) 0%,transparent 43%)!important;
 }
 #welcomeScreen .sl-hero-media.is-image-fallback {
- background:#121f32 url("./hero-photo.jpg") center / cover;
+ background:#121f32 url("./hero-photo-v2.jpg") center / cover;
 }
 #welcomeScreen .sl-hero-media.is-image-fallback img {display:none}
 #welcomeScreen .sl-hero-copy {position:relative;z-index:2;max-width:575px;padding:0!important}
