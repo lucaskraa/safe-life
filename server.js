@@ -135,6 +135,17 @@ if (fs.existsSync(PUBLIC_DIR)) {
     });
 }
 
+// Arquivos estáticos explicitamente permitidos para a landing.
+// Não expor indiscriminadamente o diretório raiz (contém SQL e backend).
+["landing.css", "landing.js", "hero-photo.jpg", "about-photo.jpg", "cta-cat-photo.jpg"].forEach((name) => {
+    app.get("/" + name, (req, res, next) => {
+        const file = path.join(__dirname, name);
+        if (!fs.existsSync(file)) return next();
+        if (/\.jpe?g$/i.test(name)) res.setHeader("Cache-Control", "public, max-age=86400");
+        return res.sendFile(file);
+    });
+});
+
 /* =====================================================
    CONEXÃO COM POSTGRESQL / SUPABASE
 ===================================================== */
