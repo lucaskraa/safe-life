@@ -1,0 +1,26 @@
+name: Instalar fotografias da landing Safe Life
+on:
+  push:
+    paths:
+      - '.github/workflows/landing-assets-once.yml'
+permissions:
+  contents: write
+jobs:
+  photos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Salvar fotos com fallback local para o site
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fLsS --retry 3 --connect-timeout 15 --max-time 80 "https://images.unsplash.com/photo-1746428209256-9fa14b6dd473?auto=format&fit=crop&w=1800&q=84&fm=jpg" -o hero-photo.jpg
+          curl -fLsS --retry 3 --connect-timeout 15 --max-time 80 "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=900&q=82&fm=jpg" -o about-photo.jpg
+          curl -fLsS --retry 3 --connect-timeout 15 --max-time 80 "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=900&q=82&fm=jpg" -o cta-cat-photo.jpg
+          file hero-photo.jpg about-photo.jpg cta-cat-photo.jpg
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add hero-photo.jpg about-photo.jpg cta-cat-photo.jpg
+          git diff --cached --quiet || (git commit -m "Assets: fotos locais da landing para carregamento confiável" && git push)
