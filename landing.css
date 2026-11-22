@@ -940,3 +940,7 @@ body:has(#welcomeScreen.active) #app{width:100% !important;max-width:none !impor
 
 #welcomeScreen .sl-map-error{position:absolute;left:24px;right:24px;top:37%;text-align:center;color:#314562;font-size:14px;z-index:3}
 #welcomeScreen .sl-map-retry{position:absolute;left:50%;top:55%;transform:translateX(-50%);z-index:3;padding:11px 17px;background:#3264f5;border:0;border-radius:9px;color:#fff;font-weight:700;cursor:pointer}
+
+/* Ajuste da fotografia: rostos dos dois animais visíveis sem cortar o assunto. */
+#welcomeScreen .sl-hero-media img { object-position: 60% center; }
+@media (max-width:680px) { #welcomeScreen .sl-hero-media img { object-position: 60% center; } }
