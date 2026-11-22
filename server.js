@@ -1180,6 +1180,20 @@ async function verificarLeituraOcorrencia(req, res, next) {
    ROTA INICIAL / SAÚDE DA API
 ===================================================== */
 
+// Landing pública: somente casos fictícios isolados dos registros reais.
+app.get("/api/landing/ocorrencias-demo", async (req, res) => {
+    try {
+        const result = await pool.query(
+            "SELECT id, bairro, tipo, titulo, texto, acao, status, lat, lng FROM public.ocorrencias_demo_landing WHERE demonstrativa = true ORDER BY id LIMIT 30"
+        );
+        res.setHeader("Cache-Control", "public, max-age=60");
+        return res.status(200).json({ demonstrativo: true, casos: result.rows });
+    } catch (erro) {
+        console.error("Falha ao consultar casos demonstrativos da landing:", erro.message);
+        return res.status(503).json({ demonstrativo: true, casos: [], erro: "Casos demonstrativos temporariamente indisponíveis" });
+    }
+});
+
 app.get("/api/status", async (req, res) => {
     try {
         const resultado = await pool.query("SELECT NOW() AS horario_banco");
