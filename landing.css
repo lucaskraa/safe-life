@@ -762,3 +762,27 @@
 body:has(#welcomeScreen.active){background:#f5f7fb !important}
 body:has(#welcomeScreen.active) #app{width:100% !important;max-width:none !important;margin:0 !important;padding:0 !important}
 #welcomeScreen{min-height:100vh}
+
+/* Safe Life landing — acabamento v10: apenas #welcomeScreen */
+#welcomeScreen .sl-hero { background: #f6f8fc; }
+#welcomeScreen .sl-hero-grid { gap: clamp(28px, 5vw, 76px); align-items:center; }
+#welcomeScreen .sl-hero-copy { padding-top: 0; }
+#welcomeScreen .sl-hero h1 { max-width: 620px; font-size: clamp(38px, 4.2vw, 62px); letter-spacing:-.055em; line-height:1.06; }
+#welcomeScreen .sl-lead { max-width: 520px; font-size: clamp(15px, 1.3vw, 17px); line-height:1.75; }
+#welcomeScreen .sl-hero-media { aspect-ratio: 1.13 / 1; max-height: 490px; border-radius: 22px; box-shadow: 0 22px 55px -34px rgba(15,34,65,.35); }
+#welcomeScreen .sl-hero-media img { object-position:center 43%; }
+#welcomeScreen .sl-hero-caption { font-size: 16px; max-width: 330px; }
+#welcomeScreen .sl-section { padding-block: clamp(48px, 6vw, 76px); }
+#welcomeScreen .sl-sobre { background: #fff; }
+#welcomeScreen .sl-occ-grid { grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr); gap:24px; }
+#welcomeScreen .sl-map { height: 510px; border-radius: 16px; box-shadow:none; }
+#welcomeScreen .sl-map-column { position:relative; }
+#welcomeScreen .sl-case-column { max-height: 590px; overflow-y:auto; padding-right:4px; }
+#welcomeScreen .sl-case { border:1px solid #e5eaf2; box-shadow:none; margin-bottom:10px; }
+#welcomeScreen .sl-case:hover { border-color:#aabfea; }
+#welcomeScreen .sl-demo-note { background:#f5f7fb; border-radius:10px; padding:12px 16px; }
+#welcomeScreen .sl-btn-solid { background:#3264f5; border-color:#3264f5; }
+#welcomeScreen .sl-btn { border-radius:10px; }
+@media(max-width:1024px){#welcomeScreen .sl-occ-grid{grid-template-columns:1fr}#welcomeScreen .sl-case-column{max-height:440px}}
+@media(max-width:900px){#welcomeScreen .sl-hero-media{aspect-ratio:16/10;order:-1}#welcomeScreen .sl-hero h1{font-size:clamp(36px,6vw,52px)}}
+@media(max-width:600px){#welcomeScreen .sl-hero-media{aspect-ratio:4/3}#welcomeScreen .sl-map{height:340px}#welcomeScreen .sl-case-column{max-height:460px}#welcomeScreen .sl-hero h1{font-size:clamp(34px,9vw,44px)}}
