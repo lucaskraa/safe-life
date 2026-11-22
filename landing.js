@@ -33,7 +33,7 @@
     /* Fotografias documentais (Unsplash, licença livre).
        A 1ª que carregar é usada; a última é a reserva offline. */
     var HERO_CANDIDATES = [
-        "./hero.jpg",
+        "https://images.unsplash.com/photo-1746428209256-9fa14b6dd473?auto=format&fit=crop&w=1800&q=85",
         "https://images.unsplash.com/photo-1450778869180-41d0601e046e?auto=format&fit=crop&w=1400&q=85",
         "https://images.unsplash.com/photo-1675701918064-0723acdfe0f8?auto=format&fit=crop&w=1400&q=85",
         "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=1200&q=80",
@@ -291,7 +291,8 @@
     var cases = DEMO_CASES.map(sanitizeCase).filter(Boolean);
 
     var caseIndex = new Map();   // id -> case
-    var cardEls = new Map();     // id -> <li>
+    var cardEls = new Map();
+    var showAllCases = false;     // id -> <li>
     var markerObjs = new Map();  // id -> { marker, latlng }
     var activeId = null;
 
@@ -314,8 +315,9 @@
             return;
         }
 
-        cases.forEach(function (c) {
+        cases.forEach(function (c, index) {
             var li = el("li", "sl-case");
+            li.classList.toggle("is-preview-hidden", !showAllCases && index >= 5);
             li.dataset.id = c.id;
             li.setAttribute("tabindex", "0");
             li.setAttribute("role", "button");
@@ -350,6 +352,12 @@
             cardEls.set(c.id, li);
             list.appendChild(li);
         });
+        var toggle = byId("slToggleCases");
+        if (toggle) {
+            toggle.hidden = cases.length <= 5;
+            toggle.setAttribute("aria-expanded", showAllCases ? "true" : "false");
+            toggle.textContent = showAllCases ? "Mostrar menos ocorrências ↑" : "Ver todas as " + cases.length + " ocorrências →";
+        }
     }
 
     /* ---------- seleção integrada card <-> mapa ---------- */
@@ -462,7 +470,7 @@
         if (!lmap || !window.L) return;
         if (markerLayer) markerLayer.clearLayers();
         markerObjs.clear();
-        markerLayer = markerLayer || L.layerGroup().addTo(lmap);
+        markerLayer = markerLayer || L.featureGroup().addTo(lmap);
 
         cases.forEach(function (c, index) {
             if (c.lat === null || c.lng === null) return;
@@ -523,7 +531,7 @@
             lmap.on("mouseout", function () { lmap.scrollWheelZoom.disable(); });
 
             renderMarkers();
-            if (markerLayer && markerLayer.getLayers().length) {
+            if (markerLayer && markerLayer.getLayers().length && typeof markerLayer.getBounds === "function") {
                 var bounds = markerLayer.getBounds();
                 if (bounds.isValid()) lmap.fitBounds(bounds.pad(0.22), { maxZoom: 13, animate: false });
             }
@@ -535,9 +543,18 @@
                 ro.observe(holder);
                 holder._slMapResizeObserver = ro;
             }
-        }).catch(function () {
+        }).catch(function (err) {
+            console.warn("Safe Life: mapa não pôde ser inicializado:", err);
+            if (lmap) { try { lmap.remove(); } catch (_) {} lmap = null; }
+            markerLayer = null;
             holder.classList.remove("is-pending");
-            holder.textContent = "Mapa temporariamente indisponível. As 12 ocorrências demonstrativas continuam disponíveis na lista.";
+            holder.textContent = "";
+            var msg = el("p", "sl-map-error", "O mapa não carregou. As ocorrências demonstrativas estão disponíveis ao lado.");
+            var retry = el("button", "sl-map-retry", "Tentar carregar novamente");
+            retry.type = "button";
+            retry.addEventListener("click", function () { mapStarted = false; startMap(); });
+            holder.appendChild(msg);
+            holder.appendChild(retry);
             mapStarted = false;
         });
     }
@@ -591,7 +608,11 @@
         renderCards();
         // Fonte preferencial: tabela isolada no Supabase, via servidor existente.
         // Se o Render estiver offline, os mesmos exemplos locais continuam visíveis.
-        fetch("/api/landing/ocorrencias-demo", { credentials: "omit" })
+        fetch((function () {
+            var base = document.querySelector('meta[name="safe-life-api-url"]');
+            var origin = base && base.content ? base.content.replace(/\/$/, "") : "https://safe-life.onrender.com";
+            return origin + "/api/landing/ocorrencias-demo";
+        })(), { credentials: "omit" })
             .then(function (res) { if (!res.ok) throw new Error("API indisponível"); return res.json(); })
             .then(function (data) {
                 if (data && data.demonstrativo === true && Array.isArray(data.casos) && data.casos.length) {
@@ -602,6 +623,11 @@
         if (note) note.textContent = "12 ocorrências fictícias para demonstração do TCC. Nenhum marcador representa uma denúncia real ou endereço exato."; 
         var count = document.querySelector("#welcomeScreen .sl-map-count");
         if (count) count.textContent = String(cases.length).padStart(2, "0") + " pontos demonstrativos";
+        var toggle = byId("slToggleCases");
+        if (toggle) toggle.addEventListener("click", function () {
+            showAllCases = !showAllCases;
+            renderCards();
+        });
         initMapLazy();
     }
 
