@@ -10,14 +10,14 @@ for (const id of ["welcomeScreen","slHeroImg","slMap","slCaseList","slToggleCase
   assert(html.includes('id="' + id + '"'), "Elemento ausente: " + id);
 }
 assert(html.includes("nextScreen('locationScreen')"), "A navegação original para GPS foi removida");
-assert(html.includes('src="./hero-photo.jpg"'), "Foto local do hero ausente");
+assert(html.includes('src="./hero-photo-v2.jpg"'), "Foto local do hero ausente");
 assert(css.includes("#welcomeScreen .sl-hero-media"), "Hero sem CSS isolado");
 assert(css.includes("#welcomeScreen .sl-map"), "Mapa sem CSS isolado");
 assert(js.includes("L.featureGroup().addTo(lmap)"), "Camada de mapa não suporta getBounds");
 assert(js.includes("/api/landing/ocorrencias-demo"), "API da landing não ligada");
 assert((js.match(/"bairro":/g) || []).length === 12, "Não há 12 casos demonstrativos de fallback");
 assert(server.includes('app.get("/api/landing/ocorrencias-demo"'), "Endpoint demonstrativo ausente");
-for(const file of ["hero-photo.jpg","about-photo.jpg","cta-cat-photo.jpg"]) {
+for(const file of ["hero-photo-v2.jpg","about-photo.jpg","cta-cat-photo.jpg"]) {
   assert(fs.statSync(file).size > 15000, "Fotografia faltando: " + file);
 }
 console.log("Landing Safe Life: 12 ocorrências, imagem real, navegação e mapa verificados (checagem estática).");
