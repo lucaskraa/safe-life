@@ -16,7 +16,7 @@
     const FALLBACK_DOG_PHOTO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImIiIHgxPSIwIiB4Mj0iMSI+PHN0b3Agc3RvcC1jb2xvcj0iI2RiZWFmZSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2M3ZDJmZSIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iOTYiIGZpbGw9InVybCgjYikiLz48ZWxsaXBzZSBjeD0iMjU2IiBjeT0iMjg2IiByeD0iMTQyIiByeT0iMTM1IiBmaWxsPSIjZDg5YTUyIi8+PHBhdGggZD0iTTE0NSAyMDZjLTU0LTE2LTcyIDM3LTUwIDEwMyAxNCA0MiA0OCA2MyA3NiA0MnpNMzY3IDIwNmM1NC0xNiA3MiAzNyA1MCAxMDMtMTQgNDItNDggNjMtNzYgNDJ6IiBmaWxsPSIjYTk2NTMyIi8+PGVsbGlwc2UgY3g9IjIwMyIgY3k9IjI3MiIgcng9IjE4IiByeT0iMjIiIGZpbGw9IiMxNzIwMzMiLz48ZWxsaXBzZSBjeD0iMzA5IiBjeT0iMjcyIiByeD0iMTgiIHJ5PSIyMiIgZmlsbD0iIzE3MjAzMyIvPjxlbGxpcHNlIGN4PSIyNTYiIGN5PSIzMjgiIHJ4PSIzMyIgcnk9IjI1IiBmaWxsPSIjMTcyMDMzIi8+PHBhdGggZD0iTTIyMiAzNTljMjAgMjkgNDggMjkgNjggMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMTcyMDMzIiBzdHJva2Utd2lkdGg9IjE1IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48cGF0aCBkPSJNMjE3IDM4NmMyNCAzMCA1NCAzMCA3OCAwIiBmaWxsPSIjZWY3YjhkIi8+PC9zdmc+";
     const FALLBACK_CAT_PHOTO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImIiIHgxPSIwIiB4Mj0iMSI+PHN0b3Agc3RvcC1jb2xvcj0iI2VkZTlmZSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2RkZDZmZSIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iOTYiIGZpbGw9InVybCgjYikiLz48cGF0aCBkPSJNMTQyIDIyOCAxNjMgMTEybDkyIDc2IDk0LTc2IDIxIDExNmMyOCAzNiA0MiA3OCAzNCAxMjUtMTIgNzUtNzUgMTE3LTE0OCAxMTdzLTEzNi00Mi0xNDgtMTE3Yy04LTQ3IDYtODkgMzQtMTI1eiIgZmlsbD0iIzZiNzI4MCIvPjxwYXRoIGQ9Ik0xNzAgMTgwIDE3OCAxNDFsNDIgMzV6TTM0MiAxODBsLTgtMzktNDIgMzV6IiBmaWxsPSIjZjRhNmI3Ii8+PGVsbGlwc2UgY3g9IjIwNSIgY3k9IjI5NCIgcng9IjE4IiByeT0iMjQiIGZpbGw9IiNmOGZhZmMiLz48ZWxsaXBzZSBjeD0iMzA3IiBjeT0iMjk0IiByeD0iMTgiIHJ5PSIyNCIgZmlsbD0iI2Y4ZmFmYyIvPjxlbGxpcHNlIGN4PSIyMDUiIGN5PSIyOTkiIHJ4PSI4IiByeT0iMTQiIGZpbGw9IiMxNzIwMzMiLz48ZWxsaXBzZSBjeD0iMzA3IiBjeT0iMjk5IiByeD0iOCIgcnk9IjE0IiBmaWxsPSIjMTcyMDMzIi8+PHBhdGggZD0iTTI0MiAzMzdoMjhsLTE0IDE2eiIgZmlsbD0iI2Y0YTZiNyIvPjxwYXRoIGQ9Ik0yNTYgMzUzYy0xNCAyNC0zMyAyMy00NSA4TTI1NiAzNTNjMTQgMjQgMzMgMjMgNDUgOCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMTcyMDMzIiBzdHJva2Utd2lkdGg9IjkiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxwYXRoIGQ9Ik0xOTggMzQzaC03ME0yMDEgMzYzaC04Mk0zMTQgMzQzaDcwTTMxMSAzNjNoODIiIHN0cm9rZT0iIzE3MjAzMyIgc3Ryb2tlLXdpZHRoPSI3IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48L3N2Zz4=";
     const FALLBACK_BIRD_PHOTO = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImIiIHgxPSIwIiB4Mj0iMSI+PHN0b3Agc3RvcC1jb2xvcj0iI2RjZmNlNyIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2JiZjdkMCIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iOTYiIGZpbGw9InVybCgjYikiLz48ZWxsaXBzZSBjeD0iMjU2IiBjeT0iMjkyIiByeD0iMTI2IiByeT0iMTQ1IiBmaWxsPSIjM2I4MmY2Ii8+PGVsbGlwc2UgY3g9IjI4MiIgY3k9IjI3NiIgcng9IjgyIiByeT0iMTA4IiBmaWxsPSIjNjBhNWZhIi8+PHBhdGggZD0iTTE1NCAzMTVjLTYyIDMxLTcwIDk5LTggMTA2IDQ1IDUgODQtMzEgOTQtODB6IiBmaWxsPSIjMjU2M2ViIi8+PGNpcmNsZSBjeD0iMjk0IiBjeT0iMjQzIiByPSIxNyIgZmlsbD0iIzE3MjAzMyIvPjxjaXJjbGUgY3g9IjMwMCIgY3k9IjIzNyIgcj0iNSIgZmlsbD0iI2ZmZiIvPjxwYXRoIGQ9Im0zNTQgMjc2IDg1IDI3LTgzIDI4eiIgZmlsbD0iI2Y1OWUwYiIvPjxwYXRoIGQ9Ik0yMzEgNDMydjM4TTI4NCA0MzJ2MzhNMjA3IDQ3MGg0OE0yNjIgNDcwaDQ4IiBzdHJva2U9IiM4YjVhMmIiIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjwvc3ZnPg==";
-    const FALLBACK_USER_PHOTO = FALLBACK_DOG_PHOTO;
+    const FALLBACK_USER_PHOTO = "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20160%20160%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20stop-color%3D%22%23eaf2ff%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23d7e7fc%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Ccircle%20cx%3D%2280%22%20cy%3D%2280%22%20r%3D%2280%22%20fill%3D%22url(%23g)%22%2F%3E%3Ccircle%20cx%3D%2280%22%20cy%3D%2261%22%20r%3D%2226%22%20fill%3D%22%23315785%22%2F%3E%3Cpath%20d%3D%22M29%20144c3-32%2020-48%2051-48s48%2016%2051%2048%22%20fill%3D%22%23315785%22%2F%3E%3Ccircle%20cx%3D%2280%22%20cy%3D%2280%22%20r%3D%2276%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%224%22%20opacity%3D%22.6%22%2F%3E%3C%2Fsvg%3E";
     const FALLBACK_PRO_PHOTO = FALLBACK_DOG_PHOTO;
     const FALLBACK_ADMIN_PHOTO = FALLBACK_CAT_PHOTO;
     const FALLBACK_PET_PHOTO = FALLBACK_DOG_PHOTO;
@@ -243,22 +243,8 @@
     }
 
     function defaultUserPhoto(user) {
-        const cpf = cleanCpf(user && user.cpf);
-        const name = String(user && user.nome || "").trim().toLowerCase();
-        const type = String(user && (user.type || user.tipo) || "citizen").toLowerCase();
-
-        const seedText = cpf || name || type;
-        let seed = 0;
-
-        for (let index = 0; index < seedText.length; index += 1) {
-            seed = (seed + seedText.charCodeAt(index) * (index + 1)) % 997;
-        }
-
-        const defaults = type === "professional"
-            ? [FALLBACK_DOG_PHOTO, FALLBACK_BIRD_PHOTO, FALLBACK_CAT_PHOTO]
-            : [FALLBACK_DOG_PHOTO, FALLBACK_CAT_PHOTO, FALLBACK_BIRD_PHOTO];
-
-        return defaults[seed % defaults.length];
+        // Apenas o placeholder do usuário; fotos escolhidas continuam preservadas.
+        return FALLBACK_USER_PHOTO;
     }
 
     function resolveUserPhoto(user, sourceOverride) {
