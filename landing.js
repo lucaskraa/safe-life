@@ -589,6 +589,15 @@
         initHero();
         rebuildIndex();
         renderCards();
+        // Fonte preferencial: tabela isolada no Supabase, via servidor existente.
+        // Se o Render estiver offline, os mesmos exemplos locais continuam visíveis.
+        fetch("/api/landing/ocorrencias-demo", { credentials: "omit" })
+            .then(function (res) { if (!res.ok) throw new Error("API indisponível"); return res.json(); })
+            .then(function (data) {
+                if (data && data.demonstrativo === true && Array.isArray(data.casos) && data.casos.length) {
+                    window.SafeLifeLanding.setCases(data.casos);
+                }
+            }).catch(function () { /* preserva exemplos locais */ });
         var note = byId("slDemoNote");
         if (note) note.textContent = "12 ocorrências fictícias para demonstração do TCC. Nenhum marcador representa uma denúncia real ou endereço exato."; 
         var count = document.querySelector("#welcomeScreen .sl-map-count");
