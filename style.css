@@ -11605,3 +11605,9 @@ body:has(#welcomeScreen.active) #app {
         padding: 36px 20px 56px;
     }
 }
+
+/* Avatar padrão do cidadão: neutro, sem emojis ou desenhos de animais. */
+#registerScreen .register-avatar-box {background:#f8faff; border:1px solid #e3eaf5;border-radius:18px;padding:18px;}
+#registerScreen .register-avatar-preview {background:#e9f0fb;box-shadow:none;border:1px solid #d5e3f6;padding:4px;width:80px;height:80px;min-width:80px;}
+#registerScreen .register-avatar-preview img {border:0;border-radius:50%;object-fit:cover;background:#e9f0fb;}
+#registerScreen .register-avatar-text strong {font-size:15px;font-weight:700;}
