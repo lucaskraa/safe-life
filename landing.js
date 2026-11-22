@@ -33,7 +33,7 @@
     /* Fotografias documentais (Unsplash, licença livre).
        A 1ª que carregar é usada; a última é a reserva offline. */
     var HERO_CANDIDATES = [
-        "./hero-photo.jpg",
+        "./hero-photo-v2.jpg",
         "https://images.unsplash.com/photo-1695451486995-7697b5c1be51?auto=format&fit=crop&w=1400&q=78",
         "https://images.unsplash.com/photo-1450778869180-41d0601e046e?auto=format&fit=crop&w=1400&q=85",
         "https://images.unsplash.com/photo-1675701918064-0723acdfe0f8?auto=format&fit=crop&w=1400&q=85",
