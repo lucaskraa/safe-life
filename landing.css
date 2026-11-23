@@ -827,7 +827,7 @@ body:has(#welcomeScreen.active) #app{width:100% !important;max-width:none !impor
              linear-gradient(0deg,rgba(3,10,21,.58) 0%,transparent 43%)!important;
 }
 #welcomeScreen .sl-hero-media.is-image-fallback {
- background:#121f32 url("./landing-abrigo-hero.jpg") center / cover;
+ background:#121f32 url("./landing-cao-abrigo-primeiro-plano.jpg") center / cover;
 }
 #welcomeScreen .sl-hero-media.is-image-fallback img {display:none}
 #welcomeScreen .sl-hero-copy {position:relative;z-index:2;max-width:575px;padding:0!important}
@@ -901,7 +901,7 @@ body:has(#welcomeScreen.active) #app{width:100% !important;max-width:none !impor
 #welcomeScreen .sl-cta {position:relative;isolation:isolate;overflow:hidden;background:#0b1a32!important}
 #welcomeScreen .sl-cta-in {position:relative;z-index:1;max-width:1150px;min-height:235px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:42px 0}
 #welcomeScreen .sl-cta h2,#welcomeScreen .sl-cta p {position:relative;z-index:2;max-width:680px}
-#welcomeScreen .sl-cta-photo {position:absolute;inset:-35% -5% -45% 55%;z-index:0;opacity:.42;background:url("./landing-abrigo-cta.jpg") center / cover no-repeat;mask-image:linear-gradient(90deg,transparent,#000 50%)}
+#welcomeScreen .sl-cta-photo {position:absolute;inset:-35% -5% -45% 55%;z-index:0;opacity:.42;background:url("./landing-abrigo-cta-opcao.jpg") center / cover no-repeat;mask-image:linear-gradient(90deg,transparent,#000 50%)}
 #welcomeScreen .sl-cta-actions {position:relative;z-index:2}
 #welcomeScreen .sl-footer {background:#071321!important;color:#dbe5f3}
 #welcomeScreen .sl-footer .sl-brand-text strong {color:#fff}
@@ -1021,3 +1021,8 @@ body:has(#welcomeScreen.active)::after,
   }
   #welcomeScreen .sl-cta-photo {inset:0 0 0 20%!important;opacity:.32!important;}
 }
+
+/* Enquadramento final: rosto do cão à direita e gato da chamada final visível. */
+#welcomeScreen .sl-hero-media img {object-position:61% center!important;}
+#welcomeScreen .sl-cta-photo {background-position:48% center!important;}
+@media(max-width:680px){#welcomeScreen .sl-hero-media img{object-position:65% center!important}}
