@@ -4309,10 +4309,13 @@ app.get("/api/pro/ocorrencias", verificarSessaoUsuario, exigirPerfis("profession
                     nome_usuario,
                     cpf_usuario,
                     foto_usuario,
-                    o.demonstrativo,
-                    o.demo_origem_id
-                FROM view_ocorrencias_completas v
-                JOIN ocorrencias o ON o.id = v.id
+                    v.demonstrativo,
+                    v.demo_origem_id
+                FROM (
+                    SELECT v.*, o.demonstrativo, o.demo_origem_id
+                    FROM view_ocorrencias_completas v
+                    JOIN ocorrencias o ON o.id = v.id
+                ) v
 
                 UNION ALL
 
