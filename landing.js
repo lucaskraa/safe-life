@@ -309,7 +309,7 @@
 
     /* ---------- estado das ocorrências ---------- */
 
-    var cases = DEMO_CASES.map(sanitizeCase).filter(function(c) { return c && c.status !== "done"; });
+    var cases = []; // Exibe somente registros recebidos da API, nunca exemplos soltos.
 
     var caseIndex = new Map();   // id -> case
     var cardEls = new Map();
@@ -631,7 +631,7 @@
         }
     }
 
-    /* ---------- API pública (inalterada) ---------- */
+    /* ---------- API pública: ocorrências identificadas e ativas ---------- */
 
     window.SafeLifeLanding = {
         setCases: function (list) {
@@ -692,6 +692,7 @@
                 .catch(function () { /* preserva a ultima vitrine sem trocar por exemplos */ })
                 .finally(function () { fetching = false; });
         }
+        window.SafeLifeLanding.refresh = refreshPublicCases;
         refreshPublicCases();
         window.setInterval(function () {
             var screen = byId("welcomeScreen");
