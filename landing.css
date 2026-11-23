@@ -944,3 +944,80 @@ body:has(#welcomeScreen.active) #app{width:100% !important;max-width:none !impor
 /* Ajuste da fotografia: rostos dos dois animais visíveis sem cortar o assunto. */
 #welcomeScreen .sl-hero-media img { object-position: 60% center; }
 @media (max-width:680px) { #welcomeScreen .sl-hero-media img { object-position: 60% center; } }
+
+/* Safe Life — correção precisa das faixas e direção fotográfica documental. */
+html:has(#welcomeScreen.active),
+body:has(#welcomeScreen.active) {background:#071321!important;}
+body:has(#welcomeScreen.active) #app {
+  padding:0!important;
+  margin:0!important;
+  min-height:0!important;
+  background:transparent!important;
+}
+#welcomeScreen.screen,
+#welcomeScreen.screen.active {
+  padding:0!important;
+  margin:0!important;
+  min-height:100vh!important;
+  background:#f6f8fc!important;
+}
+#welcomeScreen .sl-hero::after {content:none!important;display:none!important;}
+#welcomeScreen .sl-hero {
+  border:0!important;
+  border-radius:0!important;
+  margin:0!important;
+  padding-bottom:94px!important;
+}
+#welcomeScreen .sl-hero-media img {
+  object-fit:cover!important;
+  object-position:center 44%!important;
+  filter:saturate(.68) contrast(1.11) brightness(.87)!important;
+}
+#welcomeScreen .sl-hero-media::after {
+  background:linear-gradient(90deg,
+    rgba(6,14,28,.98) 0%,
+    rgba(6,14,28,.88) 27%,
+    rgba(6,14,28,.65) 47%,
+    rgba(6,14,28,.11) 76%,
+    rgba(6,14,28,.17) 100%),
+    linear-gradient(0deg,rgba(5,10,24,.4),transparent 48%)!important;
+}
+#welcomeScreen .sl-about-photo {
+  border-radius:18px!important;
+  background-position:center!important;
+  filter:saturate(.7) contrast(1.08) brightness(.92);
+}
+#welcomeScreen .sl-cta {
+  margin:0!important;
+  border:0!important;
+  border-radius:0!important;
+  overflow:hidden!important;
+  background:#0b172a!important;
+}
+#welcomeScreen .sl-cta-photo {
+  inset:0 0 0 47%!important;
+  opacity:.77!important;
+  background-position:center 39%!important;
+  filter:saturate(.6) contrast(1.14) brightness(.85);
+  mask-image:linear-gradient(90deg,transparent 0%,black 36%)!important;
+}
+#welcomeScreen .sl-footer,
+#welcomeScreen .sl-footer:last-child {
+  padding:38px 0 46px!important;
+  margin:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:#071321!important;
+}
+#welcomeScreen .sl-footer-in {margin-bottom:0!important;padding-bottom:0!important;}
+body:has(#welcomeScreen.active)::after,
+#app:has(#welcomeScreen.active)::after {content:none!important;}
+@media(max-width:680px) {
+  #welcomeScreen .sl-hero {padding-bottom:72px!important;}
+  #welcomeScreen .sl-hero-media img {object-position:57% center!important;}
+  #welcomeScreen .sl-hero-media::after {
+    background:linear-gradient(90deg,rgba(6,14,28,.93),rgba(6,14,28,.56) 100%),
+               linear-gradient(0deg,rgba(6,14,28,.4),transparent 55%)!important;
+  }
+  #welcomeScreen .sl-cta-photo {inset:0 0 0 20%!important;opacity:.32!important;}
+}
