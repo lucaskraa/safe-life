@@ -1,10 +1,10 @@
 # Safe Life
 
-Plataforma web do TCC para proteção animal, denúncia, resgate e acompanhamento de ocorrências.
+Plataforma web de proteção animal para registrar ocorrências, solicitar resgates e acompanhar atendimentos.
 
 ## Perfis públicos de demonstração
 
-As três contas abaixo são deliberadamente públicas porque fazem parte da demonstração do TCC. Todas usam a senha `123456`.
+As três contas abaixo são deliberadamente públicas para demonstração do sistema. Todas usam a senha `123456`.
 
 | Perfil | Nome | CPF | Uso |
 | --- | --- | --- | --- |
