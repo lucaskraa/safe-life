@@ -28,7 +28,8 @@ assert(!html.includes(">No mapa</button>"), "A central não deve exibir o filtro
 assert(html.includes(">SOS Emergência</button>") && html.includes(">Pets desaparecidos</button>"), "Categorias do cidadão devem aparecer na central");
 assert(js.includes('item.status === "done"'), "Ocorrências concluídas devem ser filtradas do mapa público");
 assert(!js.includes("sl-popup-detail-btn"), "Remover link de foto e detalhes do mapa");
-assert(server.includes("WHERE status IS DISTINCT FROM 'done'"), "API pública deve ocultar concluídos");
+assert(server.includes("o.status NOT IN ('CONCLUIDA','CANCELADA')"), "API pública deve ocultar concluídos");
+assert(server.includes("p.fonte = 'ocorrencia'"), "API pública deve excluir denúncias anônimas");
 assert(html.includes("É simples! É rápido! É por eles!"), "Título principal deve usar exclamações");
 assert(!html.includes("Projeto acadêmico de TCC"), "Remover referência acadêmica da landing");
 
