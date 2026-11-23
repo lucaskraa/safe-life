@@ -1197,10 +1197,15 @@ app.get("/api/landing/ocorrencias-demo", async (req, res) => {
         // Somente campos publicos: titulo generico, bairro aproximado e foto ilustrativa.
         // Sem GPS exato, identificador interno, dados do cidadao ou evidencia original.
         const result = await pool.query(`
-            SELECT id, fonte, bairro, tipo, titulo, texto, acao, status, lat, lng, foto_url, inserido_em
-            FROM public.landing_casos_publicos
-            WHERE status IS DISTINCT FROM 'done'
-            ORDER BY inserido_em DESC, id DESC
+            SELECT p.id, p.bairro, p.tipo, p.titulo, p.texto, p.acao,
+                   p.status, p.lat, p.lng, p.foto_url, p.inserido_em,
+                   o.demonstrativo
+            FROM public.landing_casos_publicos p
+            JOIN public.ocorrencias o ON o.id = p.origem_id
+            WHERE p.fonte = 'ocorrencia'
+              AND o.usuario_id IS NOT NULL AND o.anonima = FALSE
+              AND o.status NOT IN ('CONCLUIDA','CANCELADA')
+            ORDER BY p.inserido_em DESC, p.id DESC
             LIMIT 12
         `);
         const rows = result.rows.map((row) => ({
@@ -1215,7 +1220,7 @@ app.get("/api/landing/ocorrencias-demo", async (req, res) => {
             lng: Number(row.lng),
             foto_url: row.foto_url,
             data: row.inserido_em,
-            demonstrativo: row.fonte === "demo"
+            demonstrativo: row.demonstrativo === true
         }));
         res.setHeader("Cache-Control", "no-store");
         return res.status(200).json({ casos: rows, demonstrativo: rows.every((row) => row.demonstrativo) });
@@ -4303,8 +4308,11 @@ app.get("/api/pro/ocorrencias", verificarSessaoUsuario, exigirPerfis("profession
                     criado_em,
                     nome_usuario,
                     cpf_usuario,
-                    foto_usuario
-                FROM view_ocorrencias_completas
+                    foto_usuario,
+                    o.demonstrativo,
+                    o.demo_origem_id
+                FROM view_ocorrencias_completas v
+                JOIN ocorrencias o ON o.id = v.id
 
                 UNION ALL
 
@@ -4330,7 +4338,9 @@ app.get("/api/pro/ocorrencias", verificarSessaoUsuario, exigirPerfis("profession
                     criado_em,
                     'Anônimo' AS nome_usuario,
                     NULL AS cpf_usuario,
-                    NULL AS foto_usuario
+                    NULL AS foto_usuario,
+                    FALSE AS demonstrativo,
+                    NULL::INTEGER AS demo_origem_id
                 FROM denuncias_anonimas
             ) chamados
             WHERE status <> 'CONCLUIDA'
@@ -5133,7 +5143,11 @@ app.get("/api/admin/funcionarios", verificarAdmin, async (req, res) => {
 app.get("/api/admin/central-ocorrencias", verificarAdmin, async (req,res) => {
     try {
         const [ocorrencias,anonimas,resgates,pets] = await Promise.all([
-            pool.query(`SELECT id,tipo,categoria,assunto,detalhes,localizacao,status,criado_em FROM ocorrencias ORDER BY criado_em DESC LIMIT 250`),
+            pool.query(`SELECT o.id,o.usuario_id,o.tipo,o.categoria,o.assunto,o.detalhes,o.localizacao,o.status,o.criado_em,
+                               o.demonstrativo,o.demo_origem_id,u.nome AS nome_usuario,u.cpf AS cpf_usuario,
+                               (o.foto IS NOT NULL AND o.foto <> '') AS tem_foto
+                        FROM ocorrencias o LEFT JOIN usuarios u ON u.id=o.usuario_id
+                        ORDER BY o.criado_em DESC LIMIT 250`),
             pool.query(`SELECT id,tipo,categoria,assunto,detalhes,localizacao,status,criado_em FROM denuncias_anonimas ORDER BY criado_em DESC LIMIT 250`),
             pool.query(`SELECT r.id,r.status,r.iniciado_em,r.destino_nome,p.nome AS pet_nome
                         FROM resgates_pets r LEFT JOIN pets p ON p.id=r.pet_id ORDER BY r.iniciado_em DESC LIMIT 250`),
@@ -5141,9 +5155,13 @@ app.get("/api/admin/central-ocorrencias", verificarAdmin, async (req,res) => {
         ]);
         const registros=[];
         for (const r of ocorrencias.rows) registros.push({
-            grupo:(String(r.categoria||"").toLowerCase()==="emergency" || /emergência/i.test(r.tipo||"")) ? "emergencia" : "ocorrencia",id:"ocorrencia-"+r.id,tipoLabel:"Ocorrência",
+            grupo:(String(r.categoria||"").toLowerCase()==="emergency" || /emergência/i.test(r.tipo||"")) ? "emergencia" : String(r.categoria||"").toLowerCase()==="rescue" ? "resgate" : "ocorrencia",
+            id:"ocorrencia-"+r.id,tipoLabel:"Ocorrência",
             titulo:r.assunto||r.categoria||r.tipo||"Ocorrência",
-            local:r.localizacao,status:r.status,descricao:r.detalhes,data:r.criado_em
+            local:r.localizacao,status:r.status,descricao:r.detalhes,data:r.criado_em,
+            nomeCidadao:r.nome_usuario||"Conta indisponível",cpfCidadao:r.cpf_usuario||null,
+            demonstrativo:r.demonstrativo===true,demoId:r.demo_origem_id||null,
+            temFoto:r.tem_foto===true
         });
         for (const r of anonimas.rows) registros.push({
             grupo:"anonima",id:"anonima-"+r.id,tipoLabel:"Denúncia anônima",
