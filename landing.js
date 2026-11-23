@@ -26,8 +26,7 @@
 
     var STATUS = {
         open:     { label: "Aguardando atendimento", glyph: "!" },
-        progress: { label: "Em atendimento", glyph: "…" },
-        done:     { label: "Concluído",      glyph: "\u2713" }
+        progress: { label: "Em atendimento", glyph: "…" }
     };
 
     /* Fotografias documentais (Unsplash, licença livre).
@@ -123,7 +122,7 @@
         if (lat === null || lng === null) { lat = null; lng = null; }
         return {
             id: raw.id != null && raw.id !== "" ? String(raw.id) : "caso-" + index,
-            status: hasOwn(STATUS, raw.status) ? raw.status : "open",
+            status: raw.status === "done" ? "done" : (hasOwn(STATUS, raw.status) ? raw.status : "open"),
             bairro: cleanStr(raw.bairro, MAX_LEN.bairro) || "Bairro não informado",
             tipo: categoryFromCitizen(raw.tipo),
             animal: cleanStr(raw.animal, MAX_LEN.animal),
@@ -570,7 +569,7 @@
         function refreshPublicCases() {
             if (fetching || document.hidden) return;
             fetching = true;
-            fetch(apiBase + "/api/landing/ocorrencias-demo", { credentials: "omit", cache: "no-store" })
+            fetch(apiBase + "/api/landing/ocorrencias", { credentials: "omit", cache: "no-store" })
                 .then(function (res) { if (!res.ok) throw new Error("API indisponivel"); return res.json(); })
                 .then(function (data) {
                     if (!data || !Array.isArray(data.casos)) return;
