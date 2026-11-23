@@ -1026,3 +1026,37 @@ body:has(#welcomeScreen.active)::after,
 #welcomeScreen .sl-hero-media img {object-position:61% center!important;}
 #welcomeScreen .sl-cta-photo {background-position:48% center!important;}
 @media(max-width:680px){#welcomeScreen .sl-hero-media img{object-position:65% center!important}}
+
+/* Cards fotográficos e detalhe de ocorrências — v17 */
+#welcomeScreen .sl-demo-note {font-size:12px!important;background:transparent!important;border:0!important;padding:0 0 12px!important;color:#768197!important;box-shadow:none!important;}
+#welcomeScreen .sl-case {display:flex!important;gap:12px;align-items:center!important;padding:12px 8px!important;min-height:98px!important;transition:background .15s ease,border-color .15s ease;}
+#welcomeScreen .sl-case-thumb {width:88px;height:82px;flex:0 0 88px;display:block;object-fit:cover;border-radius:11px;background:#dae0e9;filter:saturate(.8) contrast(1.08);}
+#welcomeScreen .sl-case-content {flex:1;min-width:0;}
+#welcomeScreen .sl-case h3 {font-size:14px!important;line-height:1.3;margin:4px 0!important;}
+#welcomeScreen .sl-case-top {flex-wrap:wrap;margin:0!important;gap:5px 10px;}
+#welcomeScreen .sl-case-bairro {font-size:10px;letter-spacing:.04em;}
+#welcomeScreen .sl-case .sl-case-tipo {display:block!important;font-size:11px;color:#718096;margin:2px 0 0!important;}
+#welcomeScreen .sl-case-details-hint {display:inline-block;font-size:11px;margin:7px 0 0;color:#3264f5;font-weight:700;}
+#welcomeScreen .sl-popup-photo {width:100%;max-height:140px;aspect-ratio:16/9;object-fit:cover;border-radius:10px;margin-bottom:8px;display:block;}
+#welcomeScreen .sl-popup-demo {font-size:10px;line-height:1.4;color:#6b7586;}
+#welcomeScreen .sl-case-dialog {position:fixed;inset:0;margin:auto;max-width:min(900px,calc(100vw - 28px));width:900px;max-height:min(92vh,780px);padding:0;border:0;border-radius:22px;background:#fff;color:#142440;overflow:auto;box-shadow:0 28px 90px rgba(0,15,38,.32);}
+#welcomeScreen .sl-case-dialog:not([open]) {display:none;}
+#welcomeScreen .sl-case-dialog::backdrop {background:rgba(7,17,35,.75);backdrop-filter:blur(5px);}
+#welcomeScreen .sl-case-dialog-layout {display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);min-height:420px;}
+#welcomeScreen .sl-case-dialog-visual {position:relative;min-height:320px;background:#0d1b30;}
+#welcomeScreen .sl-case-dialog-visual img {width:100%;height:100%;max-height:650px;position:absolute;inset:0;object-fit:cover;}
+#welcomeScreen .sl-case-dialog-visual span {position:absolute;bottom:14px;left:14px;color:#fff;background:rgba(0,0,0,.55);font-size:11px;padding:5px 9px;border-radius:20px;}
+#welcomeScreen .sl-case-dialog-content {position:relative;padding:45px 32px 30px;}
+#welcomeScreen .sl-case-dialog-close {position:absolute;right:14px;top:10px;border:0;background:#edf2fa;border-radius:50%;width:37px;height:37px;cursor:pointer;font-size:25px;color:#15274a;}
+#welcomeScreen .sl-dialog-overline {font-size:11px;color:#3264f5;font-weight:800;letter-spacing:.11em;}
+#welcomeScreen .sl-case-dialog-content h2 {font-size:clamp(24px,3vw,35px);line-height:1.12;margin:12px 0;}
+#welcomeScreen .sl-dialog-meta {display:flex;gap:8px;flex-wrap:wrap;font-size:12px;font-weight:700;color:#486082;margin-bottom:23px;}
+#welcomeScreen .sl-dialog-meta span {background:#f0f4fb;border-radius:20px;padding:6px 10px;}
+#welcomeScreen .sl-case-dialog-content h3 {font-size:14px;margin:19px 0 6px;}
+#welcomeScreen .sl-case-dialog-content p:not(.sl-dialog-overline) {line-height:1.6;font-size:14px;color:#4c5d74;}
+#welcomeScreen .sl-dialog-disclaimer {border-top:1px solid #e6ebf3;margin-top:25px;padding-top:12px;font-size:11px!important;}
+@media(max-width:700px){
+ #welcomeScreen .sl-case-dialog-layout {grid-template-columns:1fr;}
+ #welcomeScreen .sl-case-dialog-visual {min-height:220px;max-height:245px;}
+ #welcomeScreen .sl-case-dialog-content {padding:38px 22px 22px;}
+}
