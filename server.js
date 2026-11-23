@@ -3069,7 +3069,8 @@ app.post("/api/admin/empresas", verificarAdmin, async (req, res) => {
             cnpj,
             telefone,
             email,
-            endereco
+            endereco,
+            responsavel, cep, bairro, cidade, estado, area_atuacao, horario_atendimento, observacoes
         } = req.body;
 
         if (!nome) {
@@ -3093,11 +3094,12 @@ app.post("/api/admin/empresas", verificarAdmin, async (req, res) => {
                 cnpj,
                 telefone,
                 email,
-                endereco,
+                endereco, responsavel, cep, bairro, cidade, estado,
+                area_atuacao, horario_atendimento, observacoes,
                 ativo
             )
             VALUES
-            ($1,$2,$3,$4,$5,$6,TRUE)
+            ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,TRUE)
             RETURNING *
             `,
             [
@@ -3106,7 +3108,15 @@ app.post("/api/admin/empresas", verificarAdmin, async (req, res) => {
                 limparTexto(cnpj || ""),
                 limparTexto(telefone || ""),
                 limparTexto(email || ""),
-                limparTexto(endereco || "")
+                limparTexto(endereco || ""),
+                limparTexto(responsavel || "").slice(0,160),
+                limparTexto(cep || "").slice(0,12),
+                limparTexto(bairro || "").slice(0,120),
+                limparTexto(cidade || "").slice(0,120),
+                limparTexto(estado || "").toUpperCase().slice(0,2),
+                limparTexto(area_atuacao || "").slice(0,200),
+                limparTexto(horario_atendimento || "").slice(0,160),
+                limparTexto(observacoes || "").slice(0,1500)
             ]
         );
 
@@ -5063,6 +5073,89 @@ app.delete("/api/admin/accounts/:cpf/delete", verificarAdmin, async (req, res) =
         return res.status(200).json({ message: "Conta excluída e sessões revogadas." });
     } catch (erro) {
         return res.status(500).json({ error: "Erro ao excluir conta.", details: erro.message });
+    }
+});
+
+
+/* Painel administrativo: dados funcionais restritos à empresa escolhida.
+   Nunca expor hashes de senha ou senhas temporárias antigas. */
+app.get("/api/admin/funcionarios", verificarAdmin, async (req, res) => {
+    const empresaId = Number(req.query.empresaId);
+    if (!Number.isSafeInteger(empresaId) || empresaId < 1) {
+        return res.status(400).json({ error: "Selecione uma empresa válida." });
+    }
+    try {
+        const empresa = await pool.query("SELECT id, nome, ativo FROM empresas WHERE id=$1", [empresaId]);
+        if (!empresa.rows.length) return res.status(404).json({error:"Empresa não encontrada."});
+        const resultado = await pool.query(`
+            SELECT u.nome, u.cpf, u.ativo, u.excluida_em,
+                   f.cargo, f.registro_profissional AS registro, f.especialidade,
+                   f.equipe, f.status_plantao AS plantao
+            FROM funcionarios f
+            INNER JOIN usuarios u ON u.id=f.usuario_id
+            WHERE LOWER(BTRIM(f.empresa))=LOWER(BTRIM($1))
+              AND u.tipo='professional'
+            ORDER BY u.nome ASC LIMIT 300
+        `,[empresa.rows[0].nome]);
+        return res.json({ empresa: empresa.rows[0], funcionarios: resultado.rows.map(f => ({
+            nome:f.nome, registro:f.registro, cargo:f.cargo,
+            especialidade:f.especialidade,equipe:f.equipe,plantao:f.plantao,
+            cpfMascarado: f.cpf ? "***.***." + f.cpf.slice(6,9) + "-**" : "",
+            ativo: Boolean(f.ativo && !f.excluida_em)
+        }))});
+    } catch (error) {
+        console.error("Erro no diretório de funcionários:",error.message);
+        return res.status(500).json({error:"Não foi possível carregar os funcionários."});
+    }
+});
+
+/* Visão administrativa unificada: não grava, não altera status e diferencia TCC. */
+app.get("/api/admin/central-ocorrencias", verificarAdmin, async (req,res) => {
+    try {
+        const [ocorrencias,anonimas,resgates,pets,demo] = await Promise.all([
+            pool.query(`SELECT id,tipo,categoria,assunto,detalhes,localizacao,status,criado_em FROM ocorrencias ORDER BY criado_em DESC LIMIT 250`),
+            pool.query(`SELECT id,tipo,categoria,assunto,detalhes,localizacao,status,criado_em FROM denuncias_anonimas ORDER BY criado_em DESC LIMIT 250`),
+            pool.query(`SELECT r.id,r.status,r.iniciado_em,r.destino_nome,p.nome AS pet_nome
+                        FROM resgates_pets r LEFT JOIN pets p ON p.id=r.pet_id ORDER BY r.iniciado_em DESC LIMIT 250`),
+            pool.query(`SELECT id,nome,especie,status_pet,localizacao,observacoes,criado_em FROM pets WHERE ativo=TRUE ORDER BY criado_em DESC LIMIT 250`),
+            pool.query(`SELECT id,bairro,tipo,titulo,texto,acao,status FROM ocorrencias_demo_landing WHERE demonstrativa=true ORDER BY id LIMIT 30`)
+        ]);
+        const registros=[];
+        for (const r of ocorrencias.rows) registros.push({
+            grupo:"ocorrencia",id:"ocorrencia-"+r.id,tipoLabel:"Ocorrência real",
+            titulo:r.assunto||r.categoria||r.tipo||"Ocorrência",
+            local:r.localizacao,status:r.status,descricao:r.detalhes,data:r.criado_em
+        });
+        for (const r of anonimas.rows) registros.push({
+            grupo:"anonima",id:"anonima-"+r.id,tipoLabel:"Denúncia anônima",
+            titulo:r.assunto||r.categoria||r.tipo||"Denúncia",
+            local:r.localizacao,status:r.status,descricao:r.detalhes,data:r.criado_em
+        });
+        for (const r of resgates.rows) registros.push({
+            grupo:"resgate",id:"resgate-"+r.id,tipoLabel:"Resgate real",
+            titulo:"Resgate: "+(r.pet_nome||"Animal"),
+            local:r.destino_nome,status:r.status,data:r.iniciado_em
+        });
+        for (const r of pets.rows) registros.push({
+            grupo:"pet",id:"pet-"+r.id,tipoLabel:"Pet cadastrado",
+            titulo:r.nome||"Pet",local:r.localizacao,
+            status:r.status_pet,descricao:[r.especie,r.observacoes].filter(Boolean).join(" • "),
+            data:r.criado_em
+        });
+        for (const r of demo.rows) registros.push({
+            grupo:"demo",id:"demo-"+r.id,tipoLabel:"Exemplo acadêmico",
+            demonstrativo:true,titulo:r.titulo||r.tipo,
+            local:r.bairro,status:r.status,descricao:r.texto,providencias:r.acao
+        });
+        registros.sort((a,b) => {
+            if (a.demonstrativo !== b.demonstrativo) return a.demonstrativo ? 1:-1;
+            return new Date(b.data||0)-new Date(a.data||0);
+        });
+        res.setHeader("Cache-Control","no-store");
+        return res.json({registros, demonstrativos:demo.rows.length});
+    } catch(error) {
+        console.error("Erro na central administrativa:",error.message);
+        return res.status(500).json({error:"Não foi possível carregar os registros."});
     }
 });
 
