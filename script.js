@@ -3554,7 +3554,7 @@
 
     function statusCentralLegivel(value) {
         return ({
-            open:"Em análise",
+            open:"Aguardando atendimento",
             progress:"Em atendimento",
             done:"Concluído",
             CADASTRADO:"Cadastrado",
@@ -3614,8 +3614,8 @@
             heading.appendChild(title);
 
             const tag = document.createElement("span");
-            tag.className = "sl-admin-type-tag" + (item.demonstrativo ? " is-demo" : "");
-            tag.textContent = item.demonstrativo ? "Ilustrativo" : item.tipoLabel;
+            tag.className = "sl-admin-type-tag";
+            tag.textContent = item.tipoLabel || "Registro";
             heading.appendChild(tag);
             info.appendChild(heading);
 
@@ -3653,7 +3653,7 @@
         const dialog = byId("adminOccurrenceDetailDialog");
         if (!item || !dialog) return;
         text("adminOccurrenceDetailTitle", item.titulo || "Registro");
-        text("adminOccurrenceDetailType", item.demonstrativo ? "Ocorrência no mapa · Ilustrativa" : (item.tipoLabel || "Registro"));
+        text("adminOccurrenceDetailType", item.tipoLabel || "Registro");
         text("adminOccurrenceDetailMeta", [
             item.local || "Local não informado",
             statusCentralLegivel(item.status),
@@ -3685,7 +3685,7 @@
 
     function filtrarCentralOcorrenciasAdmin(tipo) {
         if (!requireUser("admin")) return;
-        centralOcorrenciasTipo = ["todos","ocorrencia","anonima","resgate","pet","demo"].includes(tipo) ? tipo : "todos";
+        centralOcorrenciasTipo = ["todos","ocorrencia","anonima","resgate","pet","emergencia","desaparecido"].includes(tipo) ? tipo : "todos";
         desenharCentralOcorrenciasAdmin();
     }
 
