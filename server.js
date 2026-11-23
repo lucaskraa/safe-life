@@ -1200,7 +1200,7 @@ app.get(["/api/landing/ocorrencias", "/api/landing/ocorrencias-demo"], async (re
             SELECT p.id, p.bairro,
                    CASE
                      WHEN lower(coalesce(o.categoria, '')) IN ('emergency','deceased') THEN 'SOS Emergência'
-                     WHEN lower(coalesce(o.categoria, '')) = 'rescue' THEN 'Solicitar Resgate'
+                     WHEN lower(coalesce(o.categoria, '')) IN ('rescue','resgate') THEN 'Solicitar Resgate'
                      ELSE 'Reportar Ocorrência'
                    END AS tipo,
                    p.titulo, p.texto, p.acao,
@@ -5169,7 +5169,7 @@ app.get("/api/admin/central-ocorrencias", verificarAdmin, async (req,res) => {
         ]);
         const registros=[];
         for (const r of ocorrencias.rows) registros.push({
-            grupo:(String(r.categoria||"").toLowerCase()==="emergency" || /emergência/i.test(r.tipo||"")) ? "emergencia" : String(r.categoria||"").toLowerCase()==="rescue" ? "resgate" : "ocorrencia",
+            grupo:(String(r.categoria||"").toLowerCase()==="emergency" || /emergência/i.test(r.tipo||"")) ? "emergencia" : ["rescue","resgate"].includes(String(r.categoria||"").toLowerCase()) ? "resgate" : "ocorrencia",
             id:"ocorrencia-"+r.id,tipoLabel:"Ocorrência",
             titulo:r.assunto||r.categoria||r.tipo||"Ocorrência",
             local:r.localizacao,status:r.status,descricao:r.detalhes,data:r.criado_em,
