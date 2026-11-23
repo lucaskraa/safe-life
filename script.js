@@ -2658,11 +2658,19 @@
                     cnpj: value("adminCompanyCnpj"),
                     telefone: formatPhone(value("adminCompanyPhone")),
                     email: value("adminCompanyEmail"),
-                    endereco: value("adminCompanyAddress")
+                    endereco: value("adminCompanyAddress"),
+                    responsavel: value("adminCompanyContact"),
+                    cep: value("adminCompanyZip"),
+                    bairro: value("adminCompanyDistrict"),
+                    cidade: value("adminCompanyCity"),
+                    estado: value("adminCompanyState"),
+                    area_atuacao: value("adminCompanyArea"),
+                    horario_atendimento: value("adminCompanyHours"),
+                    observacoes: value("adminCompanyNotes")
                 })
             });
             toast(response.message || "Empresa cadastrada.", "success");
-            ["adminCompanyName", "adminCompanyCnpj", "adminCompanyPhone", "adminCompanyEmail", "adminCompanyAddress"].forEach(function (id) { setValue(id, ""); });
+            ["adminCompanyName", "adminCompanyCnpj", "adminCompanyPhone", "adminCompanyEmail", "adminCompanyAddress", "adminCompanyContact", "adminCompanyZip", "adminCompanyDistrict", "adminCompanyArea", "adminCompanyHours", "adminCompanyNotes"].forEach(function (id) { setValue(id, ""); });
             state.companies = [];
             await abrirEmpresasAdmin();
         } catch (error) {
@@ -3388,6 +3396,153 @@
         }
     }
 
+    let centralOcorrenciasCache = [];
+    let centralOcorrenciasTipo = "todos";
+
+    async function abrirFuncionariosAdmin() {
+        if (!requireUser("admin")) return;
+        nextScreen("adminReportScreen");
+        const select = byId("adminEmployeeCompany");
+        const result = byId("adminReportBox");
+        if (result) result.textContent = "Carregando empresas...";
+        try {
+            const companies = await api("/api/empresas", {}, 25000);
+            const list = Array.isArray(companies) ? companies : [];
+            select.replaceChildren();
+            const empty = document.createElement("option");
+            empty.value = "";
+            empty.textContent = "Selecione uma empresa";
+            select.appendChild(empty);
+            list.forEach(function(company) {
+                const option = document.createElement("option");
+                option.value = String(company.id);
+                option.textContent = company.nome + (company.ativo === false ? " (inativa)" : "");
+                select.appendChild(option);
+            });
+            if (result) result.textContent = list.length ? "Selecione uma empresa para visualizar os funcionários." : "Nenhuma empresa cadastrada.";
+            text("adminEmployeeSummary", list.length + " empresa(s) cadastrada(s)");
+        } catch(error) {
+            if (result) result.textContent = "Não foi possível carregar as empresas.";
+            showError(error);
+        }
+    }
+
+    async function filtrarFuncionariosAdmin() {
+        if (!requireUser("admin")) return;
+        const id = Number(value("adminEmployeeCompany"));
+        const box = byId("adminReportBox");
+        if (!box) return;
+        box.replaceChildren();
+        if (!Number.isSafeInteger(id) || id < 1) {
+            text("adminEmployeeSummary", "Selecione uma empresa.");
+            return;
+        }
+        box.textContent = "Carregando funcionários...";
+        try {
+            const result = await api("/api/admin/funcionarios?empresaId=" + encodeURIComponent(id), {}, 30000);
+            const list = Array.isArray(result.funcionarios) ? result.funcionarios : [];
+            text("adminEmployeeSummary", list.length + " funcionário(s) vinculado(s) a " + result.empresa.nome);
+            box.replaceChildren();
+            if (!list.length) {
+                box.textContent = "Nenhum funcionário vinculado a esta empresa.";
+                return;
+            }
+            list.forEach(function(employee) {
+                const article = document.createElement("article");
+                article.className = "occurrence-card sl-admin-record";
+                const heading = document.createElement("h4");
+                heading.textContent = employee.nome || "Funcionário";
+                article.appendChild(heading);
+                const fields = [
+                    ["Cargo", employee.cargo],
+                    ["Matrícula funcional", employee.registro],
+                    ["CPF de acesso", employee.cpfMascarado],
+                    ["Especialidade", employee.especialidade],
+                    ["Equipe", employee.equipe],
+                    ["Plantão", employee.plantao],
+                    ["Conta", employee.ativo ? "Ativa" : "Inativa"]
+                ];
+                fields.forEach(function(field) {
+                    const line = document.createElement("p");
+                    const strong = document.createElement("strong");
+                    strong.textContent = field[0] + ": ";
+                    line.appendChild(strong);
+                    line.appendChild(document.createTextNode(String(field[1] || "Não informado")));
+                    article.appendChild(line);
+                });
+                box.appendChild(article);
+            });
+        } catch(error) {
+            box.textContent = "Não foi possível carregar os funcionários desta empresa.";
+            showError(error);
+        }
+    }
+
+    function desenharCentralOcorrenciasAdmin() {
+        const box = byId("adminAuditList");
+        if (!box) return;
+        const selected = centralOcorrenciasCache.filter(item => centralOcorrenciasTipo === "todos" || item.grupo === centralOcorrenciasTipo);
+        text("adminOccurrenceCount", selected.length + " registro(s) nesta categoria");
+        document.querySelectorAll("#adminOccurrenceFilters [data-type]").forEach(function(button) {
+            button.classList.toggle("is-selected", button.dataset.type === centralOcorrenciasTipo);
+            button.setAttribute("aria-pressed", String(button.dataset.type === centralOcorrenciasTipo));
+        });
+        box.replaceChildren();
+        if (!selected.length) {
+            box.textContent = "Nenhum registro nesta categoria.";
+            return;
+        }
+        selected.forEach(function(item) {
+            const card = document.createElement("article");
+            card.className = "occurrence-card sl-admin-record";
+            const heading = document.createElement("h4");
+            heading.textContent = item.titulo || "Registro";
+            card.appendChild(heading);
+            const tag = document.createElement("span");
+            tag.className = "sl-admin-type-tag" + (item.demonstrativo ? " is-demo" : "");
+            tag.textContent = item.demonstrativo ? "Fictício • demonstração TCC" : item.tipoLabel;
+            card.appendChild(tag);
+            [
+                ["Local", item.local],
+                ["Status", item.status],
+                ["Data", item.data ? dateTime(item.data) : ""],
+                ["Descrição", item.descricao],
+                ["Providências", item.providencias]
+            ].forEach(function (line) {
+                if (!line[1]) return;
+                const p = document.createElement("p");
+                const strong = document.createElement("strong");
+                strong.textContent = line[0] + ": ";
+                p.appendChild(strong);
+                p.appendChild(document.createTextNode(String(line[1])));
+                card.appendChild(p);
+            });
+            box.appendChild(card);
+        });
+    }
+
+    function filtrarCentralOcorrenciasAdmin(tipo) {
+        if (!requireUser("admin")) return;
+        centralOcorrenciasTipo = ["todos","ocorrencia","anonima","resgate","pet","demo"].includes(tipo) ? tipo : "todos";
+        desenharCentralOcorrenciasAdmin();
+    }
+
+    async function abrirCentralOcorrenciasAdmin() {
+        if (!requireUser("admin")) return;
+        nextScreen("adminAuditScreen");
+        centralOcorrenciasTipo = "todos";
+        const list = byId("adminAuditList");
+        if (list) list.textContent = "Carregando registros...";
+        try {
+            const data = await api("/api/admin/central-ocorrencias", {}, 45000);
+            centralOcorrenciasCache = Array.isArray(data.registros) ? data.registros : [];
+            desenharCentralOcorrenciasAdmin();
+        } catch(error) {
+            if (list) list.textContent = "Não foi possível carregar os registros.";
+            showError(error);
+        }
+    }
+
     async function abrirRelatorioAdmin() {
         if (!requireUser("admin")) return;
         nextScreen("adminReportScreen");
@@ -3875,6 +4030,10 @@
         abrirContasSuspeitas,
         abrirRelatorioAdmin,
         abrirAuditoriaAdmin,
+        abrirFuncionariosAdmin,
+        filtrarFuncionariosAdmin,
+        abrirCentralOcorrenciasAdmin,
+        filtrarCentralOcorrenciasAdmin,
         abrirRelatorioPlantao,
         atualizarPainelProfissionalAgora,
         encerrarSessaoPorStatus
