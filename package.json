@@ -2,7 +2,7 @@
   "name": "safe-life",
   "version": "26.0.1",
   "private": true,
-  "description": "Safe Life V26 - versão final do TCC com SLA de 5 dias úteis, perfis, administração e auditoria.",
+  "description": "Safe Life: plataforma de proteção animal com perfis, ocorrências, resgates, acompanhamento e administração.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
