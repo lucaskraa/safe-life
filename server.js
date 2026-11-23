@@ -137,7 +137,7 @@ if (fs.existsSync(PUBLIC_DIR)) {
 
 // Arquivos estáticos explicitamente permitidos para a landing.
 // Não expor indiscriminadamente o diretório raiz (contém SQL e backend).
-["landing.css", "landing.js", "hero-photo.jpg", "hero-photo-v2.jpg", "about-photo.jpg", "cta-cat-photo.jpg", "landing-abrigo-hero.jpg", "landing-abrigo-sobre.jpg", "landing-abrigo-cta.jpg", "landing-cao-abrigo-primeiro-plano.jpg", "landing-abrigo-cta-opcao.jpg"].forEach((name) => {
+["landing.css", "landing.js", "hero-photo.jpg", "hero-photo-v2.jpg", "about-photo.jpg", "cta-cat-photo.jpg", "landing-abrigo-hero.jpg", "landing-abrigo-sobre.jpg", "landing-abrigo-cta.jpg", "landing-cao-abrigo-primeiro-plano.jpg", "landing-abrigo-cta-opcao.jpg", "landing-cao-abrigo-pb.jpg", "landing-abrigo-hero-opcao.jpg"].forEach((name) => {
     app.get("/" + name, (req, res, next) => {
         const file = path.join(__dirname, name);
         if (!fs.existsSync(file)) return next();
@@ -1195,7 +1195,7 @@ async function verificarLeituraOcorrencia(req, res, next) {
 app.get("/api/landing/ocorrencias-demo", async (req, res) => {
     try {
         const result = await pool.query(
-            "SELECT id, bairro, tipo, titulo, texto, acao, status, lat, lng FROM public.ocorrencias_demo_landing WHERE demonstrativa = true ORDER BY id LIMIT 30"
+            "SELECT id, bairro, tipo, titulo, texto, acao, status, lat, lng, foto_url FROM public.ocorrencias_demo_landing WHERE demonstrativa = true ORDER BY id LIMIT 30"
         );
         res.setHeader("Cache-Control", "public, max-age=60");
         return res.status(200).json({ demonstrativo: true, casos: result.rows });
@@ -5118,7 +5118,7 @@ app.get("/api/admin/central-ocorrencias", verificarAdmin, async (req,res) => {
             pool.query(`SELECT r.id,r.status,r.iniciado_em,r.destino_nome,p.nome AS pet_nome
                         FROM resgates_pets r LEFT JOIN pets p ON p.id=r.pet_id ORDER BY r.iniciado_em DESC LIMIT 250`),
             pool.query(`SELECT id,nome,especie,status_pet,localizacao,observacoes,criado_em FROM pets WHERE ativo=TRUE ORDER BY criado_em DESC LIMIT 250`),
-            pool.query(`SELECT id,bairro,tipo,titulo,texto,acao,status FROM ocorrencias_demo_landing WHERE demonstrativa=true ORDER BY id LIMIT 30`)
+            pool.query(`SELECT id,bairro,tipo,titulo,texto,acao,status,foto_url FROM ocorrencias_demo_landing WHERE demonstrativa=true ORDER BY id LIMIT 30`)
         ]);
         const registros=[];
         for (const r of ocorrencias.rows) registros.push({
@@ -5145,7 +5145,8 @@ app.get("/api/admin/central-ocorrencias", verificarAdmin, async (req,res) => {
         for (const r of demo.rows) registros.push({
             grupo:"demo",id:"demo-"+r.id,tipoLabel:"Exemplo acadêmico",
             demonstrativo:true,titulo:r.titulo||r.tipo,
-            local:r.bairro,status:r.status,descricao:r.texto,providencias:r.acao
+            local:r.bairro,status:r.status,descricao:r.texto,providencias:r.acao,
+            foto:r.foto_url || null
         });
         registros.sort((a,b) => {
             if (a.demonstrativo !== b.demonstrativo) return a.demonstrativo ? 1:-1;
