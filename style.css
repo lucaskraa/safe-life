@@ -11611,3 +11611,22 @@ body:has(#welcomeScreen.active) #app {
 #registerScreen .register-avatar-preview {background:#e9f0fb;box-shadow:none;border:1px solid #d5e3f6;padding:4px;width:80px;height:80px;min-width:80px;}
 #registerScreen .register-avatar-preview img {border:0;border-radius:50%;object-fit:cover;background:#e9f0fb;}
 #registerScreen .register-avatar-text strong {font-size:15px;font-weight:700;}
+
+/* Safe Life — novas ferramentas administrativas */
+#adminCompanyCreateScreen .sl-admin-form-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 18px}
+#adminCompanyCreateScreen .admin-form-intro{color:#52627c;line-height:1.6;margin:10px 0 20px}
+#adminCompanyCreateScreen .sl-admin-form-columns>div{min-width:0}
+#adminCompanyCreateScreen .sl-admin-form-columns label{display:block;margin-bottom:5px}
+#adminCompanyCreateScreen .sl-admin-form-columns input{width:100%}
+#adminReportScreen .sl-admin-controls{padding:22px}
+#adminReportScreen .sl-admin-hint{font-size:13px;color:#64748b;margin:12px 0 0}
+#adminReportScreen .sl-admin-count,#adminAuditScreen .sl-admin-count{margin:14px 0;color:#4f5f77;font-weight:700}
+#adminAuditScreen .sl-admin-filters{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:18px}
+#adminAuditScreen .sl-admin-filters button{cursor:pointer;background:#fff;border:1px solid #dce5f3;border-radius:11px;color:#253a5b;padding:10px 14px;font-size:13px;font-weight:700}
+#adminAuditScreen .sl-admin-filters button.is-selected{background:#3264f5;color:#fff;border-color:#3264f5}
+#adminAuditScreen .sl-admin-record,#adminReportScreen .sl-admin-record{padding:20px;margin-bottom:12px;border:1px solid #e1e7f2;border-radius:17px;background:#fff}
+#adminAuditScreen .sl-admin-record h4,#adminReportScreen .sl-admin-record h4{margin:0 0 12px}
+#adminAuditScreen .sl-admin-record p,#adminReportScreen .sl-admin-record p{margin:6px 0;line-height:1.5;overflow-wrap:anywhere}
+#adminAuditScreen .sl-admin-type-tag{display:inline-block;background:#e9f1ff;color:#1c59ba;border-radius:999px;font-size:11px;padding:5px 10px;font-weight:700;margin-bottom:9px}
+#adminAuditScreen .sl-admin-type-tag.is-demo{background:#fff0d9;color:#975500}
+@media(max-width:640px){#adminCompanyCreateScreen .sl-admin-form-columns{grid-template-columns:1fr}}
