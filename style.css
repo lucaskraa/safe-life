@@ -11659,3 +11659,25 @@ body:has(#welcomeScreen.active) #app {
 #adminAuditScreen #adminOccurrenceDetailDisclaimer {display:block;margin-top:24px;padding-top:14px;border-top:1px solid #e7edf5;color:#66768d;font-size:11px;}
 #adminAuditScreen #adminOccurrenceDetailDisclaimer[hidden] {display:none;}
 @media(max-width:580px){#adminAuditScreen .sl-admin-record-trigger{gap:11px;padding:12px;}#adminAuditScreen .sl-admin-record-image{width:92px;flex-basis:92px;height:96px;}#adminAuditScreen .sl-admin-detail-body{padding:23px 18px;}#adminAuditScreen .sl-admin-detail-image-wrap{height:205px;}}
+
+/* Painel profissional: chamados recentes integrados a fila autenticada */
+#proDashboard .pro-recent-activity {margin:25px 0 27px;border:1px solid #dfe7f6;border-radius:19px;background:#fff;padding:22px 22px 20px;box-shadow:0 10px 36px -32px rgba(15,30,70,.28);}
+#proDashboard .pro-recent-heading {display:flex;gap:15px;align-items:center;justify-content:space-between;margin:0 0 17px;}
+#proDashboard .pro-recent-eyebrow {display:block;color:#3264f5;font-size:10px;font-weight:800;letter-spacing:.1em;}
+#proDashboard .pro-recent-heading h2 {font-size:21px;margin:5px 0;color:#13223e;}
+#proDashboard .pro-recent-heading p {margin:0;color:#65728a;font-size:12px;line-height:1.5;}
+#proDashboard .pro-recent-all {border:1px solid #d5e1fb;background:#fff;color:#2758c8;font-weight:750;border-radius:10px;padding:11px 14px;cursor:pointer;white-space:nowrap;font-size:12px;}
+#proDashboard .pro-recent-all:hover {background:#f3f7ff;}
+#proDashboard .pro-recent-cases {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+#proDashboard .pro-recent-case {width:100%;text-align:left;display:flex;gap:12px;align-items:center;min-width:0;background:#f7f9ff;border:1px solid #e2e9f7;border-radius:13px;padding:12px;cursor:pointer;color:#142441;font:inherit;transition:background .15s;}
+#proDashboard .pro-recent-case:hover {background:#edf3ff;border-color:#bfcef8;}
+#proDashboard .pro-recent-photo {width:91px;height:90px;flex:0 0 91px;object-fit:cover;border-radius:10px;background:#e4eaf2;}
+#proDashboard .pro-recent-case-content {display:flex;flex-direction:column;gap:5px;min-width:0;}
+#proDashboard .pro-recent-case-content strong {font-size:14px;line-height:1.25;overflow-wrap:anywhere;}
+#proDashboard .pro-recent-case-content small {color:#63738c;font-size:11px;overflow-wrap:anywhere;}
+#proDashboard .pro-recent-case-top {display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:10px;font-weight:700;color:#59708e;}
+#proDashboard .pro-recent-status {background:#eaf0ff;border-radius:99px;padding:3px 7px;color:#315ccd;}
+#proDashboard .pro-recent-view {font-size:11px;color:#3264f5;font-weight:750;margin-top:3px;}
+#proDashboard .pro-recent-empty,#proDashboard .pro-recent-loading {grid-column:1/-1;color:#60728a;font-size:13px;padding:20px 8px;text-align:center;margin:0;}
+@media(max-width:850px){#proDashboard .pro-recent-cases{grid-template-columns:1fr}}
+@media(max-width:570px){#proDashboard .pro-recent-activity{padding:16px;}#proDashboard .pro-recent-heading{align-items:flex-start;flex-direction:column}#proDashboard .pro-recent-case{gap:9px}#proDashboard .pro-recent-photo{width:70px;flex-basis:70px;height:78px}}
