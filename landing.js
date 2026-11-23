@@ -38,156 +38,7 @@
     ];
     var HERO_PLACEHOLDER = ""; // sem ilustração genérica: mantém um fundo sóbrio se as fotos falharem.
 
-    /* Ocorrências ilustrativas para demonstração da interface.
-       lat/lng = referência aproximada do bairro, arredondada. */
-    var DEMO_CASES = [
-        {
-            "id": "1",
-            "bairro": "Centro",
-            "tipo": "Abandono",
-            "titulo": "Animal abandonado",
-            "texto": "Cão encontrado desacompanhado em uma praça, aparentemente debilitado.",
-            "acao": "Simulação de acolhimento e avaliação veterinária.",
-            "status": "done",
-            "lat": -25.592,
-            "lng": -49.409,
-            "data": "2026-11-01"
-        },
-        {
-            "id": "2",
-            "bairro": "Capela Velha",
-            "tipo": "Maus-tratos",
-            "titulo": "Suspeita de maus-tratos",
-            "texto": "Relato fictício de cão mantido sem abrigo adequado.",
-            "acao": "Registro demonstrativo encaminhado para vistoria.",
-            "status": "progress",
-            "lat": -25.553,
-            "lng": -49.404,
-            "data": "2026-11-01"
-        },
-        {
-            "id": "3",
-            "bairro": "Iguaçu",
-            "tipo": "Desaparecimento",
-            "titulo": "Gato desaparecido",
-            "texto": "Tutor procura gato rajado desaparecido nas proximidades do bairro.",
-            "acao": "Divulgação demonstrativa e organização das informações.",
-            "status": "open",
-            "lat": -25.598,
-            "lng": -49.398,
-            "data": "2026-11-01"
-        },
-        {
-            "id": "4",
-            "bairro": "Costeira",
-            "tipo": "Resgate",
-            "titulo": "Filhote em risco",
-            "texto": "Filhote localizado em área de risco durante chuva.",
-            "acao": "Simulação de encaminhamento para equipe de resgate.",
-            "status": "done",
-            "lat": -25.606,
-            "lng": -49.372,
-            "data": "2026-11-01"
-        },
-        {
-            "id": "5",
-            "bairro": "Fazenda Velha",
-            "tipo": "Abandono",
-            "titulo": "Ninhada abandonada",
-            "texto": "Ninhada encontrada sem responsável próximo a uma área verde.",
-            "acao": "Solicitação demonstrativa de acolhimento.",
-            "status": "progress",
-            "lat": -25.583,
-            "lng": -49.394,
-            "data": "2026-11-01"
-        },
-        {
-            "id": "6",
-            "bairro": "Porto das Laranjeiras",
-            "tipo": "Maus-tratos",
-            "titulo": "Animal sem cuidados",
-            "texto": "Relato fictício de animal sem acesso regular à água.",
-            "acao": "Registro demonstrativo em análise.",
-            "status": "open",
-            "lat": -25.578,
-            "lng": -49.431,
-            "data": "2026-11-01"
-        },
-        {
-            "id": "7",
-            "bairro": "Estação",
-            "tipo": "Resgate",
-            "titulo": "Cão ferido",
-            "texto": "Cão encontrado com dificuldade de locomoção.",
-            "acao": "Simulação de atendimento e encaminhamento clínico.",
-            "status": "done",
-            "lat": -25.591,
-            "lng": -49.42,
-            "data": "2026-11-01"
-        },
-        {
-            "id": "8",
-            "bairro": "Tindiquera",
-            "tipo": "Desaparecimento",
-            "titulo": "Cachorra desaparecida",
-            "texto": "Família busca cadela de porte médio desaparecida.",
-            "acao": "Divulgação demonstrativa nas proximidades.",
-            "status": "open",
-            "lat": -25.614,
-            "lng": -49.414,
-            "data": "2026-11-01"
-        },
-        {
-            "id": "9",
-            "bairro": "Thomaz Coelho",
-            "tipo": "Abandono",
-            "titulo": "Cão deixado na rua",
-            "texto": "Cão encontrado desacompanhado em via pública.",
-            "acao": "Simulação de acionamento da rede de apoio.",
-            "status": "progress",
-            "lat": -25.568,
-            "lng": -49.366,
-            "data": "2026-11-01"
-        },
-        {
-            "id": "10",
-            "bairro": "Campina da Barra",
-            "tipo": "Maus-tratos",
-            "titulo": "Suspeita de negligência",
-            "texto": "Moradores relatam animal exposto ao tempo sem abrigo.",
-            "acao": "Registro fictício para avaliação de prioridade.",
-            "status": "open",
-            "lat": -25.627,
-            "lng": -49.405,
-            "data": "2026-11-01"
-        },
-        {
-            "id": "11",
-            "bairro": "Cachoeira",
-            "tipo": "Resgate",
-            "titulo": "Gato preso",
-            "texto": "Gato encontrado em local de difícil acesso.",
-            "acao": "Simulação de resgate realizado em segurança.",
-            "status": "done",
-            "lat": -25.557,
-            "lng": -49.435,
-            "data": "2026-11-01"
-        },
-        {
-            "id": "12",
-            "bairro": "Boqueirão",
-            "tipo": "Abandono",
-            "titulo": "Animal em situação de rua",
-            "texto": "Animal aparentemente sem tutor visto próximo a comércio.",
-            "acao": "Solicitação fictícia de avaliação e acolhimento.",
-            "status": "progress",
-            "lat": -25.608,
-            "lng": -49.447,
-            "data": "2026-11-01"
-        }
-    ];
-
-    /* Arquivos de imagem locais permitidos para os casos ilustrativos. */
+    /* Fotografias locais permitidas apenas para os registros ilustrativos. */
     var CASE_PHOTOS = {
         "1":"landing-cao-abrigo-primeiro-plano.jpg",
         "2":"landing-abrigo-sobre.jpg",
@@ -248,6 +99,14 @@
         return cleanStr(v, 30);
     }
 
+    // Apenas os serviços públicos existentes no formulário do cidadão.
+    function categoryFromCitizen(value) {
+        var text = String(value || "").toLowerCase();
+        if (text.includes("emerg") || text.includes("sos")) return "SOS Emergência";
+        if (text.includes("resgate")) return "Solicitar Resgate";
+        return "Reportar Ocorrência";
+    }
+
     function toCoord(v, lim) {
         if (typeof v === "string") {
             var value = v.trim();
@@ -266,7 +125,7 @@
             id: raw.id != null && raw.id !== "" ? String(raw.id) : "caso-" + index,
             status: hasOwn(STATUS, raw.status) ? raw.status : "open",
             bairro: cleanStr(raw.bairro, MAX_LEN.bairro) || "Bairro não informado",
-            tipo: cleanStr(raw.tipo, MAX_LEN.tipo) || "Ocorrência",
+            tipo: categoryFromCitizen(raw.tipo),
             animal: cleanStr(raw.animal, MAX_LEN.animal),
             titulo: cleanStr(raw.titulo, MAX_LEN.titulo) || "Ocorrência em " + cleanStr(raw.bairro, 40),
             acao: cleanStr(raw.acao, MAX_LEN.acao),
@@ -316,6 +175,34 @@
     var showAllCases = false;     // id -> <li>
     var markerObjs = new Map();  // id -> { marker, latlng }
     var activeId = null;
+    var activeCategory = "todos";
+    function visibleCases() {
+        if (activeCategory === "todos") return cases;
+        return cases.filter(function (c) { return c.tipo === activeCategory; });
+    }
+    function updateCount() {
+        var count = document.querySelector("#welcomeScreen .sl-map-count");
+        var length = visibleCases().length;
+        if (count) count.textContent = length + (length === 1 ? " ocorrência ativa" : " ocorrências ativas");
+    }
+    function initCategoryFilters() {
+        var group = byId("slCaseFilters");
+        if (!group) return;
+        group.querySelectorAll("button[data-category]").forEach(function (button) {
+            button.addEventListener("click", function () {
+                activeCategory = button.dataset.category || "todos";
+                showAllCases = false;
+                activeId = null;
+                group.querySelectorAll("button[data-category]").forEach(function (b) {
+                    var selected = b === button;
+                    b.classList.toggle("is-active", selected);
+                    b.setAttribute("aria-pressed", String(selected));
+                });
+                renderCards();
+                if (lmap) renderMarkers();
+            });
+        });
+    }
 
     function rebuildIndex() {
         caseIndex.clear();
@@ -330,13 +217,17 @@
         list.replaceChildren();
         cardEls.clear();
 
-        if (!cases.length) {
-            list.appendChild(el("li", "sl-cases-empty", "Nenhuma ocorrência ativa no momento."));
+        var visible = visibleCases();
+        updateCount();
+        if (!visible.length) {
+            list.appendChild(el("li", "sl-cases-empty", activeCategory === "todos"
+                ? "Nenhuma ocorrência ativa no momento."
+                : "Nenhuma ocorrência ativa nesta categoria."));
             var emptyToggle = byId("slToggleCases");
             if (emptyToggle) emptyToggle.hidden = true;
             return;
         }
-        cases.forEach(function(c, index) {
+        visible.forEach(function(c, index) {
             var li = el("li", "sl-case");
             li.classList.toggle("is-preview-hidden", !showAllCases && index >= 5);
             li.dataset.id = c.id;
@@ -375,9 +266,9 @@
         });
         var toggle = byId("slToggleCases");
         if (toggle) {
-            toggle.hidden = cases.length <= 5;
+            toggle.hidden = visible.length <= 5;
             toggle.setAttribute("aria-expanded", showAllCases ? "true" : "false");
-            toggle.textContent = showAllCases ? "Mostrar menos ↑" : "Ver todas as " + cases.length + " ocorrências →";
+            toggle.textContent = showAllCases ? "Mostrar menos ↑" : "Ver todas as " + visible.length + " ocorrências →";
         }
     }
 
@@ -528,7 +419,7 @@
         markerObjs.clear();
         markerLayer = markerLayer || L.featureGroup().addTo(lmap);
 
-        cases.forEach(function (c, index) {
+        visibleCases().forEach(function (c, index) {
             if (c.lat === null || c.lng === null) return;
             var latlng = [c.lat, c.lng];
             var number = String(index + 1).padStart(2, "0");
@@ -605,7 +496,7 @@
             markerLayer = null;
             holder.classList.remove("is-pending");
             holder.textContent = "";
-            var msg = el("p", "sl-map-error", "O mapa não carregou. As ocorrências demonstrativas estão disponíveis ao lado.");
+            var msg = el("p", "sl-map-error", "O mapa não carregou. Os registros disponíveis estão listados ao lado.");
             var retry = el("button", "sl-map-retry", "Tentar carregar novamente");
             retry.type = "button";
             retry.addEventListener("click", function () { mapStarted = false; startMap(); });
@@ -654,8 +545,7 @@
             rebuildIndex();
             activeId = null;
             renderCards();
-            var count = document.querySelector("#welcomeScreen .sl-map-count");
-            if (count) count.textContent = String(cases.length).padStart(2, "0") + " ocorrências no mapa";
+            updateCount();
 
             // Atualiza somente os marcadores; não recria o mapa nem perde o zoom do usuário.
             if (lmap) renderMarkers();
@@ -669,6 +559,7 @@
         initCaseDialog();
         rebuildIndex();
         renderCards();
+        initCategoryFilters();
         // A API entrega os registros públicos ativos. Concluídos permanecem no banco.
         var apiBase = (function () {
             var base = document.querySelector('meta[name="safe-life-api-url"]');
@@ -704,9 +595,8 @@
             }
         });
         var note = byId("slDemoNote");
-        if (note) note.textContent = "Localizações aproximadas e fotos ilustrativas. Informações pessoais protegidas.";
-        var count = document.querySelector("#welcomeScreen .sl-map-count");
-        if (count) count.textContent = String(cases.length).padStart(2, "0") + " ocorrências no mapa";
+        if (note) note.textContent = "Mapa com localizações aproximadas. Dados pessoais protegidos; fotografias dos exemplos são ilustrativas.";
+        updateCount();
         var toggle = byId("slToggleCases");
         if (toggle) toggle.addEventListener("click", function () {
             showAllCases = !showAllCases;
