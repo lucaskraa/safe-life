@@ -1,4 +1,4 @@
--- Safe Life: dados fictícios usados exclusivamente na landing do TCC.
+-- Safe Life: dados fictícios usados exclusivamente na landing de demonstração do Safe Life.
 -- Execute com privilégios de migração. Não altera tabelas operacionais.
 CREATE TABLE IF NOT EXISTS public.ocorrencias_demo_landing (
   id INTEGER PRIMARY KEY,
