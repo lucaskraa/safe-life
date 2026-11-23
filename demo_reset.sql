@@ -6,7 +6,7 @@
 --   • pets cadastrados;
 --   • funções, views, índices, triggers e estrutura do banco.
 --
--- Remove somente histórico operacional/de testes para entregar o TCC limpo.
+-- Remove somente histórico operacional/de testes para entregar o ambiente de demonstração limpo.
 
 BEGIN;
 
