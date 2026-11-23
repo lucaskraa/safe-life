@@ -22,6 +22,7 @@ assert(js.includes("doubleClickZoom: true") && js.includes("touchZoom: true"), "
 assert(js.includes('zoomInTitle: "Aproximar mapa"') && js.includes('zoomOutTitle: "Afastar mapa"'), "Botões + e − não oferecem zoom acessível");
 assert(!js.includes('lmap.scrollWheelZoom.disable()'), "Zoom desativado ao sair do mapa");
 assert(js.includes("/api/landing/ocorrencias"), "API pública da landing não ligada");
+assert(js.includes('getCases("/api/landing/ocorrencias-demo")'), "Sem fallback para API do servidor em atualização");
 assert(!html.includes('id="slCaseDialog"'), "A janela de foto e detalhes não deve existir no mapa público");
 assert(html.includes('id="adminOccurrenceDetailDialog"'), "Janela de detalhes admin ausente");
 assert(!js.includes("openCaseDialog("), "O mapa público não deve abrir galeria ou detalhes completos");
