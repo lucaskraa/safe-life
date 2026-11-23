@@ -1065,3 +1065,40 @@ body:has(#welcomeScreen.active)::after,
 #welcomeScreen .sl-popup-status {display:inline-block;margin:3px 0 9px;padding:4px 9px;border-radius:20px;background:#eaf1ff;color:#25477c;font-weight:700;font-size:11px;}
 #welcomeScreen .sl-map .leaflet-popup-content {max-width:230px;}
 #welcomeScreen .sl-popup-detail-btn,#welcomeScreen .sl-case-details-hint {display:none!important;}
+
+/* Filtros públicos: somente as opções existentes na Central do Cidadão. */
+#welcomeScreen .sl-map-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 18px 0 24px;
+}
+#welcomeScreen .sl-map-filters button {
+    appearance: none;
+    cursor: pointer;
+    border: 1px solid #d5e0ef;
+    border-radius: 999px;
+    background: #fff;
+    color: #334463;
+    padding: 10px 15px;
+    font: 700 12px/1.3 "Manrope", "Inter", sans-serif;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+#welcomeScreen .sl-map-filters button:hover {
+    border-color: #3264f5;
+    background: #f0f5ff;
+}
+#welcomeScreen .sl-map-filters button.is-active,
+#welcomeScreen .sl-map-filters button[aria-pressed="true"] {
+    color: #fff;
+    background: #3264f5;
+    border-color: #3264f5;
+}
+#welcomeScreen .sl-map-filters button:focus-visible {
+    outline: 3px solid #89abff;
+    outline-offset: 2px;
+}
+@media (max-width: 600px) {
+    #welcomeScreen .sl-map-filters { gap: 7px; margin: 13px 0 20px; }
+    #welcomeScreen .sl-map-filters button { padding: 9px 12px; font-size: 11px; }
+}
