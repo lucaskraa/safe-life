@@ -1192,12 +1192,18 @@ async function verificarLeituraOcorrencia(req, res, next) {
 ===================================================== */
 
 // Landing pública: casos resumidos e anonimizados, sem registros concluídos.
-app.get("/api/landing/ocorrencias-demo", async (req, res) => {
+app.get(["/api/landing/ocorrencias", "/api/landing/ocorrencias-demo"], async (req, res) => {
     try {
         // Somente campos publicos: titulo generico, bairro aproximado e foto ilustrativa.
         // Sem GPS exato, identificador interno, dados do cidadao ou evidencia original.
         const result = await pool.query(`
-            SELECT p.id, p.bairro, p.tipo, p.titulo, p.texto, p.acao,
+            SELECT p.id, p.bairro,
+                   CASE
+                     WHEN lower(coalesce(o.categoria, '')) IN ('emergency','deceased') THEN 'SOS Emergência'
+                     WHEN lower(coalesce(o.categoria, '')) IN ('rescue','resgate') THEN 'Solicitar Resgate'
+                     ELSE 'Reportar Ocorrência'
+                   END AS tipo,
+                   p.titulo, p.texto, p.acao,
                    p.status, p.lat, p.lng, p.foto_url, p.inserido_em,
                    o.demonstrativo
             FROM public.landing_casos_publicos p
@@ -1205,6 +1211,7 @@ app.get("/api/landing/ocorrencias-demo", async (req, res) => {
             WHERE p.fonte = 'ocorrencia'
               AND o.usuario_id IS NOT NULL AND o.anonima = FALSE
               AND o.status NOT IN ('CONCLUIDA','CANCELADA')
+              AND p.status <> 'done'
             ORDER BY p.inserido_em DESC, p.id DESC
             LIMIT 12
         `);
@@ -5162,7 +5169,7 @@ app.get("/api/admin/central-ocorrencias", verificarAdmin, async (req,res) => {
         ]);
         const registros=[];
         for (const r of ocorrencias.rows) registros.push({
-            grupo:(String(r.categoria||"").toLowerCase()==="emergency" || /emergência/i.test(r.tipo||"")) ? "emergencia" : String(r.categoria||"").toLowerCase()==="rescue" ? "resgate" : "ocorrencia",
+            grupo:(String(r.categoria||"").toLowerCase()==="emergency" || /emergência/i.test(r.tipo||"")) ? "emergencia" : ["rescue","resgate"].includes(String(r.categoria||"").toLowerCase()) ? "resgate" : "ocorrencia",
             id:"ocorrencia-"+r.id,tipoLabel:"Ocorrência",
             titulo:r.assunto||r.categoria||r.tipo||"Ocorrência",
             local:r.localizacao,status:r.status,descricao:r.detalhes,data:r.criado_em,

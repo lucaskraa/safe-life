@@ -1780,11 +1780,11 @@
                 article.className = "safe-v19-notification";
                 const container = document.createElement("div");
                 const title = document.createElement("strong");
-                title.textContent = (item.assunto || item.opcao_escolhida || item.tipo || "Ocorrência") + (item.demonstrativo ? " · Exemplo" : "");
+                title.textContent = textoOcorrenciaVisivel(item, item.assunto || item.opcao_escolhida || item.tipo || "Ocorrência");
                 const status = document.createElement("p");
                 status.textContent = statusNames[item.status] || String(item.status || "PENDENTE").replace(/_/g, " ");
                 const description = document.createElement("small");
-                description.textContent = [item.bairro || item.localizacao || "", dateTime(item.criado_em)].filter(Boolean).join(" · ");
+                description.textContent = [textoOcorrenciaVisivel(item, item.bairro || item.localizacao || ""), dateTime(item.criado_em)].filter(Boolean).join(" · ");
                 container.append(title, status, description);
                 article.appendChild(container);
                 section.appendChild(article);
@@ -1937,7 +1937,7 @@
             title.textContent = item.assunto || item.opcao_escolhida || item.tipo || "Novo chamado";
             content.appendChild(title);
             const description = document.createElement("small");
-            description.textContent = item.localizacao || item.bairro || "Local não informado";
+            description.textContent = textoOcorrenciaVisivel(item, item.localizacao || item.bairro || "Local não informado");
             content.appendChild(description);
             const more = document.createElement("span");
             more.className = "pro-recent-view";
@@ -2271,7 +2271,7 @@
         const origin = item.origem || (item.anonima ? "anonima" : "ocorrencia");
         const title = item.opcao_escolhida || item.assunto || item.tipo || "Chamado";
         const reporter = origin === "anonima" ? "Anônimo" : item.nome_usuario || "Cidadão";
-        const demoTitle = item.demonstrativo ? " [EXEMPLO]" : "";
+        const demoTitle = "";
         const userPhoto = resolveUserPhoto(
             {
                 cpf: item.cpf_usuario || item.usuario_cpf || "",
@@ -2291,11 +2291,11 @@
         return `<article class="safe-v19-occurrence-card priority-${priority.toLowerCase()}">
             <div class="safe-v19-occurrence-head">
                 <img src="${escapeHtml(userPhoto)}" data-fallback="${escapeHtml(defaultUserPhoto({ cpf: item.cpf_usuario, nome: reporter, type: "citizen" }))}" onerror="this.onerror=null;this.src=this.dataset.fallback" alt="Foto de ${escapeHtml(reporter)}">
-                <div><h4>${escapeHtml(title + demoTitle)}</h4><p><strong>Nome:</strong> ${escapeHtml(reporter)}</p><small>${escapeHtml(item.tipo || item.categoria || "Ocorrência")} • ${escapeHtml(status)}</small></div>
+                <div><h4>${escapeHtml(textoOcorrenciaVisivel(item, title))}</h4><p><strong>Nome:</strong> ${escapeHtml(reporter)}</p><small>${escapeHtml(item.tipo || item.categoria || "Ocorrência")} • ${escapeHtml(status)}</small></div>
                 <span class="safe-v19-priority">${escapeHtml(priority)}</span>
             </div>
-            <div class="safe-v19-data"><strong>Endereço:</strong> ${escapeHtml(item.endereco_completo || item.localizacao || "Não informado")}</div>
-            <div class="safe-v19-data"><strong>Descrição:</strong> ${escapeHtml(item.detalhes || "Sem descrição")}</div>
+            <div class="safe-v19-data"><strong>Endereço:</strong> ${escapeHtml(textoOcorrenciaVisivel(item, item.endereco_completo || item.localizacao || "Não informado"))}</div>
+            <div class="safe-v19-data"><strong>Descrição:</strong> ${escapeHtml(textoOcorrenciaVisivel(item, item.detalhes || "Sem descrição"))}</div>
             <div class="safe-v19-deadline ${status === "EM_ATENDIMENTO" ? "is-active" : ""}">
                 <span>📅</span>
                 <div><small>Previsão de atendimento</small><strong>${escapeHtml(deadlineLabel)}</strong></div>
@@ -3609,6 +3609,17 @@
         return adminOccurrencePhotos.has(name) ? "./" + name : "";
     }
 
+    // Mantém o indicador de demonstração no banco, mas não exibe rótulos de teste nos cartões.
+    function textoOcorrenciaVisivel(item, value) {
+        const source = String(value == null ? "" : value);
+        if (!item || !item.demonstrativo) return source;
+        return source
+            .replace(/^\s*\[EXEMPLO ILUSTRATIVO\]\s*/i, "")
+            .replace(/\s*\((?:exemplo|ilustrativo)\)/gi, "")
+            .replace(/\s*\[(?:EXEMPLO|ILUSTRATIVO)\]/gi, "")
+            .trim();
+    }
+
     function statusCentralLegivel(value) {
         return ({
             open:"Aguardando atendimento",
@@ -3657,7 +3668,7 @@
                 img.className = "sl-admin-record-image";
                 img.src = photoUrl;
                 img.loading = "lazy";
-                img.alt = "Foto ilustrativa de animal";
+                img.alt = "Foto do animal";
                 img.onerror = function() { img.hidden = true; };
                 button.appendChild(img);
             }
@@ -3672,14 +3683,14 @@
 
             const tag = document.createElement("span");
             tag.className = "sl-admin-type-tag";
-            tag.textContent = (item.tipoLabel || "Registro") + (item.demonstrativo ? " · Exemplo" : "");
+            tag.textContent = item.tipoLabel || "Registro";
             heading.appendChild(tag);
             info.appendChild(heading);
 
             const meta = document.createElement("div");
             meta.className = "sl-admin-record-meta";
             const location = document.createElement("span");
-            location.textContent = item.local || "Local não informado";
+            location.textContent = textoOcorrenciaVisivel(item, item.local || "Local não informado");
             const status = document.createElement("span");
             status.textContent = statusCentralLegivel(item.status);
             meta.append(location,status);
@@ -3693,7 +3704,7 @@
             if (item.descricao) {
                 const description = document.createElement("p");
                 description.className = "sl-admin-record-description";
-                description.textContent = item.descricao;
+                description.textContent = textoOcorrenciaVisivel(item, item.descricao);
                 info.appendChild(description);
             }
             const view = document.createElement("span");
@@ -3717,13 +3728,13 @@
         text("adminOccurrenceDetailTitle", item.titulo || "Registro");
         text("adminOccurrenceDetailType", item.tipoLabel || "Registro");
         text("adminOccurrenceDetailMeta", [
-            item.local || "Local não informado",
+            textoOcorrenciaVisivel(item, item.local || "Local não informado"),
             item.nomeCidadao ? "Cidadão: " + item.nomeCidadao : "",
             statusCentralLegivel(item.status),
             item.data ? dateTime(item.data) : ""
         ].filter(Boolean).join(" · "));
-        text("adminOccurrenceDetailDescription", item.descricao || "Descrição não informada.");
-        text("adminOccurrenceDetailActions", item.providencias || "Não há informações adicionais sobre as providências.");
+        text("adminOccurrenceDetailDescription", textoOcorrenciaVisivel(item, item.descricao || "Descrição não informada."));
+        text("adminOccurrenceDetailActions", textoOcorrenciaVisivel(item, item.providencias || "Não há informações adicionais sobre as providências."));
         const disclaimer = byId("adminOccurrenceDetailDisclaimer");
         if (disclaimer) disclaimer.hidden = !item.demonstrativo;
         const photo = fotoCentralSegura(item);
@@ -3733,7 +3744,7 @@
         if (image) {
             if (photo) {
                 image.src = photo;
-                image.alt = "Fotografia ilustrativa do animal relacionada a " + (item.titulo || "ocorrência");
+                image.alt = "Fotografia relacionada a " + (item.titulo || "ocorrência");
             } else {
                 image.removeAttribute("src");
             }

@@ -100,6 +100,10 @@ async function login(cpf, role, password = "123456", extra = {}) {
         }
     });
 
+    const publicBefore = await request("/api/landing/ocorrencias");
+    assert(Array.isArray(publicBefore.data.casos), "A API do mapa não retornou uma lista.");
+    const publicBeforeIds = new Set(publicBefore.data.casos.map((c) => c.id));
+
     const occurrenceCreated = await request("/api/ocorrencias", {
         method: "POST",
         token: citizen.token,
@@ -155,6 +159,16 @@ async function login(cpf, role, password = "123456", extra = {}) {
     assert(occurrence.id, "Ocorrência não retornou ID.");
     assert(occurrence.previsao_atendimento, "Ocorrência não recebeu previsão inicial.");
 
+    const publicDuring = await request("/api/landing/ocorrencias");
+    const newPublic = publicDuring.data.casos.find((c) => !publicBeforeIds.has(c.id));
+    assert(newPublic, "Nova ocorrência identificada não entrou automaticamente no mapa.");
+    assert.strictEqual(newPublic.tipo, "Solicitar Resgate", "Categoria do mapa não reflete a ação do cidadão.");
+    assert.strictEqual(newPublic.status, "open", "Nova ocorrência não está aguardando atendimento.");
+    for (const field of ["usuario_id","cpf","endereco_completo","detalhes","foto"]) {
+        assert(!(field in newPublic), "O mapa revelou um campo privado: " + field);
+    }
+    const publicCaseId = newPublic.id;
+
     const initialNotifications = await request("/api/users/11111111111/notifications-v18", {
         token: citizen.token,
         expected: [200]
@@ -198,6 +212,12 @@ async function login(cpf, role, password = "123456", extra = {}) {
         }
     });
     assert(anonymous.data.data.id, "Denúncia anônima não retornou ID.");
+    const publicAfterAnonymous = await request("/api/landing/ocorrencias");
+    assert.deepStrictEqual(
+        publicAfterAnonymous.data.casos.map((c) => c.id).sort(),
+        publicDuring.data.casos.map((c) => c.id).sort(),
+        "Denúncia anônima não pode alterar o mapa público."
+    );
 
     const professional = await login("22222222222", "professional", "123456", {
         company: "Safe Life Matriz"
@@ -239,6 +259,12 @@ async function login(cpf, role, password = "123456", extra = {}) {
         }
     });
 
+    const publicInService = await request("/api/landing/ocorrencias");
+    assert.strictEqual(
+        publicInService.data.casos.find((c) => c.id === publicCaseId)?.status,
+        "progress", "O mapa não atualizou para Em atendimento."
+    );
+
     await request(`/api/chamados/ocorrencia/${occurrence.id}/status`, {
         method: "PATCH",
         token: professional.token,
@@ -248,6 +274,10 @@ async function login(cpf, role, password = "123456", extra = {}) {
             observacao: "Atendimento concluído pelo CI"
         }
     });
+
+    const publicAfterCompleted = await request("/api/landing/ocorrencias");
+    assert(!publicAfterCompleted.data.casos.some((c) => c.id === publicCaseId),
+        "Concluído deve desaparecer do mapa público sem apagar o registro.");
 
     const publicCases = await request("/api/public/casos-atendidos?limit=12", {
         expected: [200]

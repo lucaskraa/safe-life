@@ -98,20 +98,19 @@
 
                 <section class="sl-section sl-sobre" id="sobre" aria-labelledby="slAboutTitle">
                     <div class="sl-shell sl-sobre-grid">
-                        <div class="sl-about-photo" role="img" aria-label="Cão em um abrigo, atrás da grade do alojamento"></div>
+                        <div class="sl-about-photo" role="img" aria-label="Dois cães correndo ao ar livre em um ambiente acolhedor"></div>
                         <div>
                             <p class="sl-kicker">Sobre o Safe Life</p>
                             <h2 id="slAboutTitle">Uma rede de cuidado e proteção animal!</h2>
                         </div>
                         <div class="sl-sobre-body">
                             <p class="sl-muted">
-                                O Safe Life conecta pessoas e iniciativas de proteção animal, facilitando o registro
-                                de situações de risco e o acompanhamento das ocorrências.
+                                O Safe Life aproxima quem precisa de ajuda de quem pode agir!
+                                Registre situações que envolvem animais e acompanhe o atendimento em um só lugar.
                             </p>
                             <p class="sl-muted">
-                                Nossa missão é tornar a comunicação mais simples, aproximar a comunidade dos
-                                profissionais responsáveis e contribuir para que mais animais recebam o cuidado de
-                                que precisam.
+                                Com informações organizadas e comunicação acessível, nossa rede ajuda a comunidade e as equipes
+                                de proteção animal a cuidar de cada ocorrência com mais atenção e responsabilidade.
                             </p>
                         </div>
                     </div>
@@ -123,13 +122,20 @@
                             <p class="sl-kicker">Acompanhamento</p>
                             <h2 id="slCasesTitle">Ocorrências na região</h2>
                             <p class="sl-muted sl-occ-sub">
-                                Explore registros e acompanhe informações, localização e andamento de cada situação.
+                                Confira os registros ativos, a região aproximada e a etapa de cada atendimento.
                             </p>
                         </div>
 
                         <p class="sl-demo-note" id="slDemoNote">
-                            Registros ilustrativos para apresentar o funcionamento da plataforma.
+                            Os registros identificados aparecem aqui enquanto aguardam atendimento ou estão sendo atendidos.
                         </p>
+
+                        <div class="sl-map-filters" id="slCaseFilters" role="group" aria-label="Filtrar pelo serviço escolhido pelo cidadão">
+                            <button class="is-active" type="button" data-category="todos" aria-pressed="true">Todas as ocorrências</button>
+                            <button type="button" data-category="SOS Emergência" aria-pressed="false">SOS Emergência</button>
+                            <button type="button" data-category="Reportar Ocorrência" aria-pressed="false">Reportar Ocorrência</button>
+                            <button type="button" data-category="Solicitar Resgate" aria-pressed="false">Solicitar Resgate</button>
+                        </div>
 
                         <div class="sl-occ-grid">
                             <div class="sl-map-column">
@@ -138,9 +144,9 @@
                                         <p class="sl-map-overline">MAPA INTERATIVO</p>
                                         <h3>Ocorrências em Araucária</h3>
                                     </div>
-                                    <span class="sl-map-count">12 ocorrências no mapa</span>
+                                    <span class="sl-map-count" aria-live="polite">Carregando ocorrências…</span>
                                 </div>
-                                <div class="sl-map" id="slMap" role="region" aria-label="Mapa ilustrativo de ocorrências em Araucária, Paraná">
+                                <div class="sl-map" id="slMap" role="region" aria-label="Mapa de ocorrências ativas em Araucária, Paraná">
                                     <span class="sl-map-fallback">Carregando mapa…</span>
                                 </div>
                                 <div class="sl-map-legend" aria-label="Legenda dos status">
@@ -151,35 +157,12 @@
                             <div class="sl-case-column">
                                 <h3 class="sl-case-list-title">Ocorrências no mapa</h3>
                                 <ul class="sl-cases" id="slCaseList" aria-label="Lista de ocorrências no mapa"></ul>
-                                <button type="button" class="sl-see-all" id="slToggleCases" aria-expanded="false">Ver todas as 12 ocorrências <span aria-hidden="true">→</span></button>
+                                <button type="button" class="sl-see-all" id="slToggleCases" aria-expanded="false" hidden>Ver todas as ocorrências <span aria-hidden="true">→</span></button>
                             </div>
                         </div>
                     </div>
                 </section>
 
-
-                <dialog id="slCaseDialog" class="sl-case-dialog" aria-labelledby="slCaseDialogTitle">
-                    <div class="sl-case-dialog-layout">
-                        <div class="sl-case-dialog-visual">
-                            <img id="slCaseDialogPhoto" alt="Imagem ilustrativa do animal" loading="lazy">
-                            <span>Imagem ilustrativa</span>
-                        </div>
-                        <div class="sl-case-dialog-content">
-                            <button type="button" id="slCaseDialogClose" class="sl-case-dialog-close" aria-label="Fechar detalhes">×</button>
-                            <p class="sl-dialog-overline">OCORRÊNCIA NA REGIÃO</p>
-                            <h2 id="slCaseDialogTitle">Detalhes da ocorrência</h2>
-                            <div class="sl-dialog-meta">
-                                <span id="slCaseDialogPlace"></span>
-                                <span id="slCaseDialogStatus"></span>
-                            </div>
-                            <h3>O que aconteceu</h3>
-                            <p id="slCaseDialogDescription"></p>
-                            <h3>Providências</h3>
-                            <p id="slCaseDialogAction"></p>
-                            <p class="sl-dialog-disclaimer">Situação e fotografia ilustrativas, não representam uma denúncia real.</p>
-                        </div>
-                    </div>
-                </dialog>
 
                 <section class="sl-section sl-sobre" id="como-funciona" aria-labelledby="slHowTitle">
                     <div class="sl-shell">
@@ -2506,8 +2489,7 @@
                 <dialog id="adminOccurrenceDetailDialog" class="sl-admin-detail-dialog" aria-labelledby="adminOccurrenceDetailTitle">
                     <button class="sl-admin-detail-close" type="button" onclick="fecharDetalheCentralOcorrenciasAdmin()" aria-label="Fechar detalhes">×</button>
                     <div class="sl-admin-detail-image-wrap" id="adminOccurrenceDetailImageWrap" hidden>
-                        <img id="adminOccurrenceDetailImage" loading="lazy" alt="Foto ilustrativa relacionada à ocorrência">
-                        <span>Imagem ilustrativa</span>
+                        <img id="adminOccurrenceDetailImage" loading="lazy" alt="Foto relacionada à ocorrência">
                     </div>
                     <div class="sl-admin-detail-body">
                         <div id="adminOccurrenceDetailType" class="sl-admin-detail-label"></div>
@@ -2515,7 +2497,6 @@
                         <p id="adminOccurrenceDetailMeta"></p>
                         <h3>Descrição</h3><p id="adminOccurrenceDetailDescription"></p>
                         <h3>Providências / acompanhamento</h3><p id="adminOccurrenceDetailActions"></p>
-                        <small id="adminOccurrenceDetailDisclaimer" hidden>Registro ilustrativo para demonstrar a plataforma. Não representa uma denúncia real.</small>
                     </div>
                 </dialog>
 
