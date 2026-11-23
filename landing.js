@@ -17,7 +17,7 @@
     /* ---------- constantes ---------- */
 
     var MAX_LEN = { bairro: 60, tipo: 60, animal: 60, titulo: 80, texto: 320, acao: 320 };
-    var POPUP_DEMO = "Registro e imagem ilustrativos, não representam um atendimento real.";
+    var POPUP_DEMO = "Registro ilustrativo, não representa atendimento real.";
     var LEAFLET_CSS = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css";
     var LEAFLET_JS = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js";
     var TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
@@ -643,7 +643,7 @@
                 return true;
             });
 
-            // Se a API estiver indisponível, preserva os 12 registros ilustrativos locais.
+            // A API é a fonte da lista atual: lista vazia significa ausência de casos ativos.
             cases = next.sort(function (a, b) {
                 function asDate(value) {
                     var parts = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(value || "");
@@ -669,9 +669,7 @@
         initCaseDialog();
         rebuildIndex();
         renderCards();
-        // A API entrega uma vitrine persistente de 12 posicoes.
-        // Uma nova denuncia substitui o registro mais antigo ou concluido no banco.
-        // Mudancas de status nao excluem casos sozinhas.
+        // A API entrega os registros públicos ativos. Concluídos permanecem no banco.
         var apiBase = (function () {
             var base = document.querySelector('meta[name="safe-life-api-url"]');
             return base && base.content ? base.content.replace(/\/$/, "") : "https://safe-life.onrender.com";
