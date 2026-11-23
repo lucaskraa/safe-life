@@ -1199,6 +1199,7 @@ app.get("/api/landing/ocorrencias-demo", async (req, res) => {
         const result = await pool.query(`
             SELECT id, fonte, bairro, tipo, titulo, texto, acao, status, lat, lng, foto_url, inserido_em
             FROM public.landing_casos_publicos
+            WHERE status IS DISTINCT FROM 'done'
             ORDER BY inserido_em DESC, id DESC
             LIMIT 12
         `);
@@ -5128,20 +5129,19 @@ app.get("/api/admin/funcionarios", verificarAdmin, async (req, res) => {
     }
 });
 
-/* Visão administrativa unificada: não grava, não altera status e diferencia TCC. */
+/* Visão administrativa unificada: leitura de registros sem alterar seu status. */
 app.get("/api/admin/central-ocorrencias", verificarAdmin, async (req,res) => {
     try {
-        const [ocorrencias,anonimas,resgates,pets,demo] = await Promise.all([
+        const [ocorrencias,anonimas,resgates,pets] = await Promise.all([
             pool.query(`SELECT id,tipo,categoria,assunto,detalhes,localizacao,status,criado_em FROM ocorrencias ORDER BY criado_em DESC LIMIT 250`),
             pool.query(`SELECT id,tipo,categoria,assunto,detalhes,localizacao,status,criado_em FROM denuncias_anonimas ORDER BY criado_em DESC LIMIT 250`),
             pool.query(`SELECT r.id,r.status,r.iniciado_em,r.destino_nome,p.nome AS pet_nome
                         FROM resgates_pets r LEFT JOIN pets p ON p.id=r.pet_id ORDER BY r.iniciado_em DESC LIMIT 250`),
-            pool.query(`SELECT id,nome,especie,status_pet,localizacao,observacoes,criado_em FROM pets WHERE ativo=TRUE ORDER BY criado_em DESC LIMIT 250`),
-            pool.query(`SELECT id,fonte,bairro,tipo,titulo,texto,acao,status,foto_url FROM landing_casos_publicos ORDER BY inserido_em DESC,id DESC LIMIT 12`)
+            pool.query(`SELECT id,nome,especie,status_pet,localizacao,observacoes,criado_em FROM pets WHERE ativo=TRUE ORDER BY criado_em DESC LIMIT 250`)
         ]);
         const registros=[];
         for (const r of ocorrencias.rows) registros.push({
-            grupo:"ocorrencia",id:"ocorrencia-"+r.id,tipoLabel:"Ocorrência real",
+            grupo:(String(r.categoria||"").toLowerCase()==="emergency" || /emergência/i.test(r.tipo||"")) ? "emergencia" : "ocorrencia",id:"ocorrencia-"+r.id,tipoLabel:"Ocorrência",
             titulo:r.assunto||r.categoria||r.tipo||"Ocorrência",
             local:r.localizacao,status:r.status,descricao:r.detalhes,data:r.criado_em
         });
@@ -5156,23 +5156,17 @@ app.get("/api/admin/central-ocorrencias", verificarAdmin, async (req,res) => {
             local:r.destino_nome,status:r.status,data:r.iniciado_em
         });
         for (const r of pets.rows) registros.push({
-            grupo:"pet",id:"pet-"+r.id,tipoLabel:"Pet cadastrado",
+            grupo:r.status_pet==="DESAPARECIDO" ? "desaparecido" : "pet",id:"pet-"+r.id,tipoLabel:r.status_pet==="DESAPARECIDO" ? "Pet desaparecido" : "Pet cadastrado",
             titulo:r.nome||"Pet",local:r.localizacao,
             status:r.status_pet,descricao:[r.especie,r.observacoes].filter(Boolean).join(" • "),
             data:r.criado_em
-        });
-        for (const r of demo.rows) registros.push({
-            grupo:"demo",id:"mapa-"+r.id,tipoLabel:r.fonte==="demo" ? "Ilustrativo" : "No mapa",
-            demonstrativo:r.fonte==="demo",titulo:r.titulo||r.tipo,
-            local:r.bairro,status:r.status,descricao:r.texto,providencias:r.acao,
-            foto:r.foto_url || null
         });
         registros.sort((a,b) => {
             if (a.demonstrativo !== b.demonstrativo) return a.demonstrativo ? 1:-1;
             return new Date(b.data||0)-new Date(a.data||0);
         });
         res.setHeader("Cache-Control","no-store");
-        return res.json({registros, demonstrativos:demo.rows.length});
+        return res.json({registros});
     } catch(error) {
         console.error("Erro na central administrativa:",error.message);
         return res.status(500).json({error:"Não foi possível carregar os registros."});
