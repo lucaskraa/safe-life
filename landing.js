@@ -405,7 +405,9 @@
         wrap.appendChild(el("h3", null, c.titulo));
         wrap.appendChild(el("p", "sl-popup-text", "Tipo: " + c.tipo + (c.animal ? " · Animal: " + c.animal : "")));
         if (c.texto) wrap.appendChild(el("p", "sl-popup-text", c.texto));
-        wrap.appendChild(el("p", "sl-popup-status", STATUS[c.status].label));
+        var status = el("p", "sl-popup-status", STATUS[c.status].label);
+        status.setAttribute("data-status", c.status);
+        wrap.appendChild(status);
         wrap.appendChild(el("p", "sl-popup-demo", c.demonstrativo ? POPUP_DEMO : "Localização aproximada; informações pessoais protegidas."));
         return wrap;
     }
