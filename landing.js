@@ -274,7 +274,8 @@
             lng: lng,
             texto: cleanStr(raw.texto, MAX_LEN.texto),
             data: fmtDate(raw.data),
-            foto: casePhoto(raw.foto_url || raw.foto, raw.id)
+            foto: casePhoto(raw.foto_url || raw.foto, raw.id),
+            demonstrativo: raw.demonstrativo !== false
         };
     }
 
@@ -400,6 +401,10 @@
             var target = byId(id);
             if (target) target.textContent = fields[id];
         });
+        var warning = dialog.querySelector(".sl-dialog-disclaimer");
+        if (warning) warning.textContent = c.demonstrativo
+            ? "Caso e fotografia ilustrativos, sem relação com uma denúncia real."
+            : "Registro real com informações resumidas, localização aproximada e fotografia ilustrativa. Dados pessoais e evidências originais não são exibidos.";
         if (typeof dialog.showModal === "function" && !dialog.open) dialog.showModal();
     }
 
@@ -525,7 +530,7 @@
         button.type = "button";
         button.addEventListener("click", function () { openCaseDialog(c); });
         wrap.appendChild(button);
-        wrap.appendChild(el("p", "sl-popup-demo", POPUP_DEMO));
+        wrap.appendChild(el("p", "sl-popup-demo", c.demonstrativo ? POPUP_DEMO : "Registro real resumido; foto ilustrativa e posição aproximada."));
         return wrap;
     }
 
@@ -672,21 +677,43 @@
         initCaseDialog();
         rebuildIndex();
         renderCards();
-        // Fonte preferencial: tabela isolada no Supabase, via servidor existente.
-        // Se o Render estiver offline, os mesmos exemplos locais continuam visíveis.
-        fetch((function () {
+        // A API entrega uma vitrine persistente de 12 posicoes.
+        // Uma nova denuncia substitui o registro mais antigo ou concluido no banco.
+        // Mudancas de status nao excluem casos sozinhas.
+        var apiBase = (function () {
             var base = document.querySelector('meta[name="safe-life-api-url"]');
-            var origin = base && base.content ? base.content.replace(/\/$/, "") : "https://safe-life.onrender.com";
-            return origin + "/api/landing/ocorrencias-demo";
-        })(), { credentials: "omit" })
-            .then(function (res) { if (!res.ok) throw new Error("API indisponível"); return res.json(); })
-            .then(function (data) {
-                if (data && data.demonstrativo === true && Array.isArray(data.casos) && data.casos.length) {
-                    window.SafeLifeLanding.setCases(data.casos);
-                }
-            }).catch(function () { /* preserva exemplos locais */ });
+            return base && base.content ? base.content.replace(/\\/$/, "") : "https://safe-life.onrender.com";
+        })();
+        var lastSignature = "";
+        var fetching = false;
+        function refreshPublicCases() {
+            if (fetching || document.hidden) return;
+            fetching = true;
+            fetch(apiBase + "/api/landing/ocorrencias-demo", { credentials: "omit", cache: "no-store" })
+                .then(function (res) { if (!res.ok) throw new Error("API indisponivel"); return res.json(); })
+                .then(function (data) {
+                    if (!data || !Array.isArray(data.casos) || !data.casos.length) return;
+                    var signature = JSON.stringify(data.casos);
+                    if (signature !== lastSignature) {
+                        lastSignature = signature;
+                        window.SafeLifeLanding.setCases(data.casos);
+                    }
+                })
+                .catch(function () { /* preserva a ultima vitrine sem trocar por exemplos */ })
+                .finally(function () { fetching = false; });
+        }
+        refreshPublicCases();
+        window.setInterval(function () {
+            var screen = byId("welcomeScreen");
+            if (screen && screen.classList.contains("active")) refreshPublicCases();
+        }, 25000);
+        document.addEventListener("visibilitychange", function () {
+            if (!document.hidden && byId("welcomeScreen") && byId("welcomeScreen").classList.contains("active")) {
+                refreshPublicCases();
+            }
+        });
         var note = byId("slDemoNote");
-        if (note) note.textContent = "Registros e imagens ilustrativos. Nenhum marcador corresponde a uma denúncia real ou endereço exato."; 
+        if (note) note.textContent = "Localizações aproximadas e fotos ilustrativas. Informações pessoais protegidas.";
         var count = document.querySelector("#welcomeScreen .sl-map-count");
         if (count) count.textContent = String(cases.length).padStart(2, "0") + " ocorrências no mapa";
         var toggle = byId("slToggleCases");
