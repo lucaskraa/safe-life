@@ -21,7 +21,7 @@ assert(js.includes("/api/landing/ocorrencias-demo"), "API da landing não ligada
 assert(html.includes('id="slCaseDialog"'), "Janela de detalhes da landing ausente");
 assert(html.includes('id="adminOccurrenceDetailDialog"'), "Janela de detalhes admin ausente");
 assert(js.includes("openCaseDialog(c)"), "Os cards da landing não abrem as fotos e detalhes");
-assert(js.includes("sl-popup-photo"), "Fotos ausentes dos popups do mapa");
+assert(!js.includes("wrap.appendChild(image)"), "Pop-ups não devem exibir fotos repetidas");
 assert(server.includes("foto_url"), "API não retorna as fotos dos casos");
 assert(adminJs.includes("abrirDetalheCentralOcorrenciasAdmin"), "Detalhes clicáveis do admin ausentes");
 assert(!html.includes(">No mapa</button>"), "A central não deve exibir o filtro ilustrativo No mapa");
