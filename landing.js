@@ -33,8 +33,8 @@
     /* Fotografias documentais (Unsplash, licença livre).
        A 1ª que carregar é usada; a última é a reserva offline. */
     var HERO_CANDIDATES = [
-        "./landing-abrigo-hero.jpg",
-        "https://images.pexels.com/photos/20049567/pexels-photo-20049567.jpeg?auto=compress&cs=tinysrgb&w=1800"
+        "./landing-cao-abrigo-primeiro-plano.jpg",
+        "./landing-abrigo-hero.jpg"
     ];
     var HERO_PLACEHOLDER = ""; // sem ilustração genérica: mantém um fundo sóbrio se as fotos falharem.
 
