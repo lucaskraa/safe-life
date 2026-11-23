@@ -137,7 +137,7 @@ if (fs.existsSync(PUBLIC_DIR)) {
 
 // Arquivos estáticos explicitamente permitidos para a landing.
 // Não expor indiscriminadamente o diretório raiz (contém SQL e backend).
-["landing.css", "landing.js", "hero-photo.jpg", "hero-photo-v2.jpg", "about-photo.jpg", "cta-cat-photo.jpg"].forEach((name) => {
+["landing.css", "landing.js", "hero-photo.jpg", "hero-photo-v2.jpg", "about-photo.jpg", "cta-cat-photo.jpg", "landing-abrigo-hero.jpg", "landing-abrigo-sobre.jpg", "landing-abrigo-cta.jpg"].forEach((name) => {
     app.get("/" + name, (req, res, next) => {
         const file = path.join(__dirname, name);
         if (!fs.existsSync(file)) return next();
