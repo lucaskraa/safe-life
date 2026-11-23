@@ -1192,12 +1192,18 @@ async function verificarLeituraOcorrencia(req, res, next) {
 ===================================================== */
 
 // Landing pública: casos resumidos e anonimizados, sem registros concluídos.
-app.get("/api/landing/ocorrencias-demo", async (req, res) => {
+app.get(["/api/landing/ocorrencias", "/api/landing/ocorrencias-demo"], async (req, res) => {
     try {
         // Somente campos publicos: titulo generico, bairro aproximado e foto ilustrativa.
         // Sem GPS exato, identificador interno, dados do cidadao ou evidencia original.
         const result = await pool.query(`
-            SELECT p.id, p.bairro, p.tipo, p.titulo, p.texto, p.acao,
+            SELECT p.id, p.bairro,
+                   CASE
+                     WHEN lower(coalesce(o.categoria, '')) IN ('emergency','deceased') THEN 'SOS Emergência'
+                     WHEN lower(coalesce(o.categoria, '')) = 'rescue' THEN 'Solicitar Resgate'
+                     ELSE 'Reportar Ocorrência'
+                   END AS tipo,
+                   p.titulo, p.texto, p.acao,
                    p.status, p.lat, p.lng, p.foto_url, p.inserido_em,
                    o.demonstrativo
             FROM public.landing_casos_publicos p
@@ -1205,6 +1211,7 @@ app.get("/api/landing/ocorrencias-demo", async (req, res) => {
             WHERE p.fonte = 'ocorrencia'
               AND o.usuario_id IS NOT NULL AND o.anonima = FALSE
               AND o.status NOT IN ('CONCLUIDA','CANCELADA')
+              AND p.status <> 'done'
             ORDER BY p.inserido_em DESC, p.id DESC
             LIMIT 12
         `);
