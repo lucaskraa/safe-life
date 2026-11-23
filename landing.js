@@ -682,7 +682,7 @@
         // Mudancas de status nao excluem casos sozinhas.
         var apiBase = (function () {
             var base = document.querySelector('meta[name="safe-life-api-url"]');
-            return base && base.content ? base.content.replace(/\\/$/, "") : "https://safe-life.onrender.com";
+            return base && base.content ? base.content.replace(/\/$/, "") : "https://safe-life.onrender.com";
         })();
         var lastSignature = "";
         var fetching = false;
