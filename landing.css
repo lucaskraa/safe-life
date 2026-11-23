@@ -862,7 +862,7 @@ body:has(#welcomeScreen.active) #app{width:100% !important;max-width:none !impor
 }
 #welcomeScreen .sl-about-photo {
  width:100%;min-height:260px;align-self:stretch;border-radius:35% 30% 33% 26%;
- background:#c6d3de url("./landing-abrigo-sobre.jpg") center / cover no-repeat;
+ background:#c6d3de url("./about-photo.jpg") center / cover no-repeat;
  box-shadow:0 20px 45px -35px rgba(5,20,50,.4);
 }
 #welcomeScreen .sl-sobre-grid h2 {max-width:330px;font-size:clamp(25px,2.8vw,36px)}
@@ -1060,3 +1060,8 @@ body:has(#welcomeScreen.active)::after,
  #welcomeScreen .sl-case-dialog-visual {min-height:220px;max-height:245px;}
  #welcomeScreen .sl-case-dialog-content {padding:38px 22px 22px;}
 }
+
+/* Status públicos e pop-up compacto: sem botões de detalhamento. */
+#welcomeScreen .sl-popup-status {display:inline-block;margin:3px 0 9px;padding:4px 9px;border-radius:20px;background:#eaf1ff;color:#25477c;font-weight:700;font-size:11px;}
+#welcomeScreen .sl-map .leaflet-popup-content {max-width:230px;}
+#welcomeScreen .sl-popup-detail-btn,#welcomeScreen .sl-case-details-hint {display:none!important;}
