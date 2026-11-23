@@ -46,6 +46,9 @@ jobs:
         run: psql -h 127.0.0.1 -U postgres -d safelife -f database.sql
       - name: Install public landing test schema
         run: |
+          # Supabase cria essas roles automaticamente; Postgres puro do CI, nao.
+          psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d safelife -c "CREATE ROLE anon NOLOGIN"
+          psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d safelife -c "CREATE ROLE authenticated NOLOGIN"
           psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d safelife -f migrations/20261122_landing_ocorrencias_demo.sql
           psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d safelife -f migrations/20261123_landing_fotos_ilustrativas.sql
           psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d safelife -f migrations/20261123_landing_vitrine_publica_12.sql
