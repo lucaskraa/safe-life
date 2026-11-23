@@ -1102,3 +1102,14 @@ body:has(#welcomeScreen.active)::after,
     #welcomeScreen .sl-map-filters { gap: 7px; margin: 13px 0 20px; }
     #welcomeScreen .sl-map-filters button { padding: 9px 12px; font-size: 11px; }
 }
+
+/* Aguardando (pendente) e em atendimento têm significados e cores diferentes. */
+#welcomeScreen .sl-popup-status[data-status="open"] {
+    background: #fcebed;
+    color: #9c2335;
+}
+#welcomeScreen .sl-popup-status[data-status="progress"] {
+    background: #fff1d9;
+    color: #865200;
+}
+#welcomeScreen #slToggleCases[hidden] { display: none !important; }
