@@ -17,7 +17,7 @@
     /* ---------- constantes ---------- */
 
     var MAX_LEN = { bairro: 60, tipo: 60, animal: 60, titulo: 80, texto: 320, acao: 320 };
-    var POPUP_DEMO = "Dado fictício para demonstração do TCC. O marcador é ilustrativo e não indica endereço real.";
+    var POPUP_DEMO = "Registro e imagem ilustrativos, não representam um atendimento real.";
     var LEAFLET_CSS = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css";
     var LEAFLET_JS = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js";
     var TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
@@ -187,6 +187,28 @@
         }
     ];
 
+    /* Arquivos de imagem locais permitidos para os casos ilustrativos. */
+    var CASE_PHOTOS = {
+        "1":"landing-cao-abrigo-primeiro-plano.jpg",
+        "2":"landing-abrigo-sobre.jpg",
+        "3":"landing-abrigo-cta-opcao.jpg",
+        "4":"landing-abrigo-hero-opcao.jpg",
+        "5":"landing-abrigo-hero.jpg",
+        "6":"landing-cao-abrigo-pb.jpg",
+        "7":"landing-cao-abrigo-primeiro-plano.jpg",
+        "8":"landing-abrigo-sobre.jpg",
+        "9":"landing-abrigo-hero.jpg",
+        "10":"landing-abrigo-hero-opcao.jpg",
+        "11":"landing-abrigo-cta.jpg",
+        "12":"landing-cao-abrigo-pb.jpg"
+    };
+    var ALLOWED_PHOTOS = new Set(Object.keys(CASE_PHOTOS).map(function(id) { return CASE_PHOTOS[id]; }));
+    function casePhoto(v, id) {
+        var name = String(v || "").trim().replace(/^\.\//, "");
+        if (!ALLOWED_PHOTOS.has(name)) name = CASE_PHOTOS[String(id)] || "";
+        return name && ALLOWED_PHOTOS.has(name) ? "./" + name : "";
+    }
+
     /* ---------- utilitários ---------- */
 
     function byId(id) { return document.getElementById(id); }
@@ -251,7 +273,8 @@
             lat: lat,
             lng: lng,
             texto: cleanStr(raw.texto, MAX_LEN.texto),
-            data: fmtDate(raw.data)
+            data: fmtDate(raw.data),
+            foto: casePhoto(raw.foto_url || raw.foto, raw.id)
         };
     }
 
@@ -303,49 +326,47 @@
     function renderCards() {
         var list = byId("slCaseList");
         if (!list) return;
-        list.textContent = "";
+        list.replaceChildren();
         cardEls.clear();
 
         if (!cases.length) {
-            var li = el("li", "sl-cases-empty", "Nenhuma ocorrência para exibir no momento.");
-            list.appendChild(li);
+            list.appendChild(el("li", "sl-cases-empty", "Nenhuma ocorrência disponível."));
             return;
         }
-
-        cases.forEach(function (c, index) {
+        cases.forEach(function(c, index) {
             var li = el("li", "sl-case");
             li.classList.toggle("is-preview-hidden", !showAllCases && index >= 5);
             li.dataset.id = c.id;
-            li.setAttribute("tabindex", "0");
+            li.tabIndex = 0;
             li.setAttribute("role", "button");
+            li.setAttribute("aria-label", "Ver foto e detalhes de " + c.titulo + " — " + c.bairro);
             li.setAttribute("aria-pressed", "false");
-            li.setAttribute("aria-label", c.titulo + ", " + c.bairro + ", " + STATUS[c.status].label);
 
+            if (c.foto) {
+                var img = el("img", "sl-case-thumb");
+                img.src = c.foto;
+                img.alt = "Imagem ilustrativa de animal";
+                img.loading = "lazy";
+                img.onerror = function() { img.hidden = true; };
+                li.appendChild(img);
+            }
+            var content = el("div", "sl-case-content");
             var top = el("div", "sl-case-top");
             top.appendChild(el("span", "sl-case-bairro", c.bairro));
             var badge = el("span", "sl-badge", STATUS[c.status].label);
             badge.setAttribute("data-status", c.status);
             top.appendChild(badge);
-
-            li.appendChild(top);
-            li.appendChild(el("h3", null, c.titulo));
-            li.appendChild(el("p", "sl-case-tipo", "Tipo: " + c.tipo + (c.animal ? " · Animal: " + c.animal : "")));
-            if (c.texto) li.appendChild(el("p", "sl-case-texto", c.texto));
-
-            if (c.acao) {
-                var acao = el("p", "sl-case-acao");
-                acao.appendChild(document.createTextNode("Providências: "));
-                var strong = el("strong", null, c.acao);
-                acao.appendChild(strong);
-                li.appendChild(acao);
-            }
-            if (c.data) li.appendChild(el("p", "sl-case-data", "Registro: " + c.data));
-
-            li.addEventListener("click", function () { selectCase(c.id, true); });
-            li.addEventListener("keydown", function (e) {
-                if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectCase(c.id, true); }
+            content.appendChild(top);
+            content.appendChild(el("h3", null, c.titulo));
+            content.appendChild(el("p", "sl-case-tipo", c.tipo));
+            content.appendChild(el("span", "sl-case-details-hint", "Ver foto e detalhes →"));
+            li.appendChild(content);
+            li.addEventListener("click", function() { selectCase(c.id, true); });
+            li.addEventListener("keydown", function(e) {
+                if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault(); selectCase(c.id, true);
+                }
             });
-
             cardEls.set(c.id, li);
             list.appendChild(li);
         });
@@ -353,8 +374,43 @@
         if (toggle) {
             toggle.hidden = cases.length <= 5;
             toggle.setAttribute("aria-expanded", showAllCases ? "true" : "false");
-            toggle.textContent = showAllCases ? "Mostrar menos ocorrências ↑" : "Ver todas as " + cases.length + " ocorrências →";
+            toggle.textContent = showAllCases ? "Mostrar menos ↑" : "Ver todas as " + cases.length + " ocorrências →";
         }
+    }
+
+    function openCaseDialog(c) {
+        var dialog = byId("slCaseDialog");
+        if (!dialog) return;
+        var img = byId("slCaseDialogPhoto");
+        if (img) {
+            img.hidden = !c.foto;
+            if (c.foto) {
+                img.src = c.foto;
+                img.alt = "Fotografia ilustrativa relacionada a " + c.titulo;
+            }
+        }
+        var fields = {
+            slCaseDialogTitle: c.titulo,
+            slCaseDialogPlace: c.bairro + " · " + c.tipo,
+            slCaseDialogStatus: STATUS[c.status].label,
+            slCaseDialogDescription: c.texto || "Descrição ainda não disponível.",
+            slCaseDialogAction: c.acao || "Registro recebido para avaliação."
+        };
+        Object.keys(fields).forEach(function(id) {
+            var target = byId(id);
+            if (target) target.textContent = fields[id];
+        });
+        if (typeof dialog.showModal === "function" && !dialog.open) dialog.showModal();
+    }
+
+    function initCaseDialog() {
+        var dialog = byId("slCaseDialog");
+        if (!dialog) return;
+        var close = byId("slCaseDialogClose");
+        if (close) close.addEventListener("click", function() { dialog.close(); });
+        dialog.addEventListener("click", function(e) {
+            if (e.target === dialog) dialog.close();
+        });
     }
 
     /* ---------- seleção integrada card <-> mapa ---------- */
@@ -379,8 +435,9 @@
         var m = markerObjs.get(id);
         if (m && window.L && lmap) {
             lmap.flyTo(m.latlng, Math.max(lmap.getZoom(), 13), { duration: .6 });
-            m.marker.openPopup();
+            if (!fromCard) m.marker.openPopup();
         }
+        if (fromCard) openCaseDialog(c);
     }
 
     /* ---------- mapa (Leaflet + OpenStreetMap) ---------- */
@@ -447,6 +504,13 @@
 
     function popupHtml(c) {
         var wrap = el("div");
+        if (c.foto) {
+            var image = el("img", "sl-popup-photo");
+            image.src = c.foto;
+            image.alt = "Imagem ilustrativa do animal";
+            image.loading = "lazy";
+            wrap.appendChild(image);
+        }
         wrap.appendChild(el("p", "sl-popup-bairro", c.bairro + (c.data ? " · " + c.data : "")));
         wrap.appendChild(el("h3", null, c.titulo));
         wrap.appendChild(el("p", "sl-popup-text", "Tipo: " + c.tipo + (c.animal ? " · Animal: " + c.animal : "")));
@@ -457,6 +521,10 @@
             acao.appendChild(document.createTextNode(c.acao));
             wrap.appendChild(acao);
         }
+        var button = el("button", "sl-popup-detail-btn", "Ver foto e detalhes →");
+        button.type = "button";
+        button.addEventListener("click", function () { openCaseDialog(c); });
+        wrap.appendChild(button);
         wrap.appendChild(el("p", "sl-popup-demo", POPUP_DEMO));
         return wrap;
     }
@@ -584,13 +652,13 @@
                 return true;
             });
 
-            // Se a API não entregar ocorrências válidas, mantém os quatro exemplos do TCC.
+            // Se a API estiver indisponível, preserva os 12 registros ilustrativos locais.
             cases = next.length ? next : DEMO_CASES.map(sanitizeCase).filter(Boolean);
             rebuildIndex();
             activeId = null;
             renderCards();
             var count = document.querySelector("#welcomeScreen .sl-map-count");
-            if (count) count.textContent = String(cases.length).padStart(2, "0") + " pontos demonstrativos";
+            if (count) count.textContent = String(cases.length).padStart(2, "0") + " ocorrências no mapa";
 
             // Atualiza somente os marcadores; não recria o mapa nem perde o zoom do usuário.
             if (lmap) renderMarkers();
@@ -601,6 +669,7 @@
 
     function boot() {
         initHero();
+        initCaseDialog();
         rebuildIndex();
         renderCards();
         // Fonte preferencial: tabela isolada no Supabase, via servidor existente.
@@ -617,9 +686,9 @@
                 }
             }).catch(function () { /* preserva exemplos locais */ });
         var note = byId("slDemoNote");
-        if (note) note.textContent = "12 ocorrências fictícias para demonstração do TCC. Nenhum marcador representa uma denúncia real ou endereço exato."; 
+        if (note) note.textContent = "Registros e imagens ilustrativos. Nenhum marcador corresponde a uma denúncia real ou endereço exato."; 
         var count = document.querySelector("#welcomeScreen .sl-map-count");
-        if (count) count.textContent = String(cases.length).padStart(2, "0") + " pontos demonstrativos";
+        if (count) count.textContent = String(cases.length).padStart(2, "0") + " ocorrências no mapa";
         var toggle = byId("slToggleCases");
         if (toggle) toggle.addEventListener("click", function () {
             showAllCases = !showAllCases;
