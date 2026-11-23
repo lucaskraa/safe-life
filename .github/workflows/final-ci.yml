@@ -44,6 +44,13 @@ jobs:
       - run: npm install --no-audit --no-fund
       - name: Load database
         run: psql -h 127.0.0.1 -U postgres -d safelife -f database.sql
+      - name: Install public landing test schema
+        run: |
+          psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d safelife -f migrations/20261122_landing_ocorrencias_demo.sql
+          psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d safelife -f migrations/20261123_landing_fotos_ilustrativas.sql
+          psql -v ON_ERROR_STOP=1 -h 127.0.0.1 -U postgres -d safelife -f migrations/20261123_landing_vitrine_publica_12.sql
+      - name: Verify landing rotation on test DB
+        run: node landing.rotation.test.js
       - name: Static and security checks
         run: npm run check
       - name: Start application
