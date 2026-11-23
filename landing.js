@@ -534,8 +534,15 @@
         function refreshPublicCases() {
             if (fetching || document.hidden) return;
             fetching = true;
-            fetch(apiBase + "/api/landing/ocorrencias", { credentials: "omit", cache: "no-store" })
-                .then(function (res) { if (!res.ok) throw new Error("API indisponivel"); return res.json(); })
+            function getCases(path) {
+                return fetch(apiBase + path, { credentials: "omit", cache: "no-store" })
+                    .then(function (res) { if (!res.ok) throw new Error("API indisponível"); return res.json(); });
+            }
+            getCases("/api/landing/ocorrencias")
+                .catch(function () {
+                    // A mesma listagem continua acessível no endereço legado durante a atualização do servidor.
+                    return getCases("/api/landing/ocorrencias-demo");
+                })
                 .then(function (data) {
                     if (!data || !Array.isArray(data.casos)) return;
                     var signature = JSON.stringify(data.casos);
