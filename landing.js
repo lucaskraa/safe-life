@@ -33,16 +33,12 @@
     /* Fotografias documentais (Unsplash, licença livre).
        A 1ª que carregar é usada; a última é a reserva offline. */
     var HERO_CANDIDATES = [
-        "./hero-photo-v2.jpg",
-        "https://images.unsplash.com/photo-1695451486995-7697b5c1be51?auto=format&fit=crop&w=1400&q=78",
-        "https://images.unsplash.com/photo-1450778869180-41d0601e046e?auto=format&fit=crop&w=1400&q=85",
-        "https://images.unsplash.com/photo-1675701918064-0723acdfe0f8?auto=format&fit=crop&w=1400&q=85",
-        "https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&w=1200&q=80",
-        "https://images.unsplash.com/photo-1548767797-d8c844163c4c?auto=format&fit=crop&w=1200&q=80"
+        "./landing-abrigo-hero.jpg",
+        "https://images.pexels.com/photos/20049567/pexels-photo-20049567.jpeg?auto=compress&cs=tinysrgb&w=1800"
     ];
     var HERO_PLACEHOLDER = ""; // sem ilustração genérica: mantém um fundo sóbrio se as fotos falharem.
 
-    /* Quatro ocorrências FICTÍCIAS para demonstração (TCC).
+    /* Doze ocorrências FICTÍCIAS para demonstração (TCC).
        lat/lng = referência aproximada do bairro, arredondada. */
     var DEMO_CASES = [
         {
