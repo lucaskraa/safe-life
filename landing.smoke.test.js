@@ -24,7 +24,13 @@ assert(js.includes("openCaseDialog(c)"), "Os cards da landing não abrem as foto
 assert(js.includes("sl-popup-photo"), "Fotos ausentes dos popups do mapa");
 assert(server.includes("foto_url"), "API não retorna as fotos dos casos");
 assert(adminJs.includes("abrirDetalheCentralOcorrenciasAdmin"), "Detalhes clicáveis do admin ausentes");
-assert(html.includes(">No mapa</button>"), "Filtro da central deve ser No mapa");
+assert(!html.includes(">No mapa</button>"), "A central não deve exibir o filtro ilustrativo No mapa");
+assert(html.includes(">SOS Emergência</button>") && html.includes(">Pets desaparecidos</button>"), "Categorias do cidadão devem aparecer na central");
+assert(js.includes('item.status === "done"'), "Ocorrências concluídas devem ser filtradas do mapa público");
+assert(!js.includes("sl-popup-detail-btn"), "Remover link de foto e detalhes do mapa");
+assert(server.includes("WHERE status IS DISTINCT FROM 'done'"), "API pública deve ocultar concluídos");
+assert(html.includes("É simples! É rápido! É por eles!"), "Título principal deve usar exclamações");
+assert(!html.includes("Projeto acadêmico de TCC"), "Remover referência acadêmica da landing");
 
 assert((js.match(/"bairro":/g) || []).length === 12, "Não há 12 casos demonstrativos de fallback");
 assert(server.includes('app.get("/api/landing/ocorrencias-demo"'), "Endpoint demonstrativo ausente");
@@ -36,4 +42,4 @@ for (const file of [
     "landing-abrigo-sobre.jpg", "landing-abrigo-cta.jpg",
     "landing-abrigo-cta-opcao.jpg", "landing-cao-abrigo-pb.jpg"
 ]) assert(fs.statSync(file).size > 15000, "Fotografia ilustrativa indisponível: " + file);
-console.log("Landing e Admin: fotos locais, modais e integração com API verificados (checagem estática).");
+console.log("Landing e Admin: categorias do cidadão, casos ativos, fotos locais e integração com API verificados.");
