@@ -25,7 +25,7 @@
     var ARAUCARIA = [-25.593, -49.405];
 
     var STATUS = {
-        open:     { label: "Em análise",      glyph: "!" },
+        open:     { label: "Aguardando atendimento", glyph: "!" },
         progress: { label: "Em atendimento", glyph: "…" },
         done:     { label: "Concluído",      glyph: "\u2713" }
     };
@@ -38,7 +38,7 @@
     ];
     var HERO_PLACEHOLDER = ""; // sem ilustração genérica: mantém um fundo sóbrio se as fotos falharem.
 
-    /* Doze ocorrências FICTÍCIAS para demonstração (TCC).
+    /* Ocorrências ilustrativas para demonstração da interface.
        lat/lng = referência aproximada do bairro, arredondada. */
     var DEMO_CASES = [
         {
@@ -309,7 +309,7 @@
 
     /* ---------- estado das ocorrências ---------- */
 
-    var cases = DEMO_CASES.map(sanitizeCase).filter(Boolean);
+    var cases = DEMO_CASES.map(sanitizeCase).filter(function(c) { return c && c.status !== "done"; });
 
     var caseIndex = new Map();   // id -> case
     var cardEls = new Map();
@@ -331,7 +331,9 @@
         cardEls.clear();
 
         if (!cases.length) {
-            list.appendChild(el("li", "sl-cases-empty", "Nenhuma ocorrência disponível."));
+            list.appendChild(el("li", "sl-cases-empty", "Nenhuma ocorrência ativa no momento."));
+            var emptyToggle = byId("slToggleCases");
+            if (emptyToggle) emptyToggle.hidden = true;
             return;
         }
         cases.forEach(function(c, index) {
@@ -340,7 +342,7 @@
             li.dataset.id = c.id;
             li.tabIndex = 0;
             li.setAttribute("role", "button");
-            li.setAttribute("aria-label", "Ver foto e detalhes de " + c.titulo + " — " + c.bairro);
+            li.setAttribute("aria-label", "Consultar ocorrência " + c.titulo + " — " + c.bairro);
             li.setAttribute("aria-pressed", "false");
 
             if (c.foto) {
@@ -360,7 +362,7 @@
             content.appendChild(top);
             content.appendChild(el("h3", null, c.titulo));
             content.appendChild(el("p", "sl-case-tipo", c.tipo));
-            content.appendChild(el("span", "sl-case-details-hint", "Ver foto e detalhes →"));
+            
             li.appendChild(content);
             li.addEventListener("click", function() { selectCase(c.id, true); });
             li.addEventListener("keydown", function(e) {
@@ -509,28 +511,12 @@
 
     function popupHtml(c) {
         var wrap = el("div");
-        if (c.foto) {
-            var image = el("img", "sl-popup-photo");
-            image.src = c.foto;
-            image.alt = "Imagem ilustrativa do animal";
-            image.loading = "lazy";
-            wrap.appendChild(image);
-        }
         wrap.appendChild(el("p", "sl-popup-bairro", c.bairro + (c.data ? " · " + c.data : "")));
         wrap.appendChild(el("h3", null, c.titulo));
         wrap.appendChild(el("p", "sl-popup-text", "Tipo: " + c.tipo + (c.animal ? " · Animal: " + c.animal : "")));
         if (c.texto) wrap.appendChild(el("p", "sl-popup-text", c.texto));
-        if (c.acao) {
-            var acao = el("p", "sl-popup-acao");
-            acao.appendChild(el("strong", null, "Providências: "));
-            acao.appendChild(document.createTextNode(c.acao));
-            wrap.appendChild(acao);
-        }
-        var button = el("button", "sl-popup-detail-btn", "Ver foto e detalhes →");
-        button.type = "button";
-        button.addEventListener("click", function () { openCaseDialog(c); });
-        wrap.appendChild(button);
-        wrap.appendChild(el("p", "sl-popup-demo", c.demonstrativo ? POPUP_DEMO : "Registro real resumido; foto ilustrativa e posição aproximada."));
+        wrap.appendChild(el("p", "sl-popup-status", STATUS[c.status].label));
+        wrap.appendChild(el("p", "sl-popup-demo", c.demonstrativo ? POPUP_DEMO : "Localização aproximada; informações pessoais protegidas."));
         return wrap;
     }
 
@@ -652,13 +638,19 @@
             if (!Array.isArray(list)) return;
             var seen = new Set();
             var next = list.map(sanitizeCase).filter(function (item) {
-                if (!item || seen.has(item.id)) return false;
+                if (!item || item.status === "done" || seen.has(item.id)) return false;
                 seen.add(item.id);
                 return true;
             });
 
             // Se a API estiver indisponível, preserva os 12 registros ilustrativos locais.
-            cases = next.length ? next : DEMO_CASES.map(sanitizeCase).filter(Boolean);
+            cases = next.sort(function (a, b) {
+                function asDate(value) {
+                    var parts = /^(\d{2})\/(\d{2})\/(\d{4})/.exec(value || "");
+                    return parts ? Date.parse(parts[3] + "-" + parts[2] + "-" + parts[1]) || 0 : 0;
+                }
+                return asDate(b.data) - asDate(a.data);
+            });
             rebuildIndex();
             activeId = null;
             renderCards();
@@ -692,7 +684,7 @@
             fetch(apiBase + "/api/landing/ocorrencias-demo", { credentials: "omit", cache: "no-store" })
                 .then(function (res) { if (!res.ok) throw new Error("API indisponivel"); return res.json(); })
                 .then(function (data) {
-                    if (!data || !Array.isArray(data.casos) || !data.casos.length) return;
+                    if (!data || !Array.isArray(data.casos)) return;
                     var signature = JSON.stringify(data.casos);
                     if (signature !== lastSignature) {
                         lastSignature = signature;
