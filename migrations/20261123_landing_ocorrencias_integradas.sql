@@ -94,6 +94,14 @@ BEGIN
     foto_nova := './landing-abrigo-hero-opcao.jpg';
   END IF;
 
+  -- As categorias públicas correspondem às ações reais do formulário do cidadão.
+  tipo_novo := CASE lower(coalesce(NEW.categoria,''))
+    WHEN 'emergency' THEN 'SOS Emergência'
+    WHEN 'deceased' THEN 'SOS Emergência'
+    WHEN 'rescue' THEN 'Solicitar Resgate'
+    ELSE 'Reportar Ocorrência'
+  END;
+
   SELECT count(*)::int INTO quantidade FROM public.landing_casos_publicos;
   IF quantidade >= 12 THEN
     SELECT id INTO id_a_substituir FROM public.landing_casos_publicos
