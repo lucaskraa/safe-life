@@ -1849,6 +1849,62 @@
         return state.queue;
     }
 
+    function renderProfessionalRecent(queue) {
+        const root = byId("proRecentCases");
+        if (!root) return;
+        root.replaceChildren();
+        const list = Array.isArray(queue) ? queue.slice(0, 4) : [];
+        if (!list.length) {
+            const p = document.createElement("p");
+            p.className = "pro-recent-empty";
+            p.textContent = "Nenhum chamado em aberto no momento. Quando chegar uma nova denúncia, ela aparecerá aqui.";
+            root.appendChild(p);
+            return;
+        }
+        list.forEach(function(item) {
+            const card = document.createElement("button");
+            card.type = "button";
+            card.className = "pro-recent-case";
+            card.setAttribute("aria-label", "Abrir fila de atendimentos: " + (item.assunto || item.tipo || "Chamado"));
+            const photoUrl = occurrenceMedia(item);
+            if (photoUrl && (photoUrl.startsWith("data:image/") || /^https?:\/\//.test(photoUrl))) {
+                const image = document.createElement("img");
+                image.className = "pro-recent-photo";
+                image.src = photoUrl;
+                image.alt = "Evidência visual enviada com o chamado";
+                image.loading = "lazy";
+                image.onerror = function() { image.hidden = true; };
+                card.appendChild(image);
+            }
+            const content = document.createElement("span");
+            content.className = "pro-recent-case-content";
+            const top = document.createElement("span");
+            top.className = "pro-recent-case-top";
+            const type = document.createElement("span");
+            type.className = "pro-recent-type";
+            type.textContent = item.origem === "anonima" || item.anonima ? "Denúncia anônima" : "Ocorrência";
+            top.appendChild(type);
+            const status = document.createElement("span");
+            status.className = "pro-recent-status";
+            status.textContent = String(item.status || "PENDENTE").replace(/_/g, " ");
+            top.appendChild(status);
+            content.appendChild(top);
+            const title = document.createElement("strong");
+            title.textContent = item.assunto || item.opcao_escolhida || item.tipo || "Novo chamado";
+            content.appendChild(title);
+            const description = document.createElement("small");
+            description.textContent = item.localizacao || item.bairro || "Local não informado";
+            content.appendChild(description);
+            const more = document.createElement("span");
+            more.className = "pro-recent-view";
+            more.textContent = "Abrir atendimento →";
+            content.appendChild(more);
+            card.appendChild(content);
+            card.addEventListener("click", function() { abrirOcorrenciasPro(); });
+            root.appendChild(card);
+        });
+    }
+
     async function inicializarPainelPro() {
         if (!requireUser("professional")) return;
         nextScreen("proDashboard");
@@ -1862,6 +1918,7 @@
 
         try {
             const queue = await fetchProfessionalQueue(true);
+            renderProfessionalRecent(queue);
             text("statTotal", queue.length);
             text("statAnon", queue.filter(function (item) { return item.origem === "anonima" || item.anonima; }).length);
             text("statEmergency", queue.filter(function (item) { return String(item.prioridade).toUpperCase() === "ALTA" || String(item.categoria).toLowerCase() === "emergency"; }).length);
@@ -2087,6 +2144,7 @@
                 const active = document.querySelector(".screen.active");
                 try {
                     const queue = await fetchProfessionalQueue(true);
+                    renderProfessionalRecent(queue);
                     text("statTotal", queue.length);
                     text("statAnon", queue.filter(function (item) { return item.origem === "anonima" || item.anonima; }).length);
                     text("statEmergency", queue.filter(function (item) {
