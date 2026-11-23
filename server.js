@@ -1191,7 +1191,7 @@ async function verificarLeituraOcorrencia(req, res, next) {
    ROTA INICIAL / SAÚDE DA API
 ===================================================== */
 
-// Landing pública: somente casos fictícios isolados dos registros reais.
+// Landing pública: casos resumidos e anonimizados, sem registros concluídos.
 app.get("/api/landing/ocorrencias-demo", async (req, res) => {
     try {
         // Somente campos publicos: titulo generico, bairro aproximado e foto ilustrativa.
@@ -5162,7 +5162,6 @@ app.get("/api/admin/central-ocorrencias", verificarAdmin, async (req,res) => {
             data:r.criado_em
         });
         registros.sort((a,b) => {
-            if (a.demonstrativo !== b.demonstrativo) return a.demonstrativo ? 1:-1;
             return new Date(b.data||0)-new Date(a.data||0);
         });
         res.setHeader("Cache-Control","no-store");
