@@ -17,7 +17,6 @@
     /* ---------- constantes ---------- */
 
     var MAX_LEN = { bairro: 60, tipo: 60, animal: 60, titulo: 80, texto: 320, acao: 320 };
-    var POPUP_DEMO = "Registro ilustrativo, não representa atendimento real.";
     var LEAFLET_CSS = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css";
     var LEAFLET_JS = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js";
     var TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
@@ -238,7 +237,7 @@
             if (c.foto) {
                 var img = el("img", "sl-case-thumb");
                 img.src = c.foto;
-                img.alt = "Imagem ilustrativa de animal";
+                img.alt = "Foto relacionada ao registro";
                 img.loading = "lazy";
                 img.onerror = function() { img.hidden = true; };
                 li.appendChild(img);
@@ -271,45 +270,6 @@
         }
     }
 
-    function openCaseDialog(c) {
-        var dialog = byId("slCaseDialog");
-        if (!dialog) return;
-        var img = byId("slCaseDialogPhoto");
-        if (img) {
-            img.hidden = !c.foto;
-            if (c.foto) {
-                img.src = c.foto;
-                img.alt = "Fotografia ilustrativa relacionada a " + c.titulo;
-            }
-        }
-        var fields = {
-            slCaseDialogTitle: c.titulo,
-            slCaseDialogPlace: c.bairro + " · " + c.tipo,
-            slCaseDialogStatus: STATUS[c.status].label,
-            slCaseDialogDescription: c.texto || "Descrição ainda não disponível.",
-            slCaseDialogAction: c.acao || "Registro recebido para avaliação."
-        };
-        Object.keys(fields).forEach(function(id) {
-            var target = byId(id);
-            if (target) target.textContent = fields[id];
-        });
-        var warning = dialog.querySelector(".sl-dialog-disclaimer");
-        if (warning) warning.textContent = c.demonstrativo
-            ? "Caso e fotografia ilustrativos, sem relação com uma denúncia real."
-            : "Registro real com informações resumidas, localização aproximada e fotografia ilustrativa. Dados pessoais e evidências originais não são exibidos.";
-        if (typeof dialog.showModal === "function" && !dialog.open) dialog.showModal();
-    }
-
-    function initCaseDialog() {
-        var dialog = byId("slCaseDialog");
-        if (!dialog) return;
-        var close = byId("slCaseDialogClose");
-        if (close) close.addEventListener("click", function() { dialog.close(); });
-        dialog.addEventListener("click", function(e) {
-            if (e.target === dialog) dialog.close();
-        });
-    }
-
     /* ---------- seleção integrada card <-> mapa ---------- */
 
     function setActive(id) {
@@ -332,9 +292,8 @@
         var m = markerObjs.get(id);
         if (m && window.L && lmap) {
             lmap.flyTo(m.latlng, Math.max(lmap.getZoom(), 13), { duration: .6 });
-            if (!fromCard) m.marker.openPopup();
+            m.marker.openPopup();
         }
-        if (fromCard) openCaseDialog(c);
     }
 
     /* ---------- mapa (Leaflet + OpenStreetMap) ---------- */
@@ -408,7 +367,7 @@
         var status = el("p", "sl-popup-status", STATUS[c.status].label);
         status.setAttribute("data-status", c.status);
         wrap.appendChild(status);
-        wrap.appendChild(el("p", "sl-popup-demo", c.demonstrativo ? POPUP_DEMO : "Localização aproximada; informações pessoais protegidas."));
+        wrap.appendChild(el("p", "sl-popup-demo", "Localização aproximada. Dados pessoais protegidos."));
         return wrap;
     }
 
@@ -557,7 +516,6 @@
 
     function boot() {
         initHero();
-        initCaseDialog();
         rebuildIndex();
         renderCards();
         initCategoryFilters();
@@ -596,7 +554,7 @@
             }
         });
         var note = byId("slDemoNote");
-        if (note) note.textContent = "Mapa com localizações aproximadas. Dados pessoais protegidos; fotografias dos exemplos são ilustrativas.";
+        if (note) note.textContent = "Acompanhe os atendimentos ativos por região. Localizações aproximadas e dados pessoais protegidos.";
         updateCount();
         var toggle = byId("slToggleCases");
         if (toggle) toggle.addEventListener("click", function () {
