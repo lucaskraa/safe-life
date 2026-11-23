@@ -17,7 +17,7 @@ assert(css.includes("#welcomeScreen .sl-map"), "Mapa sem CSS isolado");
 assert(css.includes("#welcomeScreen .sl-hero::after {content:none!important"), "Curva clara do hero não removida");
 assert(css.includes("#welcomeScreen.screen,") && css.includes("padding:0!important"), "Espaço inferior da landing não removido");
 assert(js.includes("L.featureGroup().addTo(lmap)"), "Camada de mapa não suporta getBounds");
-assert(js.includes("/api/landing/ocorrencias-demo"), "API da landing não ligada");
+assert(js.includes("/api/landing/ocorrencias"), "API pública da landing não ligada");
 assert(html.includes('id="slCaseDialog"'), "Janela de detalhes da landing ausente");
 assert(html.includes('id="adminOccurrenceDetailDialog"'), "Janela de detalhes admin ausente");
 assert(js.includes("openCaseDialog(c)"), "Os cards da landing não abrem as fotos e detalhes");
@@ -33,8 +33,19 @@ assert(server.includes("p.fonte = 'ocorrencia'"), "API pública deve excluir den
 assert(html.includes("É simples! É rápido! É por eles!"), "Título principal deve usar exclamações");
 assert(!html.includes("Projeto acadêmico de TCC"), "Remover referência acadêmica da landing");
 
-assert((js.match(/"bairro":/g) || []).length === 12, "Não há 12 casos demonstrativos de fallback");
-assert(server.includes('app.get("/api/landing/ocorrencias-demo"'), "Endpoint demonstrativo ausente");
+assert(!js.includes("DEMO_CASES"), "A landing não pode criar os 12 casos antigos sem consultar a API");
+assert(js.includes("visibleCases().forEach") && js.includes("visible.forEach"), "Os filtros precisam atualizar o mapa e a lista");
+assert(js.includes("initCategoryFilters()"), "Filtros da Central do Cidadão não estão ligados");
+assert(html.includes("data-category=\"SOS Emergência\"") && html.includes("data-category=\"Solicitar Resgate\"") && html.includes("data-category=\"Reportar Ocorrência\""), "Filtros diferentes das opções reais do cidadão");
+assert(html.includes("Aguardando atendimento") && html.includes("Em atendimento"), "Legenda com etapas públicas incorretas");
+assert(!html.includes("sl-legend-done"), "Concluído não pode aparecer na legenda pública");
+assert(css.includes('url("./about-photo.jpg")'), "Foto original da seção Sobre ausente");
+assert(fs.statSync("about-photo.jpg").size > 20000, "A foto nova da seção Sobre está ausente");
+assert(!html.includes("A proposta é aproximar a comunidade"), "Texto antigo da seção Sobre ainda presente");
+assert(!/Ver foto e detalhes/i.test(html + js), "Botão indesejado ainda aparece na landing");
+assert(!/\bTCC\b/i.test(html + css + js + adminJs), "A interface não pode fazer referência ao TCC");
+assert(server.includes('app.get(["/api/landing/ocorrencias", "/api/landing/ocorrencias-demo"]'), "Endpoint público de ocorrências ausente");
+assert(server.includes("lower(coalesce(o.categoria"), "Tipos do mapa devem refletir as categorias do cidadão");
 for(const file of ["landing-cao-abrigo-primeiro-plano.jpg","landing-abrigo-sobre.jpg","landing-abrigo-cta-opcao.jpg"]) {
   assert(fs.statSync(file).size > 15000, "Fotografia faltando: " + file);
 }
