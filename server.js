@@ -3973,7 +3973,11 @@ app.get("/api/ocorrencias", verificarSessaoUsuario, async (req, res) => {
         const result = await pool.query(
             `
             SELECT *
-            FROM view_ocorrencias_completas
+            FROM (
+                SELECT v.*, o.demonstrativo
+                FROM view_ocorrencias_completas v
+                JOIN ocorrencias o ON o.id = v.id
+            ) AS view_ocorrencias_completas
             ${where}
             ORDER BY criado_em DESC
             `,
