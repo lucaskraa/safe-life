@@ -70,6 +70,14 @@ const { Pool } = require("pg");
     assert(seeded.rowCount>=1,"Os exemplos não foram vinculados à conta de demonstração");
     assert(seeded.rows.every(x=>x.usuario_id===citizen.rows[0].id),
       "Exemplo vinculado à conta errada");
+    const labels = await client.query(`
+      SELECT count(*)::int AS total FROM ocorrencias
+      WHERE demonstrativo=TRUE
+        AND (detalhes ~* 'exemplo ilustrativo'
+          OR localizacao ~* '\\(exemplo\\)'
+          OR endereco_completo ~* '\\(exemplo\\)')
+    `);
+    assert.equal(labels.rows[0].total,0,"Rótulos de exemplo ainda estão gravados nos registros de demonstração");
 
     await client.query("ROLLBACK");
     console.log("Mapa: novo chamado identificado, autoria, privacidade, anonimato e conclusão OK (rollback)");
