@@ -1194,14 +1194,33 @@ async function verificarLeituraOcorrencia(req, res, next) {
 // Landing pública: somente casos fictícios isolados dos registros reais.
 app.get("/api/landing/ocorrencias-demo", async (req, res) => {
     try {
-        const result = await pool.query(
-            "SELECT id, bairro, tipo, titulo, texto, acao, status, lat, lng, foto_url FROM public.ocorrencias_demo_landing WHERE demonstrativa = true ORDER BY id LIMIT 30"
-        );
-        res.setHeader("Cache-Control", "public, max-age=60");
-        return res.status(200).json({ demonstrativo: true, casos: result.rows });
+        // Somente campos publicos: titulo generico, bairro aproximado e foto ilustrativa.
+        // Sem GPS exato, identificador interno, dados do cidadao ou evidencia original.
+        const result = await pool.query(`
+            SELECT id, fonte, bairro, tipo, titulo, texto, acao, status, lat, lng, foto_url, inserido_em
+            FROM public.landing_casos_publicos
+            ORDER BY inserido_em DESC, id DESC
+            LIMIT 12
+        `);
+        const rows = result.rows.map((row) => ({
+            id: "vitrine-" + row.id,
+            bairro: row.bairro,
+            tipo: row.tipo,
+            titulo: row.titulo,
+            texto: row.texto,
+            acao: row.acao,
+            status: row.status,
+            lat: Number(row.lat),
+            lng: Number(row.lng),
+            foto_url: row.foto_url,
+            data: row.inserido_em,
+            demonstrativo: row.fonte === "demo"
+        }));
+        res.setHeader("Cache-Control", "no-store");
+        return res.status(200).json({ casos: rows, demonstrativo: rows.every((row) => row.demonstrativo) });
     } catch (erro) {
-        console.error("Falha ao consultar casos demonstrativos da landing:", erro.message);
-        return res.status(503).json({ demonstrativo: true, casos: [], erro: "Casos demonstrativos temporariamente indisponíveis" });
+        console.error("Falha ao consultar vitrine publica:", erro.message);
+        return res.status(503).json({ casos: [], erro: "Casos publicos temporariamente indisponiveis" });
     }
 });
 
@@ -5118,7 +5137,7 @@ app.get("/api/admin/central-ocorrencias", verificarAdmin, async (req,res) => {
             pool.query(`SELECT r.id,r.status,r.iniciado_em,r.destino_nome,p.nome AS pet_nome
                         FROM resgates_pets r LEFT JOIN pets p ON p.id=r.pet_id ORDER BY r.iniciado_em DESC LIMIT 250`),
             pool.query(`SELECT id,nome,especie,status_pet,localizacao,observacoes,criado_em FROM pets WHERE ativo=TRUE ORDER BY criado_em DESC LIMIT 250`),
-            pool.query(`SELECT id,bairro,tipo,titulo,texto,acao,status,foto_url FROM ocorrencias_demo_landing WHERE demonstrativa=true ORDER BY id LIMIT 30`)
+            pool.query(`SELECT id,fonte,bairro,tipo,titulo,texto,acao,status,foto_url FROM landing_casos_publicos ORDER BY inserido_em DESC,id DESC LIMIT 12`)
         ]);
         const registros=[];
         for (const r of ocorrencias.rows) registros.push({
@@ -5143,8 +5162,8 @@ app.get("/api/admin/central-ocorrencias", verificarAdmin, async (req,res) => {
             data:r.criado_em
         });
         for (const r of demo.rows) registros.push({
-            grupo:"demo",id:"demo-"+r.id,tipoLabel:"Exemplo acadêmico",
-            demonstrativo:true,titulo:r.titulo||r.tipo,
+            grupo:"demo",id:"mapa-"+r.id,tipoLabel:r.fonte==="demo" ? "Ilustrativo" : "No mapa",
+            demonstrativo:r.fonte==="demo",titulo:r.titulo||r.tipo,
             local:r.bairro,status:r.status,descricao:r.texto,providencias:r.acao,
             foto:r.foto_url || null
         });
