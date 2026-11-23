@@ -1,6 +1,6 @@
 "use strict";
-/* Safe Life — teste isolado de rotacao, privacidade e status da vitrine.
- * Todas as insercoes e atualizacoes do teste sao revertidas com ROLLBACK. */
+/* Teste transacional: só chamados identificados entram na vitrine pública.
+ * Dados reais preservados: todas as operações deste teste sofrem ROLLBACK. */
 const assert = require("node:assert/strict");
 const { Pool } = require("pg");
 
@@ -9,33 +9,70 @@ const { Pool } = require("pg");
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    const before = await client.query("SELECT id, fonte FROM landing_casos_publicos ORDER BY id");
-    assert.equal(before.rowCount, 12, "A vitrine deve conter exatamente 12 registros");
-    const inserted = await client.query(`
+    const citizen = await client.query("SELECT id FROM usuarios WHERE cpf='11111111111' AND tipo='citizen' LIMIT 1");
+    assert(citizen.rowCount === 1, "A conta demonstrativa de cidadão precisa existir no CI");
+
+    // Denúncias anônimas continuam operacionais, mas NÃO entram no mapa.
+    const anonymous = await client.query(`
       INSERT INTO denuncias_anonimas
        (tipo,categoria,assunto,localizacao,detalhes,bairro,cidade,estado,latitude,longitude)
-      VALUES ('SOS teste', 'abandono', 'Rua privada e nome pessoal sigiloso',
-              'Rua confidencial 22', 'Contato privado 99999', 'Centro',
-              'Araucária', 'PR', -25.59212345, -49.41234567)
+      VALUES ('Denúncia Anônima','anonymous','Caso sigiloso',
+              'Rua privada 22','Contato privado 99999','Centro',
+              'Araucária','PR',-25.59212345,-49.41234567)
       RETURNING id
     `);
-    const id = inserted.rows[0].id;
-    const after = await client.query("SELECT * FROM landing_casos_publicos ORDER BY id");
-    assert.equal(after.rowCount, 12, "Novo registro deve substituir exatamente uma posicao");
-    const changed = after.rows.find((row) => row.fonte === "anonima" && row.origem_id === id);
-    assert(changed, "Nova denuncia anonima nao entrou na vitrine");
-    assert.notEqual(Number(changed.lat), -25.59212345, "GPS exato vazou");
-    assert.notEqual(Number(changed.lng), -49.41234567, "GPS exato vazou");
-    assert(!/confidencial|privad|sigiloso|99999|rua privada/i.test(
-       JSON.stringify({ title:changed.titulo, description:changed.texto, action:changed.acao })
-    ), "Texto privado vazou");
-    await client.query("UPDATE denuncias_anonimas SET status='CONCLUIDA' WHERE id=$1", [id]);
-    const status = await client.query("SELECT status FROM landing_casos_publicos WHERE fonte='anonima' AND origem_id=$1", [id]);
-    assert.equal(status.rows[0]?.status, "done", "Conclusao deve atualizar status sem remover o registro");
-    const retained = await client.query("SELECT count(*)::int AS total FROM landing_casos_publicos");
-    assert.equal(retained.rows[0].total, 12, "Conclusao nao deve reduzir o numero de cartoes");
+    const anonymousId = anonymous.rows[0].id;
+    const noAnonymous = await client.query(
+      "SELECT id FROM landing_casos_publicos WHERE fonte='anonima' AND origem_id=$1",[anonymousId]
+    );
+    assert.equal(noAnonymous.rowCount,0,"Denúncia anônima apareceu no mapa");
+
+    // O mapa, o profissional e o perfil do cidadão passam a referir
+    // a MESMA ocorrência em ocorrencias.usuario_id.
+    const inserted = await client.query(`
+      INSERT INTO ocorrencias
+      (usuario_id,tipo,categoria,assunto,opcao_escolhida,localizacao,detalhes,
+       bairro,cidade,estado,latitude,longitude,prioridade,anonima)
+      VALUES ($1,'Ocorrência Animal','report','Animal ferido','Animal ferido',
+              'Endereço privado 12','Nome privado e telefone 99999',
+              'Centro','Araucária','PR',-25.59212345,-49.41234567,'NORMAL',FALSE)
+      RETURNING id,usuario_id
+    `,[citizen.rows[0].id]);
+    const caseId = inserted.rows[0].id;
+    assert.equal(inserted.rows[0].usuario_id,citizen.rows[0].id);
+
+    const publicCase = await client.query(
+      "SELECT * FROM landing_casos_publicos WHERE fonte='ocorrencia' AND origem_id=$1",[caseId]
+    );
+    assert.equal(publicCase.rowCount,1,"Chamado identificado não atualizou mapa");
+    const row = publicCase.rows[0];
+    assert.notEqual(Number(row.lat),-25.59212345,"Coordenada precisa foi publicada");
+    assert.notEqual(Number(row.lng),-49.41234567,"Coordenada precisa foi publicada");
+    assert.equal(row.tipo,"Reportar Ocorrência","Categoria pública não coincide com a do cidadão");
+    assert(!/privado|99999/i.test(JSON.stringify({texto:row.texto,titulo:row.titulo,acao:row.acao})),
+      "O mapa divulgou informação confidencial");
+
+    await client.query("UPDATE ocorrencias SET status='EM_ATENDIMENTO' WHERE id=$1",[caseId]);
+    let status = await client.query("SELECT status FROM landing_casos_publicos WHERE origem_id=$1 AND fonte='ocorrencia'",[caseId]);
+    assert.equal(status.rows[0]?.status,"progress","Status da vitrine não acompanhou atendimento");
+    await client.query("UPDATE ocorrencias SET status='CONCLUIDA' WHERE id=$1",[caseId]);
+    status = await client.query("SELECT status FROM landing_casos_publicos WHERE origem_id=$1 AND fonte='ocorrencia'",[caseId]);
+    assert.equal(status.rows[0]?.status,"done","Histórico da vitrine deve preservar status concluído");
+    const visible = await client.query(
+      "SELECT id FROM landing_casos_publicos WHERE origem_id=$1 AND fonte='ocorrencia' AND status <> 'done'",[caseId]
+    );
+    assert.equal(visible.rowCount,0,"Concluído não pode continuar visível no mapa");
+
+    const seeded = await client.query(`
+       SELECT o.id, o.usuario_id FROM ocorrencias o
+       WHERE o.demonstrativo AND o.demo_origem_id IS NOT NULL
+    `);
+    assert(seeded.rowCount>=1,"Os exemplos não foram vinculados à conta de demonstração");
+    assert(seeded.rows.every(x=>x.usuario_id===citizen.rows[0].id),
+      "Exemplo vinculado à conta errada");
+
     await client.query("ROLLBACK");
-    console.log("Vitrine: 12 posicoes, rotacao por nova denuncia, privacidade e status OK (rollback)");
+    console.log("Mapa: novo chamado identificado, autoria, privacidade, anonimato e conclusão OK (rollback)");
   } catch (err) {
     await client.query("ROLLBACK").catch(() => {});
     throw err;
