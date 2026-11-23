@@ -422,20 +422,25 @@
             lmap = L.map(holder, {
                 center: ARAUCARIA,
                 zoom: 12,
-                scrollWheelZoom: false,
+                scrollWheelZoom: true,
+                doubleClickZoom: true,
+                touchZoom: true,
+                boxZoom: true,
+                zoomSnap: 0.5,
+                minZoom: 10,
+                maxZoom: 19,
                 attributionControl: true,
                 zoomControl: false
             });
-            L.control.zoom({ position: "topright" }).addTo(lmap);
+            L.control.zoom({ position: "topright", zoomInTitle: "Aproximar mapa", zoomOutTitle: "Afastar mapa" }).addTo(lmap);
 
             L.tileLayer(TILES, {
                 attribution: TILES_ATTRIB,
                 maxZoom: 19
             }).addTo(lmap);
 
-            // O scroll do mapa só é ativado depois que a pessoa interage com ele.
-            lmap.on("click", function () { lmap.scrollWheelZoom.enable(); });
-            lmap.on("mouseout", function () { lmap.scrollWheelZoom.disable(); });
+            // Zoom: roda do mouse, duplo clique, pinça em telas de toque e botões + / −.
+            // Permanece ativado enquanto o mapa estiver visível para navegação intuitiva.
 
             renderMarkers();
             if (markerLayer && markerLayer.getLayers().length && typeof markerLayer.getBounds === "function") {
