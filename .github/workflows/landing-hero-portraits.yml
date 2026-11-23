@@ -1,0 +1,29 @@
+name: Comparar retratos de cães em abrigos
+on:
+  push:
+    paths:
+      - '.github/workflows/landing-hero-portraits.yml'
+permissions:
+  contents: write
+jobs:
+  photos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retratos reais de abrigo
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fLsS --retry 3 --connect-timeout 15 --max-time 80 'https://images.pexels.com/photos/12195420/pexels-photo-12195420.jpeg?auto=compress&cs=tinysrgb&w=1800' -o landing-cao-abrigo-primeiro-plano.jpg
+          curl -fLsS --retry 3 --connect-timeout 15 --max-time 80 'https://images.pexels.com/photos/20049560/pexels-photo-20049560.jpeg?auto=compress&cs=tinysrgb&w=1800' -o landing-cao-abrigo-pb.jpg
+          for asset in landing-cao-abrigo-primeiro-plano.jpg landing-cao-abrigo-pb.jpg; do
+            test "$(wc -c < "$asset")" -gt 30000
+            file "$asset" | grep -Eiq 'JPEG image data'
+          done
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add landing-cao-abrigo-primeiro-plano.jpg landing-cao-abrigo-pb.jpg
+          if ! git diff --cached --quiet; then
+            git commit -m "Landing: retratos de cachorro em abrigo para hero"
+            git push
+          fi
