@@ -3478,47 +3478,151 @@
         }
     }
 
+    const adminOccurrencePhotos = new Set([
+        "landing-cao-abrigo-primeiro-plano.jpg",
+        "landing-abrigo-sobre.jpg",
+        "landing-abrigo-cta-opcao.jpg",
+        "landing-abrigo-hero-opcao.jpg",
+        "landing-abrigo-hero.jpg",
+        "landing-cao-abrigo-pb.jpg",
+        "landing-abrigo-cta.jpg"
+    ]);
+
+    function fotoCentralSegura(item) {
+        if (!item || !item.demonstrativo || !item.foto) return "";
+        const name = String(item.foto).replace(/^\.\//, "");
+        return adminOccurrencePhotos.has(name) ? "./" + name : "";
+    }
+
+    function statusCentralLegivel(value) {
+        return ({
+            open:"Em análise",
+            progress:"Em atendimento",
+            done:"Concluído",
+            CADASTRADO:"Cadastrado",
+            DESAPARECIDO:"Desaparecido",
+            ENCONTRADO:"Encontrado",
+            PENDENTE:"Pendente",
+            EM_ATENDIMENTO:"Em atendimento",
+            CONCLUIDO:"Concluído"
+        })[String(value || "")] || String(value || "Não informado").replace(/_/g, " ");
+    }
+
     function desenharCentralOcorrenciasAdmin() {
         const box = byId("adminAuditList");
         if (!box) return;
-        const selected = centralOcorrenciasCache.filter(item => centralOcorrenciasTipo === "todos" || item.grupo === centralOcorrenciasTipo);
-        text("adminOccurrenceCount", selected.length + " registro(s) nesta categoria");
+        const selected = centralOcorrenciasCache.filter(function(item) {
+            return centralOcorrenciasTipo === "todos" || item.grupo === centralOcorrenciasTipo;
+        });
+        text("adminOccurrenceCount", selected.length + " registro(s)");
         document.querySelectorAll("#adminOccurrenceFilters [data-type]").forEach(function(button) {
-            button.classList.toggle("is-selected", button.dataset.type === centralOcorrenciasTipo);
-            button.setAttribute("aria-pressed", String(button.dataset.type === centralOcorrenciasTipo));
+            const active = button.dataset.type === centralOcorrenciasTipo;
+            button.classList.toggle("is-selected", active);
+            button.setAttribute("aria-pressed", String(active));
         });
         box.replaceChildren();
         if (!selected.length) {
-            box.textContent = "Nenhum registro nesta categoria.";
+            const empty = document.createElement("div");
+            empty.className = "occurrence-card";
+            empty.textContent = "Nenhum registro nesta categoria.";
+            box.appendChild(empty);
             return;
         }
         selected.forEach(function(item) {
             const card = document.createElement("article");
             card.className = "occurrence-card sl-admin-record";
-            const heading = document.createElement("h4");
-            heading.textContent = item.titulo || "Registro";
-            card.appendChild(heading);
+            const button = document.createElement("button");
+            button.className = "sl-admin-record-trigger";
+            button.type = "button";
+            button.setAttribute("aria-label", "Ver detalhes de " + (item.titulo || "registro"));
+
+            const photoUrl = fotoCentralSegura(item);
+            if (photoUrl) {
+                const img = document.createElement("img");
+                img.className = "sl-admin-record-image";
+                img.src = photoUrl;
+                img.loading = "lazy";
+                img.alt = "Foto ilustrativa de animal";
+                img.onerror = function() { img.hidden = true; };
+                button.appendChild(img);
+            }
+
+            const info = document.createElement("div");
+            info.className = "sl-admin-record-content";
+            const heading = document.createElement("div");
+            heading.className = "sl-admin-record-heading";
+            const title = document.createElement("h4");
+            title.textContent = item.titulo || "Registro";
+            heading.appendChild(title);
+
             const tag = document.createElement("span");
             tag.className = "sl-admin-type-tag" + (item.demonstrativo ? " is-demo" : "");
-            tag.textContent = item.demonstrativo ? "Fictício • demonstração TCC" : item.tipoLabel;
-            card.appendChild(tag);
-            [
-                ["Local", item.local],
-                ["Status", item.status],
-                ["Data", item.data ? dateTime(item.data) : ""],
-                ["Descrição", item.descricao],
-                ["Providências", item.providencias]
-            ].forEach(function (line) {
-                if (!line[1]) return;
-                const p = document.createElement("p");
-                const strong = document.createElement("strong");
-                strong.textContent = line[0] + ": ";
-                p.appendChild(strong);
-                p.appendChild(document.createTextNode(String(line[1])));
-                card.appendChild(p);
+            tag.textContent = item.demonstrativo ? "Ilustrativo" : item.tipoLabel;
+            heading.appendChild(tag);
+            info.appendChild(heading);
+
+            const meta = document.createElement("div");
+            meta.className = "sl-admin-record-meta";
+            const location = document.createElement("span");
+            location.textContent = item.local || "Local não informado";
+            const status = document.createElement("span");
+            status.textContent = statusCentralLegivel(item.status);
+            meta.append(location,status);
+            info.appendChild(meta);
+
+            if (item.descricao) {
+                const description = document.createElement("p");
+                description.className = "sl-admin-record-description";
+                description.textContent = item.descricao;
+                info.appendChild(description);
+            }
+            const view = document.createElement("span");
+            view.className = "sl-admin-record-view";
+            view.textContent = photoUrl ? "Ver foto e descrição →" : "Ver detalhes →";
+            info.appendChild(view);
+            button.appendChild(info);
+            button.addEventListener("click", function() {
+                abrirDetalheCentralOcorrenciasAdmin(item.id);
             });
+            card.appendChild(button);
             box.appendChild(card);
         });
+    }
+
+    function abrirDetalheCentralOcorrenciasAdmin(id) {
+        if (!requireUser("admin")) return;
+        const item = centralOcorrenciasCache.find(function(entry) {return entry.id === id;});
+        const dialog = byId("adminOccurrenceDetailDialog");
+        if (!item || !dialog) return;
+        text("adminOccurrenceDetailTitle", item.titulo || "Registro");
+        text("adminOccurrenceDetailType", item.demonstrativo ? "Ocorrência no mapa · Ilustrativa" : (item.tipoLabel || "Registro"));
+        text("adminOccurrenceDetailMeta", [
+            item.local || "Local não informado",
+            statusCentralLegivel(item.status),
+            item.data ? dateTime(item.data) : ""
+        ].filter(Boolean).join(" · "));
+        text("adminOccurrenceDetailDescription", item.descricao || "Descrição não informada.");
+        text("adminOccurrenceDetailActions", item.providencias || "Não há informações adicionais sobre as providências.");
+        const disclaimer = byId("adminOccurrenceDetailDisclaimer");
+        if (disclaimer) disclaimer.hidden = !item.demonstrativo;
+        const photo = fotoCentralSegura(item);
+        const image = byId("adminOccurrenceDetailImage");
+        const wrapper = byId("adminOccurrenceDetailImageWrap");
+        if (wrapper) wrapper.hidden = !photo;
+        if (image) {
+            if (photo) {
+                image.src = photo;
+                image.alt = "Fotografia ilustrativa do animal relacionada a " + (item.titulo || "ocorrência");
+            } else {
+                image.removeAttribute("src");
+            }
+        }
+        if (typeof dialog.showModal === "function" && !dialog.open) dialog.showModal();
+    }
+
+    function fecharDetalheCentralOcorrenciasAdmin() {
+        const dialog = byId("adminOccurrenceDetailDialog");
+        if (dialog && dialog.open) dialog.close();
     }
 
     function filtrarCentralOcorrenciasAdmin(tipo) {
@@ -4034,6 +4138,8 @@
         filtrarFuncionariosAdmin,
         abrirCentralOcorrenciasAdmin,
         filtrarCentralOcorrenciasAdmin,
+        abrirDetalheCentralOcorrenciasAdmin,
+        fecharDetalheCentralOcorrenciasAdmin,
         abrirRelatorioPlantao,
         atualizarPainelProfissionalAgora,
         encerrarSessaoPorStatus
