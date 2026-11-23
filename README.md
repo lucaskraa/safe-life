@@ -53,7 +53,7 @@ APP_SECRET=troque-esta-chave
 # admin 33333333333 / 123456
 ```
 
-Em produção, use um `APP_SECRET` forte. As três contas Antonio são deliberadamente públicas e o servidor garante essas credenciais no banco ao iniciar, porque o ambiente é de demonstração do TCC.
+Em produção, use um `APP_SECRET` forte. As três contas Antonio são deliberadamente públicas e o servidor garante essas credenciais no banco ao iniciar, porque o ambiente é de demonstração do Safe Life.
 
 ## Testes
 
