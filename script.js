@@ -1747,7 +1747,51 @@
         const avatar = byId("profileAvatar");
         setImageSource(avatar, user.foto, defaultUserPhoto(user));
 
-        await Promise.allSettled([loadCitizenPets(), loadCitizenNotifications()]);
+        await Promise.allSettled([loadCitizenPets(), loadCitizenNotifications(), loadCitizenOccurrences()]);
+    }
+
+    async function loadCitizenOccurrences() {
+        const petRoot = byId("myPetsContainer");
+        const host = petRoot && petRoot.parentElement && petRoot.parentElement.parentElement;
+        if (!host) return;
+        let section = byId("citizenMyOccurrences");
+        if (!section) {
+            section = document.createElement("section");
+            section.id = "citizenMyOccurrences";
+            section.className = "occurrence-card";
+            host.insertBefore(section, petRoot.parentElement);
+        }
+        section.replaceChildren();
+        section.appendChild(Object.assign(document.createElement("h4"), { textContent: "Minhas ocorrências" }));
+        const statusNames = {
+            PENDENTE: "Aguardando atendimento",
+            EM_ATENDIMENTO: "Em atendimento",
+            CONCLUIDA: "Concluída",
+            CANCELADA: "Cancelada"
+        };
+        try {
+            const records = await api("/api/ocorrencias", {}, 30000);
+            if (!Array.isArray(records) || !records.length) {
+                section.appendChild(Object.assign(document.createElement("p"), { textContent: "Você ainda não registrou ocorrências." }));
+                return;
+            }
+            records.slice(0, 30).forEach(function(item) {
+                const article = document.createElement("article");
+                article.className = "safe-v19-notification";
+                const container = document.createElement("div");
+                const title = document.createElement("strong");
+                title.textContent = (item.assunto || item.opcao_escolhida || item.tipo || "Ocorrência") + (item.demonstrativo ? " · Exemplo" : "");
+                const status = document.createElement("p");
+                status.textContent = statusNames[item.status] || String(item.status || "PENDENTE").replace(/_/g, " ");
+                const description = document.createElement("small");
+                description.textContent = [item.bairro || item.localizacao || "", dateTime(item.criado_em)].filter(Boolean).join(" · ");
+                container.append(title, status, description);
+                article.appendChild(container);
+                section.appendChild(article);
+            });
+        } catch (_) {
+            section.appendChild(Object.assign(document.createElement("p"), { textContent: "Não foi possível consultar suas ocorrências agora." }));
+        }
     }
 
     async function loadCitizenPets() {
@@ -1867,7 +1911,7 @@
             card.className = "pro-recent-case";
             card.setAttribute("aria-label", "Abrir fila de atendimentos: " + (item.assunto || item.tipo || "Chamado"));
             const photoUrl = occurrenceMedia(item);
-            if (photoUrl && (photoUrl.startsWith("data:image/") || /^https?:\/\//.test(photoUrl))) {
+            if (photoUrl && (photoUrl.startsWith("data:image/") || photoUrl.startsWith("./") || /^https?:\/\//.test(photoUrl))) {
                 const image = document.createElement("img");
                 image.className = "pro-recent-photo";
                 image.src = photoUrl;
@@ -2169,6 +2213,10 @@
     }
 
     function occurrenceMedia(item) {
+        if (item && item.demonstrativo && item.demo_origem_id) {
+            const filename = demoOccurrencePhotos[Number(item.demo_origem_id)];
+            if (filename && adminOccurrencePhotos.has(filename)) return "./" + filename;
+        }
         const source = String(
             item && (item.foto || item.midia || item.media) || ""
         ).trim();
@@ -2223,6 +2271,7 @@
         const origin = item.origem || (item.anonima ? "anonima" : "ocorrencia");
         const title = item.opcao_escolhida || item.assunto || item.tipo || "Chamado";
         const reporter = origin === "anonima" ? "Anônimo" : item.nome_usuario || "Cidadão";
+        const demoTitle = item.demonstrativo ? " [EXEMPLO]" : "";
         const userPhoto = resolveUserPhoto(
             {
                 cpf: item.cpf_usuario || item.usuario_cpf || "",
@@ -2242,7 +2291,7 @@
         return `<article class="safe-v19-occurrence-card priority-${priority.toLowerCase()}">
             <div class="safe-v19-occurrence-head">
                 <img src="${escapeHtml(userPhoto)}" data-fallback="${escapeHtml(defaultUserPhoto({ cpf: item.cpf_usuario, nome: reporter, type: "citizen" }))}" onerror="this.onerror=null;this.src=this.dataset.fallback" alt="Foto de ${escapeHtml(reporter)}">
-                <div><h4>${escapeHtml(title)}</h4><p><strong>Nome:</strong> ${escapeHtml(reporter)}</p><small>${escapeHtml(item.tipo || item.categoria || "Ocorrência")} • ${escapeHtml(status)}</small></div>
+                <div><h4>${escapeHtml(title + demoTitle)}</h4><p><strong>Nome:</strong> ${escapeHtml(reporter)}</p><small>${escapeHtml(item.tipo || item.categoria || "Ocorrência")} • ${escapeHtml(status)}</small></div>
                 <span class="safe-v19-priority">${escapeHtml(priority)}</span>
             </div>
             <div class="safe-v19-data"><strong>Endereço:</strong> ${escapeHtml(item.endereco_completo || item.localizacao || "Não informado")}</div>
@@ -3546,21 +3595,29 @@
         "landing-abrigo-cta.jpg"
     ]);
 
+    const demoOccurrencePhotos = {
+        1:"landing-cao-abrigo-primeiro-plano.jpg",2:"landing-abrigo-sobre.jpg",
+        3:"landing-abrigo-cta-opcao.jpg",4:"landing-abrigo-hero-opcao.jpg",
+        5:"landing-abrigo-hero.jpg",6:"landing-cao-abrigo-pb.jpg",
+        7:"landing-cao-abrigo-primeiro-plano.jpg",8:"landing-abrigo-sobre.jpg",
+        9:"landing-abrigo-hero.jpg",10:"landing-abrigo-hero-opcao.jpg",
+        11:"landing-abrigo-cta.jpg",12:"landing-cao-abrigo-pb.jpg"
+    };
     function fotoCentralSegura(item) {
-        if (!item || !item.demonstrativo || !item.foto) return "";
-        const name = String(item.foto).replace(/^\.\//, "");
+        if (!item || !item.demonstrativo) return "";
+        const name = demoOccurrencePhotos[Number(item.demoId || item.demo_origem_id)] || "";
         return adminOccurrencePhotos.has(name) ? "./" + name : "";
     }
 
     function statusCentralLegivel(value) {
         return ({
-            open:"Em análise",
+            open:"Aguardando atendimento",
             progress:"Em atendimento",
             done:"Concluído",
             CADASTRADO:"Cadastrado",
             DESAPARECIDO:"Desaparecido",
             ENCONTRADO:"Encontrado",
-            PENDENTE:"Pendente",
+            PENDENTE:"Aguardando atendimento",
             EM_ATENDIMENTO:"Em atendimento",
             CONCLUIDO:"Concluído"
         })[String(value || "")] || String(value || "Não informado").replace(/_/g, " ");
@@ -3614,8 +3671,8 @@
             heading.appendChild(title);
 
             const tag = document.createElement("span");
-            tag.className = "sl-admin-type-tag" + (item.demonstrativo ? " is-demo" : "");
-            tag.textContent = item.demonstrativo ? "Ilustrativo" : item.tipoLabel;
+            tag.className = "sl-admin-type-tag";
+            tag.textContent = (item.tipoLabel || "Registro") + (item.demonstrativo ? " · Exemplo" : "");
             heading.appendChild(tag);
             info.appendChild(heading);
 
@@ -3626,6 +3683,11 @@
             const status = document.createElement("span");
             status.textContent = statusCentralLegivel(item.status);
             meta.append(location,status);
+            if (item.nomeCidadao) {
+                const author = document.createElement("span");
+                author.textContent = "Cidadão: " + item.nomeCidadao;
+                meta.appendChild(author);
+            }
             info.appendChild(meta);
 
             if (item.descricao) {
@@ -3653,9 +3715,10 @@
         const dialog = byId("adminOccurrenceDetailDialog");
         if (!item || !dialog) return;
         text("adminOccurrenceDetailTitle", item.titulo || "Registro");
-        text("adminOccurrenceDetailType", item.demonstrativo ? "Ocorrência no mapa · Ilustrativa" : (item.tipoLabel || "Registro"));
+        text("adminOccurrenceDetailType", item.tipoLabel || "Registro");
         text("adminOccurrenceDetailMeta", [
             item.local || "Local não informado",
+            item.nomeCidadao ? "Cidadão: " + item.nomeCidadao : "",
             statusCentralLegivel(item.status),
             item.data ? dateTime(item.data) : ""
         ].filter(Boolean).join(" · "));
@@ -3676,6 +3739,22 @@
             }
         }
         if (typeof dialog.showModal === "function" && !dialog.open) dialog.showModal();
+        // A evidência original só é buscada quando um administrador abre o chamado.
+        // Não transferir imagens e vídeos privados no endpoint que lista os cards.
+        dialog.dataset.recordId = item.id;
+        if (!photo && item.temFoto && /^ocorrencia-\d+$/.test(item.id)) {
+            api("/api/ocorrencias/" + item.id.slice("ocorrencia-".length), {}, 30000)
+                .then(function (record) {
+                    if (!dialog.open || dialog.dataset.recordId !== item.id || !record) return;
+                    const media = String(record.foto || "");
+                    if (media.startsWith("data:image/") && image) {
+                        image.src = media;
+                        image.alt = "Foto enviada com esta ocorrência";
+                        if (wrapper) wrapper.hidden = false;
+                    }
+                })
+                .catch(function () { /* detalhes textuais continuam disponíveis */ });
+        }
     }
 
     function fecharDetalheCentralOcorrenciasAdmin() {
@@ -3685,7 +3764,7 @@
 
     function filtrarCentralOcorrenciasAdmin(tipo) {
         if (!requireUser("admin")) return;
-        centralOcorrenciasTipo = ["todos","ocorrencia","anonima","resgate","pet","demo"].includes(tipo) ? tipo : "todos";
+        centralOcorrenciasTipo = ["todos","ocorrencia","anonima","resgate","pet","emergencia","desaparecido"].includes(tipo) ? tipo : "todos";
         desenharCentralOcorrenciasAdmin();
     }
 
